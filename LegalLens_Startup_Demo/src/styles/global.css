@@ -1,0 +1,85 @@
+/* ============================================================
+   LegalLens — global theme tokens & base styles
+   ============================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  --font-serif: Georgia, "Times New Roman", "Charter", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Wordmark gold while the startup scene is still on black. */
+  --startup-wordmark: #d8b15f;
+  --startup-glow: #e0a84f;
+}
+
+/* Light theme — off-white, navy text, restrained gold accent. */
+:root[data-theme="light"] {
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --field-bg: #fbfbfa;
+  --text: #1b2537;
+  --muted: #67717f;
+  --border: #e0e3e8;
+  --border-strong: #c9ced6;
+  --accent: #9f8130;
+  --accent-soft: rgba(159, 129, 48, 0.14);
+  --wordmark: #1b2537;
+  --button-bg: #1b2537;
+  --button-bg-hover: #2b3a55;
+  --button-text: #ffffff;
+  --shadow: 0 24px 70px rgba(23, 32, 48, 0.1), 0 2px 8px rgba(23, 32, 48, 0.05);
+}
+
+/* Dark theme — charcoal/navy, light text, restrained gold accent. */
+:root[data-theme="dark"] {
+  --bg: #11161d;
+  --surface: #171e28;
+  --field-bg: #131a22;
+  --text: #eef1f5;
+  --muted: #9aa4b3;
+  --border: #2b3542;
+  --border-strong: #3c4959;
+  --accent: #d0a64e;
+  --accent-soft: rgba(208, 166, 78, 0.14);
+  --wordmark: #d0a64e;
+  /* Dark mode CTA is gold with dark text (per the storyboard). */
+  --button-bg: #c9a24a;
+  --button-bg-hover: #d9b45f;
+  --button-text: #171c26;
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

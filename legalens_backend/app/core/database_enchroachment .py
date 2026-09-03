@@ -7,7 +7,7 @@ Provides async engine, session factory, and Base class.
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from app.core.config import settings
+from app.core.config_enchroachment import settings
 
 # Convert postgresql:// to postgresql+asyncpg://
 DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")

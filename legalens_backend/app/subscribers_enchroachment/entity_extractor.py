@@ -21,7 +21,7 @@ async def handle_text_extracted(payload: TextExtractedPayload):
         {"entity_type": EntityType.LOCATION.value, "value": "Sector 22, Noida", "confidence_score": 0.94},
     ]
     
-    await event_bus.emit(
+    await event_bus.publish(
         "entity.extracted",
         EntityExtractedPayload(
             document_id=payload.document_id,

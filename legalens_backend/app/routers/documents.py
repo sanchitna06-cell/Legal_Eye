@@ -72,7 +72,7 @@ async def upload_document(
     await db.commit()
     
     # Emit event for AI processing
-    await event_bus.emit(
+    await event_bus.publish(
         "document.uploaded",
         DocumentUploadedPayload(
             document_id=file_id,

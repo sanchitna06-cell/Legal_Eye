@@ -23,7 +23,7 @@ async def handle_document_uploaded(payload: DocumentUploadedPayload):
     """
     
     # Emit the extracted text event
-    await event_bus.emit(
+    await event_bus.publish(
         "text.extracted",
         TextExtractedPayload(
             document_id=payload.document_id,

@@ -1,0 +1,24 @@
+/* ============================================================
+   LegalLensStartup — the full-screen stage
+   ============================================================ */
+
+.startup-stage {
+  /* Left clearance for the settled branding — grows with the 4x brand
+     mark (same formula as --mark in BrandReveal.css) so the emblem
+     hanging off the wordmark's edge never clips. */
+  --brand-left: calc(clamp(110px, 11vw, 180px) + 56px);
+
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #000;
+  /* Step 8 — the theme transition happens with the login panel
+     entering: black → the user's light/dark background. */
+  transition: background-color 0.95s ease;
+}
+
+.startup-stage[data-phase="login"],
+.startup-stage[data-phase="done"] {
+  background: var(--bg);
+}

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_db
-from app.core.security import get_current_investigator
+from app.core.database_enchroachment import get_db
+from app.core.security_enchroachment import get_current_investigator
 from app.core.blockchain import blockchain
 from app.core.contracts import VerifyResponse
 from app.services.file_service import FileService
-from app.models.document import Document
+from app.models_encroachment.document import Document
 from datetime import datetime
 
 router = APIRouter(prefix="/blockchain", tags=["Blockchain"])
@@ -43,7 +43,7 @@ async def verify_document(
         # Emit integrity failed event
         from app.core.event_bus import event_bus
         from app.core.contracts import IntegrityFailedPayload
-        await event_bus.emit(
+        await event_bus.publish(
             "document.integrity_failed",
             IntegrityFailedPayload(
                 document_id=document_id,

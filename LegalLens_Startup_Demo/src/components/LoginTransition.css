@@ -1,0 +1,101 @@
+/* ============================================================
+   LoginTransition — the panel physically slides in from the right
+   ============================================================ */
+
+.login-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.login-card-wrap {
+  position: absolute;
+  right: clamp(28px, 5vw, 96px);
+  top: 50%;
+  width: min(430px, calc(50vw - 40px));
+  min-width: 320px;
+  transform: translateY(-50%) translateX(150%);
+  pointer-events: auto;
+  will-change: transform;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A quiet vertical rule between the left branding and the login card,
+   running the full height of the screen. It hugs the card's left edge
+   (same column math as the card), which keeps it roughly just right of
+   center on wide screens where the two-column layout applies. */
+.login-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(
+    100% - clamp(28px, 5vw, 96px) - min(430px, calc(50vw - 40px)) - 52px
+  );
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--border-strong) 30%, transparent) 0%,
+    var(--border-strong) 7%,
+    var(--border-strong) 93%,
+    color-mix(in srgb, var(--border-strong) 30%, transparent) 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease 0.35s;
+}
+
+.login-layer[data-phase="login"] .login-divider,
+.login-layer[data-phase="done"] .login-divider {
+  opacity: 1;
+}
+
+/* Step 6 — the panel arrives from the right as the brand settles left. */
+.login-layer[data-phase="login"] .login-card-wrap,
+.login-layer[data-phase="done"] .login-card-wrap {
+  transform: translateY(-50%) translateX(0);
+}
+
+
+
+/* ---- Mobile: stacked layout, panel below the brand ---- */
+
+@media (max-width: 1080px) {
+  /* With the 4x brand lockup on the left, medium widths get too tight
+     for a divider between the columns — step it aside. */
+  .login-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .login-layer {
+    overflow-y: auto;
+  }
+
+  /* No divider in the stacked mobile layout (belt & braces). */
+  .login-divider {
+    display: none;
+  }
+
+  .login-card-wrap {
+    right: auto;
+    left: 50%;
+    top: 58vh;
+    width: min(420px, calc(100vw - 40px));
+    min-width: 0;
+    transform: translate(-50%, -50%) translateX(150%);
+  }
+
+  .login-layer[data-phase="login"] .login-card-wrap,
+  .login-layer[data-phase="done"] .login-card-wrap {
+    transform: translate(-50%, -50%) translateX(0);
+  }
+}
+
+@media (max-width: 760px) and (max-height: 720px) {
+  .login-card-wrap {
+    top: 62vh;
+  }
+}

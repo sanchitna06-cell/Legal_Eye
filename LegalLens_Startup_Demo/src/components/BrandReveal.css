@@ -1,0 +1,226 @@
+/* ============================================================
+   BrandReveal — the persistent LegalLens branding
+   ============================================================ */
+
+.brand {
+  /* Rendered size of the brand mark (the custom PNG or SVG fallback).
+     ~4x the original size so the emblem's fine detail reads clearly. */
+  --mark: clamp(110px, 11vw, 180px);
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, left;
+  transition:
+    left 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    top 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-wordmark {
+  position: relative;
+  display: block;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(36px, 4vw, 68px);
+  letter-spacing: -0.02em;
+  color: var(--startup-wordmark);
+  opacity: 0;
+  transform: scale(1);
+  will-change: transform;
+  transition:
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.35s ease,
+    color 0.9s ease;
+}
+
+/* The thin gold light streak the wordmark seems to leave behind from
+   the impact — it draws out beneath the text during the center pop and
+   the hold, then quietly disappears as the brand settles left. */
+.brand-wordmark::after {
+  content: "";
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  bottom: -12px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--startup-glow) 90%, transparent) 22%,
+    color-mix(in srgb, var(--startup-glow) 90%, transparent) 78%,
+    transparent
+  );
+  box-shadow: 0 0 12px 1px color-mix(in srgb, var(--startup-glow) 55%, transparent);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  will-change: transform, opacity;
+  transition:
+    opacity 0.55s ease 0.3s,
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+}
+
+/* Scales icon / custom mark hangs off the wordmark's left edge
+   (absolute) so the wordmark alone is perfectly centered during the
+   pop and the hold. */
+.brand-icon {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-right: 20px;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.5);
+  transition:
+    opacity 0.4s ease 0.1s,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+}
+
+.brand-icon svg {
+  display: block;
+  width: var(--mark);
+  height: auto;
+}
+
+/* Custom brand mark (public/brand-mark.png) — keeps any aspect ratio. */
+.brand-icon .brand-mark {
+  display: block;
+  width: var(--mark);
+  height: var(--mark);
+  object-fit: contain;
+}
+
+.brand-tagline {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.5s ease 0.2s,
+    transform 0.5s ease 0.2s;
+}
+
+/* ---- Step 4: center pop, connected to the gavel impact ---- */
+
+.brand[data-phase="brandPop"] .brand-wordmark {
+  opacity: 1;
+  transform: scale(2.05);
+  animation: brand-pop 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes brand-pop {
+  0% {
+    opacity: 0;
+    transform: scale(1.7);
+    animation-timing-function: ease-out;
+  }
+  60% {
+    opacity: 1;
+    transform: scale(2.18);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(2.05);
+  }
+}
+
+/* The streak rides inside the wordmark's scale, drawing out right as
+   the pop peaks — the wordmark looks born from the impact light. */
+.brand[data-phase="brandPop"] .brand-wordmark::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* ---- Step 5: the calm beat — gavel gone, wordmark holds center ---- */
+
+.brand[data-phase="hold"] .brand-wordmark {
+  opacity: 1;
+  transform: scale(2.05);
+}
+
+.brand[data-phase="hold"] .brand-wordmark::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* ---- Steps 6–8: slide left, icon joins, theme recolor ---- */
+
+.brand[data-phase="slide"],
+.brand[data-phase="login"],
+.brand[data-phase="done"] {
+  /* Clearance grows with the mark so the 4x icon hanging off the
+     wordmark's left edge never clips. */
+  left: var(--brand-left, calc(clamp(110px, 11vw, 180px) + 56px));
+  transform: translate(0, -50%);
+}
+
+.brand[data-phase="slide"] .brand-wordmark,
+.brand[data-phase="login"] .brand-wordmark,
+.brand[data-phase="done"] .brand-wordmark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.brand[data-phase="slide"] .brand-icon,
+.brand[data-phase="login"] .brand-icon,
+.brand[data-phase="done"] .brand-icon {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.brand[data-phase="login"] .brand-wordmark,
+.brand[data-phase="done"] .brand-wordmark {
+  color: var(--wordmark);
+}
+
+.brand[data-phase="done"] .brand-tagline {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- Mobile: stacked layout, brand settles top-left ---- */
+
+@media (max-width: 760px) {
+  .brand-wordmark {
+    font-size: clamp(30px, 8.5vw, 48px);
+  }
+
+  /* The mark is anchored inside the box on mobile so the larger size
+     can't clip off the left edge; the wordmark shifts right to sit
+     beside it. */
+  .brand[data-phase="slide"],
+  .brand[data-phase="login"],
+  .brand[data-phase="done"] {
+    left: 6vw;
+    top: 12vh;
+    transform: translate(0, 0);
+    padding-left: calc(var(--mark) + 14px);
+  }
+
+  .brand[data-phase="slide"] .brand-icon,
+  .brand[data-phase="login"] .brand-icon,
+  .brand[data-phase="done"] .brand-icon {
+    right: auto;
+    left: 0;
+    margin-right: 0;
+  }
+
+  .brand-tagline {
+    white-space: normal;
+    max-width: 78vw;
+    line-height: 1.4;
+  }
+}

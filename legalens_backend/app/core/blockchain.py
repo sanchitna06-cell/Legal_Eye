@@ -10,7 +10,7 @@ import hashlib
 import os
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from app.core.config import settings
+from app.core.config_enchroachment import settings
 
 BLOCKCHAIN_PATH = os.path.join(settings.STORAGE_PATH, "blockchain.json")
 

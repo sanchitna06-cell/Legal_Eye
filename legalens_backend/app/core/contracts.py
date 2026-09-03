@@ -15,7 +15,7 @@ from enum import Enum
 # =========================================================
 
 class EntityType(str, Enum):
-    PERSON = "PERSON"
+    PERSON = "PERSON"   
     PHONE = "PHONE"
     AADHAAR = "AADHAAR"
     VEHICLE = "VEHICLE"
