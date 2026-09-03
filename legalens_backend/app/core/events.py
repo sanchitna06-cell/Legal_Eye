@@ -1,19 +1,26 @@
 """
-NyayaLens Event Names
-
-These strings are part of the internal communication contract.
-Do not casually rename them.
+app/core/events.py
+------------------
+Defines all event types for the EventBus.
 """
 
-DOCUMENT_UPLOADED = "document.uploaded"
-TEXT_EXTRACTED = "text.extracted"
-ENTITY_EXTRACTED = "entity.extracted"
-EVENT_EXTRACTED = "event.extracted"
+# All registered events
+EVENTS = {
+    "document.uploaded",
+    "text.extracted",
+    "entity.extracted",
+    "event.extracted",
+    "timeline.updated",
+    "conflict.detected",
+    "analysis.completed",
+    "document.integrity_failed",
+    "document.verified",
+    "case.created",
+    "case.updated",
+}
 
-TIMELINE_UPDATED = "timeline.updated"
 
-CONFLICT_DETECTED = "conflict.detected"
-
-ANALYSIS_COMPLETED = "analysis.completed"
-
-DOCUMENT_INTEGRITY_FAILED = "document.integrity_failed"
+def register_all_events():
+    """Placeholder to register events if needed."""
+    print(f"📋 Registered {len(EVENTS)} event types.")
+    return EVENTS

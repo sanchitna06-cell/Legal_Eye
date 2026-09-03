@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NyayaLens – Case Intelligence</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        /* --- RESET & BASE (Light & Crystalline) --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #79869c;
+            color: #1E293B;
+            display: flex;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* --- SIDEBAR (Light & Crisp) --- */
+        .sidebar {
+            width: 260px;
+            background: #a86b6b;
+            border-radius: 24px;
+            padding: 28px 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border: 1px solid #E9EDF4;
+            margin-right: 24px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0F172A;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #E9EDF4;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar .logo i {
+            color: #F97316;
+            font-size: 24px;
+        }
+
+        .sidebar .nav-section {
+            margin-bottom: 28px;
+        }
+        .sidebar .nav-section .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding-left: 8px;
+            margin-bottom: 12px;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            transition: 0.15s;
+            cursor: default;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-item i {
+            width: 20px;
+            color: #94A3B8;
+            font-size: 15px;
+        }
+        .sidebar .nav-item.active {
+            background: #FFF7ED;
+            color: #F97316;
+        }
+        .sidebar .nav-item.active i {
+            color: #F97316;
+        }
+        .sidebar .nav-item:hover:not(.active) {
+            background: #F8FAFC;
+        }
+
+        .role-badge {
+            background: #F1F5F9;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px dashed #CBD5E1;
+        }
+        .role-badge .title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+        }
+        .role-badge .desc {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            max-width: calc(100% - 284px);
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 16px 24px;
+            border: 1px solid #E9EDF4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .topbar h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .topbar h2 i {
+            color: #F97316;
+            margin-right: 10px;
+        }
+        .topbar .right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 13px;
+            color: #64748B;
+        }
+        .topbar .right .badge-status {
+            background: #F1F5F9;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-weight: 500;
+            color: #1E293B;
+        }
+        .topbar .right .badge-status i {
+            color: #22C55E;
+            margin-right: 6px;
+        }
+
+        /* --- CASE HEADER CARD --- */
+        .case-header {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 24px 28px;
+            border: 1px solid #E9EDF4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .case-header .left h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0F172A;
+            letter-spacing: -0.3px;
+        }
+        .case-header .left .sub {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #475569;
+            flex-wrap: wrap;
+        }
+        .case-header .left .sub .tag {
+            background: #F1F5F9;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .case-header .left .sub .tag.confidential {
+            background: #FEF2F2;
+            color: #DC2626;
+        }
+
+        .case-header .right {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 32px;
+            font-size: 13px;
+        }
+        .case-header .right .item .label {
+            color: #94A3B8;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .case-header .right .item .value {
+            font-weight: 500;
+            color: #1E293B;
+            margin-top: 2px;
+        }
+
+        /* --- METRICS ROW (Cards) --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid #E9EDF4;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            transition: 0.15s;
+        }
+        .metric-card:hover {
+            border-color: #F97316;
+        }
+        .metric-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0F172A;
+        }
+        .metric-card .number i {
+            font-size: 18px;
+            color: #94A3B8;
+            margin-left: 6px;
+            font-weight: 400;
+        }
+        .metric-card .label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748B;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .metric-card.alert .number {
+            color: #DC2626;
+        }
+        .metric-card.verified .number {
+            color: #22C55E;
+        }
+
+        /* --- TWO COLUMN LAYOUT (Timeline + Alerts) --- */
+        .row-2col {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* --- TIMELINE CARD --- */
+        .card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 22px 24px;
+            border: 1px solid #E9EDF4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+        .card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .card .card-header h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .card .card-header h4 i {
+            color: #F97316;
+            margin-right: 8px;
+        }
+        .card .card-header .actions {
+            display: flex;
+            gap: 8px;
+        }
+        .chip {
+            background: #F1F5F9;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #475569;
+            cursor: default;
+            border: 1px solid transparent;
+        }
+        .chip.orange {
+            background: #FFF7ED;
+            color: #F97316;
+            border-color: #FFEDD5;
+        }
+        .chip.red {
+            background: #FEF2F2;
+            color: #DC2626;
+            border-color: #FEE2E2;
+        }
+        .chip.green {
+            background: #F0FDF4;
+            color: #16A34A;
+            border-color: #DCFCE7;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 14px 0;
+            border-bottom: 1px solid #F1F5F9;
+        }
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+        .timeline-item .time {
+            font-weight: 600;
+            font-size: 14px;
+            color: #0F172A;
+            min-width: 60px;
+            font-family: monospace;
+        }
+        .timeline-item .content {
+            flex: 1;
+        }
+        .timeline-item .content .desc {
+            font-size: 14px;
+            color: #1E293B;
+        }
+        .timeline-item .content .meta {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .timeline-item .content .meta .page {
+            background: #F8FAFC;
+            padding: 0 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            color: #475569;
+        }
+        .timeline-item .right-action {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #E2E8F0;
+            border-radius: 30px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #475569;
+            cursor: default;
+            transition: 0.1s;
+        }
+        .btn-outline:hover {
+            background: #F8FAFC;
+        }
+
+        /* --- INTELLIGENCE ALERTS / INCONSISTENCIES --- */
+        .alert-item {
+            background: #F8FAFC;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            border-left: 4px solid #F97316;
+        }
+        .alert-item.danger {
+            border-left-color: #DC2626;
+            background: #FEF2F2;
+        }
+        .alert-item .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .alert-item .alert-header .type {
+            font-weight: 600;
+            font-size: 13px;
+            color: #0F172A;
+        }
+        .alert-item .alert-header .type i {
+            margin-right: 8px;
+        }
+        .alert-item .alert-header .badge-alert {
+            background: #FEF2F2;
+            color: #DC2626;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 30px;
+            border: 1px solid #FECACA;
+        }
+        .alert-item .details {
+            font-size: 13px;
+            color: #475569;
+            margin-top: 6px;
+            padding-left: 24px;
+            line-height: 1.5;
+        }
+        .alert-item .details .highlight {
+            background: #FEF2F2;
+            padding: 0 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            color: #DC2626;
+        }
+        .alert-item .action-row {
+            margin-top: 10px;
+            padding-left: 24px;
+        }
+        .btn-primary {
+            background: #F97316;
+            border: none;
+            color: white;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: default;
+            box-shadow: 0 4px 10px rgba(249, 115, 22, 0.2);
+        }
+        .btn-primary i {
+            margin-right: 6px;
+        }
+
+        /* --- FOOTER / SECURITY POSTURE --- */
+        .security-posture {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 18px 24px;
+            border: 1px solid #E9EDF4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .security-posture .left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .security-posture .left .shield {
+            color: #22C55E;
+            font-size: 20px;
+        }
+        .security-posture .left .text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .security-posture .left .text span {
+            color: #94A3B8;
+            font-weight: 400;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1200px) {
+            .row-2col {
+                grid-template-columns: 1fr;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 992px) {
+            body {
+                flex-direction: column;
+                padding: 12px;
+            }
+            .sidebar {
+                width: 100%;
+                position: relative;
+                top: 0;
+                margin-right: 0;
+                margin-bottom: 20px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                padding: 16px;
+            }
+            .sidebar .nav-section {
+                margin-bottom: 0;
+            }
+            .sidebar .logo {
+                border-bottom: none;
+                padding-bottom: 0;
+                margin-bottom: 0;
+                width: 100%;
+            }
+            .main-content {
+                max-width: 100%;
+            }
+            .case-header {
+                flex-direction: column;
+            }
+            .case-header .right {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 600px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================= -->
+    <!-- SIDEBAR (Light & Crystalline)             -->
+    <!-- ========================================= -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="fas fa-scale-balanced"></i> NyayaLens
+        </div>
+
+        <div class="nav-section">
+            <div class="label">Investigation</div>
+            <div class="nav-item active"><i class="fas fa-chart-simple"></i> Overview</div>
+            <div class="nav-item"><i class="fas fa-folder"></i> Cases</div>
+            <div class="nav-item"><i class="fas fa-file-lines"></i> Documents</div>
+            <div class="nav-item"><i class="fas fa-clock"></i> Timeline</div>
+            <div class="nav-item"><i class="fas fa-project-diagram"></i> Case Graph</div>
+            <div class="nav-item"><i class="fas fa-triangle-exclamation"></i> Conflicts</div>
+        </div>
+
+        <div class="nav-section">
+            <div class="label">Intelligence</div>
+            <div class="nav-item"><i class="fas fa-robot"></i> AI Assistant</div>
+            <div class="nav-item"><i class="fas fa-search"></i> Search</div>
+            <div class="nav-item"><i class="fas fa-shield"></i> Governance</div>
+            <div class="nav-item"><i class="fas fa-lock"></i> Security</div>
+            <div class="nav-item"><i class="fas fa-list-check"></i> Audit Trail</div>
+            <div class="nav-item"><i class="fas fa-user-gear"></i> Administration</div>
+        </div>
+
+        <div class="role-badge">
+            <div class="title"><i class="fas fa-key" style="margin-right:6px;"></i> Role Access</div>
+            <div class="desc">Section reserved with a low require <strong>Supervisor</strong> or <strong>Administrator</strong> privileges.</div>
+        </div>
+    </aside>
+
+    <!-- ========================================= -->
+    <!-- MAIN CONTENT                             -->
+    <!-- ========================================= -->
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+            <h2><i class="fas fa-bolt"></i> Case Intelligence</h2>
+            <div class="right">
+                <span><i class="fas fa-calendar-day"></i> 02 Sep 2026</span>
+                <span class="badge-status"><i class="fas fa-circle"></i> Active Session</span>
+                <span><i class="fas fa-user"></i> Rup. R. Mehta</span>
+            </div>
+        </div>
+
+        <!-- CASE HEADER -->
+        <div class="case-header">
+            <div class="left">
+                <h3>CASE-2026-0142</h3>
+                <div class="sub">
+                    <span><i class="fas fa-user-tie"></i> Investigator: <strong>Sean S.</strong></span>
+                    <span class="tag"><i class="fas fa-circle" style="color:#22C55E; font-size:8px;"></i> Active</span>
+                    <span class="tag confidential"><i class="fas fa-shield"></i> CONFIDENTIAL</span>
+                </div>
+            </div>
+            <div class="right">
+                <div class="item"><div class="label">Created</div><div class="value">12 Aug 2026</div></div>
+                <div class="item"><div class="label">Department</div><div class="value">Crime Branch, New Delhi</div></div>
+                <div class="item"><div class="label">Lead Investigator</div><div class="value">Rup. R. Mehta</div></div>
+                <div class="item"><div class="label">Last Updated</div><div class="value">02 Sep 2026 - 14:12</div></div>
+            </div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="number">6 <i class="fas fa-file-pdf"></i></div>
+                <div class="label">Documents</div>
+            </div>
+            <div class="metric-card">
+                <div class="number">23 <i class="fas fa-tag"></i></div>
+                <div class="label">Entities</div>
+            </div>
+            <div class="metric-card alert">
+                <div class="number">3 <i class="fas fa-triangle-exclamation"></i></div>
+                <div class="label">Potential Conflicts</div>
+            </div>
+            <div class="metric-card verified">
+                <div class="number">1 <i class="fas fa-check-circle"></i></div>
+                <div class="label">Verified Case Integrity</div>
+            </div>
+        </div>
+
+        <!-- ROW: Timeline + Alerts -->
+        <div class="row-2col">
+
+            <!-- LEFT: TIMELINE -->
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-clock-rotate-left"></i> Case Integrity Timeline</h4>
+                    <div class="actions">
+                        <span class="chip orange"><i class="fas fa-plus"></i> Record event</span>
+                        <span class="chip">All extracted</span>
+                        <span class="chip red">Potential conflict</span>
+                        <span class="chip green">Evidence-based</span>
+                    </div>
+                </div>
+
+                <!-- Item 1 -->
+                <div class="timeline-item">
+                    <div class="time">21:35</div>
+                    <div class="content">
+                        <div class="desc">Witness reports accused leaving the location</div>
+                        <div class="meta">
+                            <span>Witnesses, A. pop</span>
+                            <span class="page">Page 2</span>
+                            <span><i class="fas fa-link"></i> Open source document</span>
+                        </div>
+                    </div>
+                    <div class="right-action">
+                        <span class="btn-outline"><i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="timeline-item">
+                    <div class="time">21:30</div>
+                    <div class="content">
+                        <div class="desc">Incident recorded in FIR</div>
+                        <div class="meta">
+                            <span>FIR, pop</span>
+                            <span class="page">Page 2</span>
+                            <span><i class="fas fa-link"></i> Open source document</span>
+                        </div>
+                    </div>
+                    <div class="right-action">
+                        <span class="btn-outline"><i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="timeline-item">
+                    <div class="time">21:37</div>
+                    <div class="content">
+                        <div class="desc">Associated device detected at location</div>
+                        <div class="meta">
+                            <span>Forensic_Report, pop</span>
+                            <span class="page">Page 12</span>
+                            <span><i class="fas fa-link"></i> Open source document</span>
+                        </div>
+                    </div>
+                    <div class="right-action">
+                        <span class="btn-outline"><i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>
+
+                <!-- Item 4 -->
+                <div class="timeline-item">
+                    <div class="time">21:42</div>
+                    <div class="content">
+                        <div class="desc">CCTV records subject entering the location</div>
+                        <div class="meta">
+                            <span>CCTV_Report, pop</span>
+                            <span class="page">Page 7</span>
+                            <span><i class="fas fa-link"></i> Open source document</span>
+                        </div>
+                    </div>
+                    <div class="right-action">
+                        <span class="btn-outline"><i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    <span class="chip orange"><i class="fas fa-list"></i> Full Timeline</span>
+                    <span class="chip red"><i class="fas fa-triangle-exclamation"></i> Potential Conflict</span>
+                    <span class="chip green"><i class="fas fa-pen"></i> Record Event</span>
+                    <span class="chip"><i class="fas fa-database"></i> Evidence-backed</span>
+                </div>
+            </div>
+
+            <!-- RIGHT: INTELLIGENCE ALERTS -->
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-bell" style="color:#DC2626;"></i> Intelligence Alerts</h4>
+                    <span class="chip red"><i class="fas fa-circle" style="font-size:8px;"></i> 3 Active</span>
+                </div>
+
+                <!-- Alert 1 -->
+                <div class="alert-item danger">
+                    <div class="alert-header">
+                        <span class="type"><i class="fas fa-clock" style="color:#DC2626;"></i> Temporal Inconsistency</span>
+                        <span class="badge-alert">CONFLICT</span>
+                    </div>
+                    <div class="details">
+                        <span class="highlight">21:35</span> vs <span class="highlight">21:30</span> vs <span class="highlight">21:42</span>
+                    </div>
+                    <div class="action-row">
+                        <span class="btn-primary"><i class="fas fa-magnifying-glass"></i> Investigate</span>
+                    </div>
+                </div>
+
+                <!-- Alert 2 -->
+                <div class="alert-item danger">
+                    <div class="alert-header">
+                        <span class="type"><i class="fas fa-id-card" style="color:#DC2626;"></i> Entity Mismatch</span>
+                        <span class="badge-alert">CONFLICT</span>
+                    </div>
+                    <div class="details">
+                        <span class="highlight">DUJ040324</span> vs <span class="highlight">DUJ040324</span>
+                    </div>
+                    <div class="action-row">
+                        <span class="btn-primary"><i class="fas fa-magnifying-glass"></i> Investigate</span>
+                    </div>
+                </div>
+
+                <!-- Alert 3 -->
+                <div class="alert-item danger">
+                    <div class="alert-header">
+                        <span class="type"><i class="fas fa-palette" style="color:#DC2626;"></i> Descriptive Inconsistency</span>
+                        <span class="badge-alert">CONFLICT</span>
+                    </div>
+                    <div class="details">
+                        <span class="highlight">BLUE JACKET</span> vs <span class="highlight">RED JACKET</span>
+                    </div>
+                    <div class="action-row">
+                        <span class="btn-primary"><i class="fas fa-magnifying-glass"></i> Investigate</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; font-size: 12px; color: #64748B; background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #E9EDF4;">
+                    <i class="fas fa-info-circle" style="color:#F97316;"></i> Flagged item indicates a potential inconsistency in an enterprise or in an investigation. Conflicts about key person is implied.
+                </div>
+            </div>
+        </div>
+
+        <!-- SECURITY POSTURE FOOTER -->
+        <div class="security-posture">
+            <div class="left">
+                <span class="shield"><i class="fas fa-shield-halved"></i></span>
+                <div class="text">
+                    Security Posture <span>• Full timeline verification active</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <span class="chip orange"><i class="fas fa-clock"></i> Full Timeline</span>
+                <span class="btn-primary"><i class="fas fa-magnifying-glass"></i> Investigate</span>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Just a tiny script to simulate interactivity / console greeting
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔍 NyayaLens Case Intelligence loaded (Crystalline UI)');
+            // Add a subtle click effect on buttons (for demo feel)
+            document.querySelectorAll('.btn-primary, .chip, .btn-outline').forEach(el => {
+                el.style.cursor = 'pointer';
+                el.addEventListener('click', () => {
+                    // Just a tiny visual feedback
+                    el.style.transform = 'scale(0.96)';
+                    setTimeout(() => el.style.transform = 'scale(1)', 150);
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
