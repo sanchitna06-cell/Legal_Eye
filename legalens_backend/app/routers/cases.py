@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.security import get_current_investigator
+from app.core.security import (
+    get_current_supervisor,
+    get_current_investigator,
+)
 from app.services.case_service import CaseService
 
 router = APIRouter(prefix="/cases", tags=["Cases"])

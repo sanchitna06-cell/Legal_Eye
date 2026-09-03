@@ -1,26 +1,40 @@
 """
-app/core/events.py
-------------------
-Defines all event types for the EventBus.
+LegalLens Event Definitions
+
+This file defines the canonical event names used by
+the backend communication layer.
 """
 
-# All registered events
-EVENTS = {
-    "document.uploaded",
-    "text.extracted",
-    "entity.extracted",
-    "event.extracted",
-    "timeline.updated",
-    "conflict.detected",
-    "analysis.completed",
-    "document.integrity_failed",
-    "document.verified",
-    "case.created",
-    "case.updated",
-}
+# Document lifecycle
+DOCUMENT_UPLOADED = "document.uploaded"
+TEXT_EXTRACTED = "text.extracted"
+
+# Intelligence pipeline
+ENTITY_EXTRACTED = "entity.extracted"
+EVENT_EXTRACTED = "event.extracted"
+TIMELINE_UPDATED = "timeline.updated"
+CONFLICT_DETECTED = "conflict.detected"
+ANALYSIS_COMPLETED = "analysis.completed"
+
+# Integrity
+DOCUMENT_INTEGRITY_FAILED = "document.integrity_failed"
+DOCUMENT_VERIFIED = "document.verified"
+
+# Case lifecycle
+CASE_CREATED = "case.created"
+CASE_UPDATED = "case.updated"
 
 
-def register_all_events():
-    """Placeholder to register events if needed."""
-    print(f"📋 Registered {len(EVENTS)} event types.")
-    return EVENTS
+EVENTS = frozenset({
+    DOCUMENT_UPLOADED,
+    TEXT_EXTRACTED,
+    ENTITY_EXTRACTED,
+    EVENT_EXTRACTED,
+    TIMELINE_UPDATED,
+    CONFLICT_DETECTED,
+    ANALYSIS_COMPLETED,
+    DOCUMENT_INTEGRITY_FAILED,
+    DOCUMENT_VERIFIED,
+    CASE_CREATED,
+    CASE_UPDATED,
+})

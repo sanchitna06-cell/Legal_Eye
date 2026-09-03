@@ -18,7 +18,6 @@ load_dotenv()
 from app.routers import health, auth, cases, documents, blockchain, intelligence
 from app.core.database import engine, Base
 from app.core.event_bus import event_bus
-from app.core.events import register_all_events
 from app.subscribers import text_extractor, entity_extractor, blockchain_subscriber
 
 # =========================================================
@@ -45,7 +44,6 @@ async def lifespan(app: FastAPI):
     
     # 2. Register all events and subscribers
     print("🔌 Registering event subscribers...")
-    register_all_events()
     
     # Explicitly subscribe modules
     event_bus.subscribe("document.uploaded", text_extractor.handle_document_uploaded)

@@ -1,22 +1,17 @@
 """
 LegalLens Internal Event Bus
 
-The EventBus provides controlled communication between
-backend modules and processing subscribers.
+Controlled communication layer between backend modules
+and processing subscribers.
 
-It does NOT replace the database.
+The EventBus is NOT the database and is NOT an authentication
+or authorization boundary.
 
 Database:
     Persistent source of truth.
 
 EventBus:
     Internal communication and notification layer.
-
-Security principles:
-    - Only registered event types may be published.
-    - Only async handlers may be subscribed.
-    - Event names are part of the application's communication contract.
-    - Payloads must match their defined contract.
 """
 
 from collections import defaultdict
@@ -27,12 +22,14 @@ from app.core.events import (
     DOCUMENT_UPLOADED,
     TEXT_EXTRACTED,
     ENTITY_EXTRACTED,
+    DOCUMENT_INTEGRITY_FAILED,
 )
 
 from app.core.contracts import (
     DocumentUploadedPayload,
     TextExtractedPayload,
     EntityExtractedPayload,
+    IntegrityFailedPayload,
 )
 
 from app.core.exceptions import InvalidEventPayloadError
@@ -45,6 +42,7 @@ ALLOWED_EVENTS = frozenset({
     DOCUMENT_UPLOADED,
     TEXT_EXTRACTED,
     ENTITY_EXTRACTED,
+    DOCUMENT_INTEGRITY_FAILED,
 })
 
 
@@ -52,6 +50,7 @@ EVENT_PAYLOAD_TYPES = {
     DOCUMENT_UPLOADED: DocumentUploadedPayload,
     TEXT_EXTRACTED: TextExtractedPayload,
     ENTITY_EXTRACTED: EntityExtractedPayload,
+    DOCUMENT_INTEGRITY_FAILED: IntegrityFailedPayload,
 }
 
 
@@ -63,7 +62,7 @@ class EventBus:
     def subscribe(
         self,
         event_name: str,
-        handler: EventHandler
+        handler: EventHandler,
     ) -> None:
 
         if event_name not in ALLOWED_EVENTS:
@@ -86,7 +85,7 @@ class EventBus:
     async def publish(
         self,
         event_name: str,
-        data: Any
+        data: Any,
     ) -> None:
 
         if event_name not in ALLOWED_EVENTS:
@@ -103,10 +102,7 @@ class EventBus:
                 received=type(data).__name__,
             )
 
-        handlers = self._subscribers.get(
-            event_name,
-            []
-        )
+        handlers = self._subscribers.get(event_name, [])
 
         for handler in handlers:
             await handler(data)

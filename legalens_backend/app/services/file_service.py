@@ -1,7 +1,7 @@
 import os
 import hashlib
 import shutil
-from app.core.config_enchroachment import settings
+from app.core.config import settings
 
 class FileService:
     def __init__(self):

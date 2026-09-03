@@ -12,17 +12,23 @@ from app.core.event_bus import event_bus
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
 from app.services.file_service import FileService
 from app.models.document import Document
-from app.models.case import Case
+from app.services.case_service import CaseService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload/{case_id}")
 async def upload_document(
+    
     case_id: str,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_investigator),
     db: AsyncSession = Depends(get_db),
 ):
+    if not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file must have a filename"
+        )
     """Upload a document to a case. Triggers blockchain and AI events."""
     
     # Check if case exists

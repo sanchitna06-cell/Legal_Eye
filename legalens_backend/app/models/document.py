@@ -20,7 +20,11 @@ class Document(Base):
     uploaded_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_verified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    metadata: Mapped[str] = mapped_column(Text, nullable=True)  # JSON string
+    document_metadata: Mapped[str] = mapped_column(
+        "metadata",
+        Text,
+        nullable=True,
+    )  # JSON string
     
     # Relationships
     case = relationship("Case", back_populates="documents")

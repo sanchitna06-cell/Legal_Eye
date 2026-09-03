@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database_enchroachment import get_db
-from app.core.security_enchroachment import get_current_investigator
+from app.core.database import get_db
+from app.core.security import get_current_investigator
 from app.core.blockchain import blockchain
-from app.core.contracts import VerifyResponse
+from app.core.contracts import DocumentStatus, VerifyResponse
 from app.services.file_service import FileService
-from app.models_encroachment.document import Document
+from app.models.document import Document
 from datetime import datetime
 
 router = APIRouter(prefix="/blockchain", tags=["Blockchain"])
@@ -39,7 +39,7 @@ async def verify_document(
     
     # Update document status if tampered
     if not verification["verified"] and verification["status"] == "TAMPERED":
-        doc.status = "TAMPERED"
+        doc.status = DocumentStatus.TAMPERED
         # Emit integrity failed event
         from app.core.event_bus import event_bus
         from app.core.contracts import IntegrityFailedPayload
@@ -93,7 +93,12 @@ async def simulate_tamper(
     
     # Recalculate hash
     new_hash = await file_service.get_file_hash(doc.file_path)
-    
+
+    if new_hash is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not calculate file hash"
+        )
     # Add a tamper block to the blockchain
     blockchain.add_block(
         action="TAMPER_DETECTED",
