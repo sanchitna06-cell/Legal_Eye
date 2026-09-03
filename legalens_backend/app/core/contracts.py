@@ -1,8 +1,8 @@
 """
 NyayaLens Shared Contracts
 
-This file defines the canonical data structures exchanged
-between backend, AI, intelligence, security and frontend modules.
+Canonical data structures exchanged between backend modules,
+AI/intelligence modules, security components, and the frontend.
 
 IMPORTANT:
 - Do not create duplicate representations of these objects.
@@ -14,7 +14,7 @@ IMPORTANT:
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,100 +42,149 @@ class ConflictType(str, Enum):
     ATTRIBUTE = "ATTRIBUTE"
 
 
-# ============================================================
-# DOCUMENT
-# ============================================================
-
-class DocumentData(BaseModel):
-    document_id: int
-    case_id: int
-
-    filename: str
-    file_path: str
-
-    sha256: str
-
-    uploaded_at: datetime
+class DocumentStatus(str, Enum):
+    UPLOADED = "UPLOADED"
+    PROCESSING = "PROCESSING"
+    PROCESSED = "PROCESSED"
+    VERIFIED = "VERIFIED"
+    INTEGRITY_FAILED = "INTEGRITY_FAILED"
+    ERROR = "ERROR"
 
 
 # ============================================================
-# EXTRACTED TEXT
+# DOCUMENT EVENT PAYLOAD
 # ============================================================
 
-class TextData(BaseModel):
-    document_id: int
-    case_id: int
+class DocumentUploadedPayload(BaseModel):
+    """
+    Payload emitted when a document has been successfully uploaded.
+    """
 
-    page_number: int
+    document_id: str
+    case_id: str
+    file_name: str
+    sha256_hash: str
+    uploaded_by: str
 
+
+# ============================================================
+# TEXT EXTRACTION EVENT PAYLOAD
+# ============================================================
+
+class TextExtractedPayload(BaseModel):
+    """
+    Payload emitted after text extraction from a document.
+    """
+
+    document_id: str
+    case_id: str
     text: str
+    page_count: int = Field(ge=0)
 
 
 # ============================================================
-# ENTITY
+# ENTITY EXTRACTION EVENT PAYLOAD
+# ============================================================
+
+class EntityExtractedPayload(BaseModel):
+    """
+    Batch of entities extracted from a document.
+    """
+
+    document_id: str
+    case_id: str
+
+    entities: list[dict[str, Any]]
+
+
+# ============================================================
+# INTEGRITY FAILURE EVENT PAYLOAD
+# ============================================================
+
+class IntegrityFailedPayload(BaseModel):
+    """
+    Payload emitted when document integrity verification fails.
+    """
+
+    document_id: str
+    case_id: str
+    expected_hash: str
+    actual_hash: str
+    detected_at: datetime
+    user_id: str
+
+
+# ============================================================
+# ANALYTICAL ENTITY
 # ============================================================
 
 class EntityData(BaseModel):
-    entity_id: str
-    case_id: int
-    document_id: int
+    """
+    Canonical representation of one extracted entity.
+    """
 
-    page_number: int
+    entity_id: str
+    case_id: str
+    document_id: str
+
+    page_number: int = Field(ge=1)
 
     entity_type: EntityType
     value: str
 
     confidence: float = Field(
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
 
 
 # ============================================================
-# EVENT
+# EXTRACTED EVENT
 # ============================================================
 
 class EventData(BaseModel):
+    """
+    Canonical representation of one case event.
+    """
+
     event_id: str
-    case_id: int
+    case_id: str
 
     event_type: str
 
     actor: Optional[str] = None
     timestamp: Optional[datetime] = None
     location: Optional[str] = None
-
     description: Optional[str] = None
 
-    source_document_id: int
-    source_page: int
+    source_document_id: str
+    source_page: int = Field(ge=1)
 
     confidence: float = Field(
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
 
 
 # ============================================================
-# TIMELINE
+# TIMELINE EVENT
 # ============================================================
 
 class TimelineEvent(BaseModel):
     event_id: str
-
-    case_id: int
+    case_id: str
 
     timestamp: Optional[datetime] = None
 
     event_type: str
     description: str
 
-    source_document_id: int
-    source_page: int
+    source_document_id: str
+    source_page: int = Field(ge=1)
 
     confidence: float = Field(
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
 
 
@@ -145,15 +194,15 @@ class TimelineEvent(BaseModel):
 
 class PotentialConflict(BaseModel):
     conflict_id: str
-    case_id: int
+    case_id: str
 
     conflict_type: ConflictType
 
-    document_a_id: int
-    page_a: int
+    document_a_id: str
+    page_a: int = Field(ge=1)
 
-    document_b_id: int
-    page_b: int
+    document_b_id: str
+    page_b: int = Field(ge=1)
 
     claim_a: str
     claim_b: str
@@ -162,5 +211,46 @@ class PotentialConflict(BaseModel):
 
     confidence: float = Field(
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
+
+
+# ============================================================
+# AUTH
+# ============================================================
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: dict[str, Any]
+
+
+# ============================================================
+# DOCUMENT UPLOAD RESPONSE
+# ============================================================
+
+class UploadResponse(BaseModel):
+    document_id: str
+    case_id: str
+    file_name: str
+    sha256_hash: str
+    blockchain_block_id: int
+    status: str
+    message: str
+class VerifyResponse(BaseModel):
+    """
+    Result of document integrity verification.
+    """
+
+    document_id: str
+    status: str
+    current_hash: str
+    blockchain_hash: str
+    block_number: int | None
+    last_verified_at: datetime
+    message: str
