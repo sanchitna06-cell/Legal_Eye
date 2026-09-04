@@ -1,4 +1,11 @@
 .venv/
+venv/
 __pycache__/
 *.pyc
 .env
+
+# Runtime/generated application state
+legalens_backend/app/storage/
+# Frontend dependencies/build output
+node_modules/
+dist/

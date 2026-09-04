@@ -219,6 +219,10 @@ class PotentialConflict(BaseModel):
 # AUTH
 # ============================================================
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., min_length=1)
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -226,7 +230,8 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "Bearer"
     user: dict[str, Any]
 
 

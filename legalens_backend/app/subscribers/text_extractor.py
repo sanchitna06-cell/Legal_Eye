@@ -4,32 +4,86 @@ app/subscribers/text_extractor.py
 Listens for document.uploaded events and extracts text from PDFs.
 """
 
-import os
+import io
 import PyPDF2
+
 from app.core.event_bus import event_bus
-from app.core.contracts import DocumentUploadedPayload, TextExtractedPayload
+from app.core.contracts import (
+    DocumentUploadedPayload,
+    TextExtractedPayload,
+)
+from app.services.supabase_storage import SupabaseStorage
+
 
 async def handle_document_uploaded(payload: DocumentUploadedPayload):
-    """Extract text from the uploaded document."""
+    """Extract actual text from the uploaded PDF."""
+
     print(f"📄 Extracting text from: {payload.file_name}")
-    
-    # In a real implementation, you would locate the file path from DB
-    # For now, we simulate extraction
-    sample_text = f"""
-    This is a simulated text extraction from {payload.file_name}.
-    The document contains witness statements and case details.
-    Case ID: {payload.case_id}
-    Uploaded by: {payload.uploaded_by}
-    """
-    
-    # Emit the extracted text event
+
+    # Create storage client
+    storage = SupabaseStorage()
+
+    # The event currently contains document_id,
+    # so we will use that later to retrieve the storage key.
+    #
+    # For this first step, we temporarily construct the
+    # storage path from the information already available.
+    storage_key = (
+        f"cases/{payload.case_id}/"
+        f"{payload.document_id}/original.pdf"
+    )
+
+    try:
+        # Download PDF bytes from Supabase
+        file_bytes = storage.download_file(storage_key)
+
+    except Exception as e:
+        print(f"❌ Could not download document: {e}")
+        return
+
+    # Give the PDF reader an in-memory file
+    pdf_stream = io.BytesIO(file_bytes)
+
+    try:
+        reader = PyPDF2.PdfReader(pdf_stream)
+
+        page_text = []
+
+        for page_number, page in enumerate(reader.pages, start=1):
+            text = page.extract_text() or ""
+
+            page_text.append(text)
+
+            print(
+                f"📄 Page {page_number}: "
+                f"{len(text)} characters extracted"
+            )
+
+    except Exception as e:
+        print(f"❌ PDF extraction failed: {e}")
+        return
+
+    # Combine pages for the current event contract
+    full_text = "\n\n".join(page_text)
+
+    page_count = len(reader.pages)
+
+    print(
+        f"✅ Extracted {page_count} pages "
+        f"({len(full_text)} characters)"
+    )
+
+    # Emit extracted text event
     await event_bus.publish(
         "text.extracted",
         TextExtractedPayload(
             document_id=payload.document_id,
-            text=sample_text,
-            page_count=3
+            text=full_text,
+            page_count=page_count,
         )
     )
-    
-    print(f"✅ Text extracted for document: {payload.document_id}")
+
+    print(
+        f"📤 text.extracted event published "
+        f"for document: {payload.document_id}"
+    )

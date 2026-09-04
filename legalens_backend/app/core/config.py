@@ -25,6 +25,14 @@ class Settings:
     
     # Storage
     STORAGE_PATH: str = os.getenv("STORAGE_PATH", "./app/storage")
+
+    # Supabase Storage
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SECRET_KEY: str = os.getenv("SUPABASE_SECRET_KEY", "")
+    SUPABASE_BUCKET_NAME: str = os.getenv(
+        "SUPABASE_BUCKET_NAME",
+        "LegalLens_Backend"
+    )
     
     # AI Models (future)
     SPACY_MODEL: str = "en_core_web_sm"

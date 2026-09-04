@@ -10,9 +10,11 @@ from app.core.security import get_current_investigator
 from app.core.blockchain import blockchain
 from app.core.event_bus import event_bus
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
-from app.services.file_service import FileService
 from app.models.document import Document
 from app.services.case_service import CaseService
+from app.services.supabase_storage import SupabaseStorage
+
+MAX_FILE_SIZE = 50 * 1024 * 1024
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -39,21 +41,45 @@ async def upload_document(
     
     # Read file content
     content = await file.read()
+
+    # Enforce application-level file size limit
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="File size exceeds the 50 MB limit."
+        )
+
+    # Validate PDF magic bytes
+    if not content.startswith(b"%PDF-"):
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a valid PDF."
+        )
     
     # Calculate SHA-256 hash
     sha256_hash = hashlib.sha256(content).hexdigest()
     
-    # Save file to disk
-    file_service = FileService()
+   # Generate unique file ID
     file_id = uuid.uuid4().hex
-    saved_path = await file_service.save_file(file_id, file.filename, content)
+
+    # Generate immutable storage key
+    storage_key = f"cases/{case_id}/{file_id}/original.pdf"
+
+    # Upload original file to private Supabase Storage
+    storage = SupabaseStorage()
+
+    storage.upload_file(
+    storage_key=storage_key,
+    file_bytes=content,
+    content_type=file.content_type or "application/pdf",
+)
     
     # Create document record
     doc = Document(
         id=file_id,
         case_id=case_id,
         file_name=file.filename,
-        file_path=saved_path,
+        file_path=storage_key,
         file_size_bytes=len(content),
         mime_type=file.content_type,
         sha256_hash=sha256_hash,

@@ -4,7 +4,7 @@ from app.core.database import get_db
 from app.core.security import get_current_investigator
 from app.core.blockchain import blockchain
 from app.core.contracts import DocumentStatus, VerifyResponse
-from app.services.file_service import FileService
+from app.services.supabase_storage import SupabaseStorage
 from app.models.document import Document
 from datetime import datetime
 
@@ -27,12 +27,20 @@ async def verify_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Read file from disk and calculate current hash
-    file_service = FileService()
-    current_hash = await file_service.get_file_hash(doc.file_path)
-    
-    if not current_hash:
-        raise HTTPException(status_code=500, detail="Could not read file")
+   # Download the original file from Supabase Storage
+    storage = SupabaseStorage()
+
+    try:
+        file_bytes = storage.download_file(doc.file_path)
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not read file from storage"
+        )
+
+    # Calculate current SHA-256 hash
+    import hashlib
+    current_hash = hashlib.sha256(file_bytes).hexdigest()
     
     # Verify against blockchain
     verification = blockchain.verify_document(document_id, current_hash)
@@ -73,44 +81,64 @@ async def simulate_tamper(
 ):
     """
     SIMULATE TAMPERING – FOR DEMO ONLY.
-    Changes 1 byte in the file to trigger the tamper alert.
+
+    Downloads the original file, changes one byte in memory,
+    and calculates the resulting hash.
+
+    The original file in Supabase Storage is NOT modified.
     """
+
     from sqlalchemy import select
+    import hashlib
+
+    # Get document from DB
     stmt = select(Document).where(Document.id == document_id)
     result = await db.execute(stmt)
     doc = result.scalar_one_or_none()
-    
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    file_service = FileService()
-    
-    # Tamper the file (change 1 byte)
-    success = await file_service.tamper_file(doc.file_path)
-    
-    if not success:
-        raise HTTPException(status_code=500, detail="Could not tamper file")
-    
-    # Recalculate hash
-    new_hash = await file_service.get_file_hash(doc.file_path)
 
-    if new_hash is None:
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    # Download the original file from Supabase
+    storage = SupabaseStorage()
+
+    try:
+        file_bytes = storage.download_file(doc.file_path)
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail="Could not calculate file hash"
+            detail="Could not read file from storage"
         )
-    # Add a tamper block to the blockchain
+
+    if not file_bytes:
+        raise HTTPException(
+            status_code=500,
+            detail="File is empty"
+        )
+
+    # Simulate tampering in memory
+    tampered_bytes = bytearray(file_bytes)
+    tampered_bytes[0] ^= 1
+
+    # Calculate hash of tampered version
+    tampered_hash = hashlib.sha256(tampered_bytes).hexdigest()
+
+    # Add tampered hash to blockchain for demonstration
     blockchain.add_block(
         action="TAMPER_DETECTED",
         document_id=document_id,
-        document_hash=new_hash,
+        document_hash=tampered_hash,
         user_id=current_user["sub"],
         metadata={"simulated": True}
     )
-    
+
     return {
         "status": "tampered",
-        "message": "🚨 File tampered! Blockchain hash mismatch detected.",
-        "new_hash": new_hash,
-        "document_id": document_id
+        "message": "🚨 Simulated tampering detected. Original file was not modified.",
+        "original_hash": doc.sha256_hash,
+        "tampered_hash": tampered_hash,
+        "document_id": document_id,
     }
