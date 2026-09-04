@@ -77,11 +77,12 @@ async def handle_document_uploaded(payload: DocumentUploadedPayload):
     await event_bus.publish(
         "text.extracted",
         TextExtractedPayload(
+            case_id=payload.case_id,
             document_id=payload.document_id,
             text=full_text,
             page_count=page_count,
         )
-    )
+)
 
     print(
         f"📤 text.extracted event published "
