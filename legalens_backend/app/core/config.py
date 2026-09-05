@@ -16,12 +16,12 @@ class Settings:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback_secret_key_do_not_use_in_production")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", " ")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/nyayalens_db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/ lens_db")
     
     # Storage
     STORAGE_PATH: str = os.getenv("STORAGE_PATH", "./app/storage")

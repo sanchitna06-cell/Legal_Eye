@@ -29,6 +29,13 @@ SECRET_KEY: str = get_secret_key()
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
+ALLOWED_ALGORITHMS = {"HS256"}
+
+if ALGORITHM not in ALLOWED_ALGORITHMS:
+    raise RuntimeError(
+        f"Unsupported JWT algorithm: {ALGORITHM}"
+    )
+
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 )

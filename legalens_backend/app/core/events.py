@@ -1,5 +1,5 @@
 """
-NyayaLens Event Names
+ Lens Event Names
 
 These strings are part of the internal communication contract.
 Do not casually rename them.

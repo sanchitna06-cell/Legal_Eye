@@ -1,3 +1,4 @@
+from annotated_types import doc
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -47,14 +48,14 @@ async def verify_document(
     
     # Update document status if tampered
     if not verification["verified"] and verification["status"] == "TAMPERED":
-        doc.status = DocumentStatus.TAMPERED
-        # Emit integrity failed event
+        doc.status = DocumentStatus.INTEGRITY_FAILED        # Emit integrity failed event
         from app.core.event_bus import event_bus
         from app.core.contracts import IntegrityFailedPayload
         await event_bus.publish(
             "document.integrity_failed",
             IntegrityFailedPayload(
                 document_id=document_id,
+                case_id=doc.case_id,
                 expected_hash=verification["stored_hash"],
                 actual_hash=current_hash,
                 detected_at=datetime.utcnow(),
@@ -130,10 +131,13 @@ async def simulate_tamper(
     blockchain.add_block(
         action="TAMPER_DETECTED",
         document_id=document_id,
-        document_hash=tampered_hash,
+        document_hash=doc.sha256_hash,
         user_id=current_user["sub"],
-        metadata={"simulated": True}
-    )
+        metadata={
+            "simulated": True,
+            "observed_hash": tampered_hash,
+    }
+)
 
     return {
         "status": "tampered",

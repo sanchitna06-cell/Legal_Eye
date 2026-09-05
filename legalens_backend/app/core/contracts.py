@@ -1,5 +1,5 @@
 """
-NyayaLens Shared Contracts
+ Lens Shared Contracts
 
 Canonical data structures exchanged between backend modules,
 AI/intelligence modules, security components, and the frontend.
@@ -244,7 +244,7 @@ class UploadResponse(BaseModel):
     case_id: str
     file_name: str
     sha256_hash: str
-    blockchain_block_id: int
+    blockchain_block_id: int | None = None
     status: str
     message: str
 class VerifyResponse(BaseModel):

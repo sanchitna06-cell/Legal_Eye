@@ -7,7 +7,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_investigator
-from app.core.blockchain import blockchain
 from app.core.event_bus import event_bus
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
 from app.models.document import Document
@@ -90,37 +89,26 @@ async def upload_document(
     await db.commit()
     await db.refresh(doc)
     
-    # Add block to blockchain
-    block = blockchain.add_block(
-        action="UPLOAD",
-        document_id=file_id,
-        document_hash=sha256_hash,
-        user_id=current_user["sub"],
-        metadata={"case_id": case_id, "file_name": file.filename}
-    )
-    
-    # Update document with blockchain block ID
-    doc.blockchain_block_id = block["index"]
-    await db.commit()
+
     
     # Emit event for AI processing
     await event_bus.publish(
-        "document.uploaded",
-        DocumentUploadedPayload(
-            document_id=file_id,
-            case_id=case_id,
-            file_name=file.filename,
-            sha256_hash=sha256_hash,
-            uploaded_by=current_user["sub"],
-        )
+    "document.uploaded",
+    DocumentUploadedPayload(
+        document_id=file_id,
+        case_id=case_id,
+        file_name=file.filename,
+        sha256_hash=sha256_hash,
+        uploaded_by=current_user["sub"],
     )
+)
     
     return UploadResponse(
         document_id=file_id,
         case_id=case_id,
         file_name=file.filename,
         sha256_hash=sha256_hash,
-        blockchain_block_id=block["index"],
+        blockchain_block_id=None,
         status="UPLOADED",
-        message="Document uploaded and blockchain verified."
+        message="Document uploaded and integrity event queued."
     )

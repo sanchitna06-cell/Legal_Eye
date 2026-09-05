@@ -1,7 +1,16 @@
-from fastapi import APIRouter
+from typing import Dict, Any
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import get_current_investigator
+from app.models.case import Case
+
 
 router = APIRouter()
 
@@ -12,22 +21,66 @@ class CaseCreate(BaseModel):
 
 
 @router.get("/cases")
-def get_cases():
+async def get_cases(
+    db: AsyncSession = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_investigator),
+):
+    result = await db.execute(
+        select(Case)
+    )
+
+    cases = result.scalars().all()
+
     return {
-        "cases": []
+        "cases": [
+            {
+                "id": case.id,
+                "case_number": case.case_number,
+                "title": case.title,
+                "description": case.description,
+                "classification": case.classification,
+                "department": case.department,
+                "created_at": case.created_at,
+            }
+            for case in cases
+        ]
     }
 
 
 @router.post("/cases")
-def create_case(case: CaseCreate):
+async def create_case(
+    case: CaseCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_investigator),
+):
     case_id = str(uuid4())
+
+    new_case = Case(
+        id=case_id,
+        case_number=f"LL-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+        title=case.title,
+        description=case.description,
+        classification="CONFIDENTIAL",
+        department=None,
+        lead_investigator_id=None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+
+    db.add(new_case)
+
+    await db.commit()
+    await db.refresh(new_case)
 
     return {
         "message": "Case created successfully",
         "case": {
-            "id": case_id,
-            "title": case.title,
-            "description": case.description,
-            "created_at": datetime.now(timezone.utc)
-        }
+            "id": new_case.id,
+            "case_number": new_case.case_number,
+            "title": new_case.title,
+            "description": new_case.description,
+            "classification": new_case.classification,
+            "department": new_case.department,
+            "created_at": new_case.created_at,
+        },
     }

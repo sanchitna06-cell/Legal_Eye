@@ -83,39 +83,42 @@ class Blockchain:
     
     def verify_document(self, document_id: str, current_hash: str) -> Dict[str, Any]:
         """
-        Verify a document's integrity by comparing its current hash
-        against the hash stored in the blockchain.
+        Verify a document against its canonical original hash.
+
+        Only the UPLOAD block is considered the canonical
+        integrity anchor for the document.
         """
-        # Find the latest block for this document (search backwards)
-        for block in reversed(self.chain):
-            if block["document_id"] == document_id:
+
+        for block in self.chain:
+            if (
+                block["document_id"] == document_id
+                and block["action"] == "UPLOAD"
+            ):
                 stored_hash = block["document_hash"]
                 block_number = block["index"]
-                
+
                 if current_hash == stored_hash:
                     return {
-                        "verified": True,
-                        "status": "VERIFIED",
-                        "block_number": block_number,
-                        "stored_hash": stored_hash,
-                    }
-                else:
-                    return {
-                        "verified": False,
-                        "status": "TAMPERED",
-                        "block_number": block_number,
-                        "stored_hash": stored_hash,
-                        "current_hash": current_hash,
-                    }
-        
-        # No block found for this document
+                    "verified": True,
+                    "status": "VERIFIED",
+                    "block_number": block_number,
+                    "stored_hash": stored_hash,
+                }
+
+                return {
+                "verified": False,
+                "status": "TAMPERED",
+                "block_number": block_number,
+                "stored_hash": stored_hash,
+                "current_hash": current_hash,
+            }
+
         return {
             "verified": False,
             "status": "PENDING",
             "block_number": None,
             "stored_hash": None,
         }
-    
     def verify_chain_integrity(self) -> bool:
         """Verify that the entire chain is intact (no tampering)."""
         for i in range(1, len(self.chain)):

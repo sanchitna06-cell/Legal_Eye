@@ -1,5 +1,5 @@
 """
-NyayaLens Internal Event Bus
+ Lens Internal Event Bus
 
 Controlled communication layer between backend modules.
 

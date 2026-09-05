@@ -29,7 +29,6 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         "sub": user.username,
         "user_id": user.id,
         "role": user.role.value,
-        "full_name": user.full_name,
     }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
@@ -66,7 +65,6 @@ async def login_for_swagger(
         "sub": user.username,
         "user_id": user.id,
         "role": user.role.value,
-        "full_name": user.full_name,
     }
 
     access_token = create_access_token(token_data)

@@ -1,7 +1,7 @@
 """
 app/main.py
 -----------
-The entry point for the NyayaLens backend.
+The entry point for the  Lens backend.
 Runs the FastAPI server and registers all routers, event bus, and startup tasks.
 """
 
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
     - Registers all event subscribers.
     """
     # --- STARTUP ---
-    print("🚀 NyayaLens backend starting up...")
+    print("🚀  Lens backend starting up...")
     
     # 1. Create database tables (if they don't exist)
     print("📊 Creating database tables...")
@@ -51,6 +51,11 @@ async def lifespan(app: FastAPI):
     
     # Explicitly subscribe modules
     event_bus.subscribe(
+            DOCUMENT_UPLOADED,
+            blockchain_subscriber.handle_document_uploaded
+        )
+    
+    event_bus.subscribe(
         DOCUMENT_UPLOADED,
         text_extractor.handle_document_uploaded
     )   
@@ -60,16 +65,13 @@ async def lifespan(app: FastAPI):
         entity_extractor.handle_text_extracted
     )
 
-    event_bus.subscribe(
-        DOCUMENT_UPLOADED,
-        blockchain_subscriber.handle_document_uploaded
-    )   
+       
     print("✅ Event subscribers registered.")
     
     yield  # The application runs here
     
     # --- SHUTDOWN ---
-    print("👋 NyayaLens shutting down...")
+    print("👋  Lens shutting down...")
     # Close database connections if needed
     await engine.dispose()
 
@@ -79,7 +81,7 @@ async def lifespan(app: FastAPI):
 # =========================================================
 
 app = FastAPI(
-    title="NyayaLens - MHA Secure Document Management",
+    title=" Lens - MHA Secure Document Management",
     description="AI + Blockchain powered evidence management for the Ministry of Home Affairs.",
     version="1.0.0",
     lifespan=lifespan,
@@ -116,7 +118,7 @@ app.include_router(intelligence.router)
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to NyayaLens API",
+        "message": "Welcome to  Lens API",
         "version": "1.0.0",
         "docs": "/docs",
         "status": "running"
