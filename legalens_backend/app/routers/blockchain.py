@@ -1,11 +1,11 @@
-from annotated_types import doc
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.security import get_current_investigator
+from app.core.security import get_current_lawyer
 from app.core.blockchain import blockchain
 from app.core.contracts import DocumentStatus, VerifyResponse
 from app.services.supabase_storage import SupabaseStorage
+from app.models.case import Case
 from app.models.document import Document
 from datetime import datetime
 
@@ -14,14 +14,21 @@ router = APIRouter(prefix="/blockchain", tags=["Blockchain"])
 @router.get("/verify/{document_id}")
 async def verify_document(
     document_id: str,
-    current_user: dict = Depends(get_current_investigator),
+    current_user: dict = Depends(get_current_lawyer),
     db: AsyncSession = Depends(get_db),
 ):
     """Verify a document's integrity using the blockchain."""
     
     # Get document from DB
     from sqlalchemy import select
-    stmt = select(Document).where(Document.id == document_id)
+    stmt = (
+        select(Document)
+        .join(Case, Document.case_id == Case.id)
+        .where(
+            Document.id == document_id,
+            Case.created_by == current_user["user_id"],
+        )
+    )
     result = await db.execute(stmt)
     doc = result.scalar_one_or_none()
     
@@ -59,7 +66,7 @@ async def verify_document(
                 expected_hash=verification["stored_hash"],
                 actual_hash=current_hash,
                 detected_at=datetime.utcnow(),
-                user_id=current_user["sub"],
+                user_id=current_user["user_id"],
             )
         )
         await db.commit()
@@ -77,7 +84,7 @@ async def verify_document(
 @router.post("/tamper/{document_id}")
 async def simulate_tamper(
     document_id: str,
-    current_user: dict = Depends(get_current_investigator),
+    current_user: dict = Depends(get_current_lawyer),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -93,7 +100,14 @@ async def simulate_tamper(
     import hashlib
 
     # Get document from DB
-    stmt = select(Document).where(Document.id == document_id)
+    stmt = (
+        select(Document)
+        .join(Case, Document.case_id == Case.id)
+        .where(
+            Document.id == document_id,
+            Case.created_by == current_user["user_id"],
+        )
+    )
     result = await db.execute(stmt)
     doc = result.scalar_one_or_none()
 
@@ -132,7 +146,7 @@ async def simulate_tamper(
         action="TAMPER_DETECTED",
         document_id=document_id,
         document_hash=doc.sha256_hash,
-        user_id=current_user["sub"],
+        user_id=current_user["user_id"],
         metadata={
             "simulated": True,
             "observed_hash": tampered_hash,

@@ -4,8 +4,13 @@ app/subscribers/text_extractor.py
 Listens for document.uploaded events and extracts text from PDFs.
 """
 
+from csv import reader
 import io
 import PyPDF2
+import uuid
+
+from app.core.database import AsyncSessionLocal
+from app.models.case_file_page import CaseFilePage
 
 from app.core.event_bus import event_bus
 from app.core.contracts import (
@@ -49,15 +54,30 @@ async def handle_document_uploaded(payload: DocumentUploadedPayload):
 
         page_text = []
 
-        for page_number, page in enumerate(reader.pages, start=1):
-            text = page.extract_text() or ""
+        async with AsyncSessionLocal() as db:
+            for page_number, page in enumerate(reader.pages, start=1):
+                text = page.extract_text() or ""
 
-            page_text.append(text)
+                page_text.append(text)
 
-            print(
-                f"📄 Page {page_number}: "
-                f"{len(text)} characters extracted"
-            )
+                page_record = CaseFilePage(
+                    id=uuid.uuid4().hex,
+                    case_file_id=payload.document_id,
+                    page_number=page_number,
+                    extracted_text=text,
+                    extraction_method="PYPDF2_TEXT",
+                    ocr_confidence=None,
+                    extraction_status="EXTRACTED",
+                )
+
+                db.add(page_record)
+
+                print(  
+                    f"📄 Page {page_number}: "
+                    f"{len(text)} characters extracted"
+                )
+
+            await db.commit()
 
     except Exception as e:
         print(f"❌ PDF extraction failed: {e}")

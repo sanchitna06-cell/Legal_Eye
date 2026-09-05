@@ -19,4 +19,3 @@ class AuditLog(Base):
     # Relationships
     user = relationship("User", back_populates="audit_logs")
     case = relationship("Case", back_populates="audit_logs")
-    document = relationship("Document", back_populates="audit_logs")

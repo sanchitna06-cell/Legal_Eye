@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, Text , ForeignKey
+from sqlalchemy import String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -42,10 +42,11 @@ class Case(Base):
         nullable=True,
     )
 
-    lead_investigator_id: Mapped[str] = mapped_column(
+    created_by: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("users.id"),
-        nullable=True,
+        nullable=False,
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -62,22 +63,18 @@ class Case(Base):
     )
 
     # Relationships
-    lead_investigator_user = relationship(
+
+    creator = relationship(
         "User",
-        back_populates="cases",
+        back_populates="created_cases",
     )
 
     documents = relationship(
-    "Document",
+        "Document",
         back_populates="case",
     )
 
     audit_logs = relationship(
         "AuditLog",
-        back_populates="case",
-)
-
-    entities = relationship(
-        "Entity",
         back_populates="case",
     )

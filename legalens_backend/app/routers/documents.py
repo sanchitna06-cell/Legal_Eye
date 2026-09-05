@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.security import get_current_investigator
+from app.core.security import get_current_lawyer
 from app.core.event_bus import event_bus
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
 from app.models.document import Document
@@ -22,7 +22,7 @@ async def upload_document(
     
     case_id: str,
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_investigator),
+    current_user: dict = Depends(get_current_lawyer),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename:
@@ -33,9 +33,15 @@ async def upload_document(
     """Upload a document to a case. Triggers blockchain and AI events."""
     
     # Check if case exists
+    # Check if case exists
     case_service = CaseService(db)
     case = await case_service.get_case_by_id(case_id)
+
     if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+# Check case ownership
+    if case.created_by != current_user["user_id"]:
         raise HTTPException(status_code=404, detail="Case not found")
     
     # Read file content
@@ -99,7 +105,7 @@ async def upload_document(
         case_id=case_id,
         file_name=file.filename,
         sha256_hash=sha256_hash,
-        uploaded_by=current_user["sub"],
+        uploaded_by=current_user["user_id"],
     )
 )
     

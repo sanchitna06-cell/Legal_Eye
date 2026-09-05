@@ -6,7 +6,7 @@ from app.core.contracts import DocumentStatus
 import enum
 
 class Document(Base):
-    __tablename__ = "documents"
+    __tablename__ = "case_files"
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: __import__('uuid').uuid4().hex)
     case_id: Mapped[str] = mapped_column(String(36), ForeignKey("cases.id"), nullable=False, index=True)
@@ -29,5 +29,7 @@ class Document(Base):
     # Relationships
     case = relationship("Case", back_populates="documents")
     uploader = relationship("User", back_populates="documents")
-    entities = relationship("Entity", back_populates="document")
-    audit_logs = relationship("AuditLog", back_populates="document")
+    pages = relationship(
+        "CaseFilePage",
+        back_populates="case_file",
+    )
