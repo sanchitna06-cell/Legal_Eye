@@ -1,11 +1,18 @@
-.venv/
-venv/
-__pycache__/
-*.pyc
-.env
+# LegalLens backend
+legalens_backend/.venv/
+legalens_backend/venv/
+legalens_backend/__pycache__/
+legalens_backend/**/*.pyc
 
-# Runtime/generated application state
-legalens_backend/app/storage/
-# Frontend dependencies/build output
-node_modules/
-dist/
+# Environment / secrets
+.env
+.env.*
+
+# Database backups
+*.dump
+
+# Startup demo — maintained separately
+LegalLens_Startup_Demo/
+venv/
+# Runtime blockchain state
+legalens_backend/app/storage/*.json

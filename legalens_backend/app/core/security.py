@@ -271,7 +271,6 @@ async def get_current_investigator(
         get_current_active_user
     ),
 ) -> Dict[str, Any]:
-
     role = current_user.get("role")
 
     if role not in {
@@ -286,8 +285,11 @@ async def get_current_investigator(
 
     return current_user
 
+
 async def get_current_lawyer(
-    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(
+        get_current_active_user
+    ),
 ) -> Dict[str, Any]:
     role = current_user.get("role")
 
@@ -299,12 +301,28 @@ async def get_current_lawyer(
 
     return current_user
 
+
+async def get_current_admin(
+    current_user: Dict[str, Any] = Depends(
+        get_current_active_user
+    ),
+) -> Dict[str, Any]:
+    role = current_user.get("role")
+
+    if role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return current_user
+
+
 async def get_current_supervisor(
     current_user: Dict[str, Any] = Depends(
         get_current_active_user
     ),
 ) -> Dict[str, Any]:
-
     role = current_user.get("role")
 
     if role not in {

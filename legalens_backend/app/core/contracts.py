@@ -50,6 +50,18 @@ class DocumentStatus(str, Enum):
     INTEGRITY_FAILED = "INTEGRITY_FAILED"
     ERROR = "ERROR"
 
+class ProcessingType(str, Enum):
+    INTEGRITY_ANCHOR = "INTEGRITY_ANCHOR"
+    TEXT_EXTRACTION = "TEXT_EXTRACTION"
+    ENTITY_EXTRACTION = "ENTITY_EXTRACTION"
+
+
+class ProcessingJobStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
 
 # ============================================================
 # DOCUMENT EVENT PAYLOAD
@@ -85,6 +97,16 @@ class TextExtractedPayload(BaseModel):
 # ============================================================
 # ENTITY EXTRACTION EVENT PAYLOAD
 # ============================================================
+class ExtractedEntity(BaseModel):
+    """One entity produced by the AI/NLP extraction layer."""
+
+    entity_type: EntityType
+    value: str
+    confidence: float = Field(
+        ge=0.0,
+        le=1.0,
+    )
+    page_number: int = Field(ge=1)
 
 class EntityExtractedPayload(BaseModel):
     """
@@ -94,8 +116,7 @@ class EntityExtractedPayload(BaseModel):
     document_id: str
     case_id: str
 
-    entities: list[dict[str, Any]]
-
+    entities: list[ExtractedEntity]
 
 # ============================================================
 # INTEGRITY FAILURE EVENT PAYLOAD

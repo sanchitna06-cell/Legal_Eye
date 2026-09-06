@@ -19,7 +19,7 @@ from app.core.events import (
 load_dotenv()
 
 # Import routers
-from app.routers import health, auth, cases, documents, blockchain, intelligence
+from app.routers import health, auth, cases, documents, blockchain, intelligence,admin
 from app.core.database import engine, Base
 from app.core.event_bus import event_bus
 from app.subscribers import text_extractor, entity_extractor, blockchain_subscriber
@@ -109,7 +109,7 @@ app.include_router(cases.router)
 app.include_router(documents.router)
 app.include_router(blockchain.router)
 app.include_router(intelligence.router)
-
+app.include_router(admin.router)
 
 # =========================================================
 # ROOT ENDPOINT

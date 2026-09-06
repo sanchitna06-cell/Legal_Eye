@@ -6,6 +6,7 @@ from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.audit_service import AuditService
 
 from app.core.database import get_db
 from app.core.security import get_current_lawyer
@@ -70,6 +71,17 @@ async def create_case(
     )
 
     db.add(new_case)
+
+    await AuditService.log(
+        db,
+        user_id=current_user["user_id"],
+        action="CASE_CREATED",
+        case_id=new_case.id,
+        details={
+            "case_number": new_case.case_number,
+            "title": new_case.title,
+    },
+    )
 
     await db.commit()
     await db.refresh(new_case)

@@ -23,29 +23,35 @@ class Blockchain:
     
     def _load_or_create(self) -> List[Dict[str, Any]]:
         """Load chain from disk or create genesis block."""
+
         if os.path.exists(self.chain_path):
             try:
-                with open(self.chain_path, 'r') as f:
+                with open(self.chain_path, "r") as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return self._create_genesis()
+            except (json.JSONDecodeError, IOError) as e:
+                raise RuntimeError(
+                f"Blockchain storage could not be loaded: {e}"
+            )
+
         return self._create_genesis()
-    
     def _create_genesis(self) -> List[Dict[str, Any]]:
         """Create the genesis block."""
+
         genesis = {
-            "index": 0,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "action": "GENESIS",
-            "document_id": "GENESIS",
-            "document_hash": "0" * 64,
-            "user_id": "SYSTEM",
-            "previous_hash": "0" * 64,
-            "hash": hashlib.sha256(b"genesis_block").hexdigest(),
-            "metadata": {}
-        }
+        "index": 0,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "action": "GENESIS",
+        "document_id": "GENESIS",
+        "document_hash": "0" * 64,
+        "user_id": "SYSTEM",
+        "previous_hash": "0" * 64,
+        "hash": "",
+        "metadata": {},
+    }
+
+        genesis["hash"] = self._calculate_hash(genesis)
+
         return [genesis]
-    
     def _save(self):
         """Persist chain to disk."""
         with open(self.chain_path, 'w') as f:
