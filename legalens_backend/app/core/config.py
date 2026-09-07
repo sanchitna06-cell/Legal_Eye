@@ -16,15 +16,17 @@ class Settings:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", " ")
+    SECRET_KEY: str = os.getenv("SECRET_KEY","")
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY is not configured.")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/ lens_db")
-    
-    # Storage
-    STORAGE_PATH: str = os.getenv("STORAGE_PATH", "./app/storage")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not configured.")
+
 
     # Supabase Storage
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
@@ -33,6 +35,11 @@ class Settings:
         "SUPABASE_BUCKET_NAME",
         "LegalLens_Backend"
     )
+    if not SUPABASE_URL:
+        raise RuntimeError("SUPABASE_URL is not configured.")
+
+    if not SUPABASE_SECRET_KEY:
+        raise RuntimeError("SUPABASE_SECRET_KEY is not configured.")
     
     # AI Models (future)
     SPACY_MODEL: str = "en_core_web_sm"
@@ -43,6 +50,3 @@ class Settings:
 
 # Singleton instance
 settings = Settings()
-
-# Ensure storage directory exists
-os.makedirs(settings.STORAGE_PATH, exist_ok=True)

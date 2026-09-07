@@ -8,6 +8,7 @@ from app.core.security import get_current_lawyer
 from sqlalchemy import select
 from app.models.case import Case
 from app.core.event_bus import event_bus
+from app.models.document_integrity import DocumentIntegrity
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
 from app.models.document import Document
 from app.services.case_service import CaseService
@@ -107,7 +108,7 @@ async def upload_document(
 
     await db.commit()
     await db.refresh(doc)
-    
+
     # Emit event for processing
     try:
         await event_bus.publish(
@@ -127,20 +128,40 @@ async def upload_document(
             f"for {file_id}: {e}"
         )
 
-        raise HTTPException(
-            status_code=500,
-            detail="Document processing failed."
+        return UploadResponse(
+            document_id=file_id,
+            case_id=case_id,
+            file_name=file.filename,
+            sha256_hash=sha256_hash,
+            blockchain_block_id=None,
+            status="ERROR",
+            message=(
+                "Document was uploaded successfully, "
+                "but processing failed."
+            ),
         )
 
-    
+    integrity_result = await db.execute(
+        select(DocumentIntegrity).where(
+            DocumentIntegrity.case_file_id == file_id
+        )
+    )
+
+    integrity = integrity_result.scalar_one_or_none()
+
+    if integrity is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Document integrity record was not created.",
+        )
     return UploadResponse(
         document_id=file_id,
         case_id=case_id,
         file_name=file.filename,
         sha256_hash=sha256_hash,
-        blockchain_block_id=None,
-        status="UPLOADED",
-        message="Document uploaded and integrity event queued."
+        blockchain_block_id=integrity.blockchain_block_id,
+        status="PROCESSED",
+        message="Document uploaded and text processing completed.",
     )
 @router.get("/{document_id}")
 async def get_document(

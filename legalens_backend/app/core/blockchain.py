@@ -1,157 +1,372 @@
 """
 app/core/blockchain.py
-----------------------
-The custom Blockchain for tamper-proof evidence logging.
-Stores a chain of blocks as a JSON file.
+
+PostgreSQL-backed tamper-evident hash chain.
+
+This is not a decentralized blockchain.
+It is an internal cryptographic hash chain used
+for document integrity verification.
 """
 
-import json
 import hashlib
-import os
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
-from app.core.config import settings
+import json
+from datetime import datetime
+from typing import Any
 
-BLOCKCHAIN_PATH = os.path.join(settings.STORAGE_PATH, "blockchain.json")
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-class Blockchain:
-    """Simple blockchain implementation for evidence integrity."""
-    
-    def __init__(self, chain_path: str = BLOCKCHAIN_PATH):
-        self.chain_path = chain_path
-        self.chain = self._load_or_create()
-    
-    def _load_or_create(self) -> List[Dict[str, Any]]:
-        """Load chain from disk or create genesis block."""
+from app.models.blockchain_block import BlockchainBlock
 
-        if os.path.exists(self.chain_path):
-            try:
-                with open(self.chain_path, "r") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                raise RuntimeError(
-                f"Blockchain storage could not be loaded: {e}"
-            )
 
-        return self._create_genesis()
-    def _create_genesis(self) -> List[Dict[str, Any]]:
-        """Create the genesis block."""
+class BlockchainService:
+    """
+    PostgreSQL-backed tamper-evident hash chain.
 
-        genesis = {
-        "index": 0,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "action": "GENESIS",
-        "document_id": "GENESIS",
-        "document_hash": "0" * 64,
-        "user_id": "SYSTEM",
-        "previous_hash": "0" * 64,
-        "hash": "",
-        "metadata": {},
-    }
+    The chain is stored in the blockchain_blocks table.
+    It is used to provide cryptographic evidence of document
+    integrity and detect unauthorized modification.
 
-        genesis["hash"] = self._calculate_hash(genesis)
+    This is not a decentralized blockchain.
+    """
 
-        return [genesis]
-    def _save(self):
-        """Persist chain to disk."""
-        with open(self.chain_path, 'w') as f:
-            json.dump(self.chain, f, indent=2)
-    
-    def _calculate_hash(self, block: Dict[str, Any]) -> str:
-        """Calculate SHA-256 hash of a block."""
-        block_copy = block.copy()
-        block_copy.pop("hash", None)  # Remove hash before calculating
-        # Ensure consistent string serialization
-        block_string = json.dumps(block_copy, sort_keys=True)
-        return hashlib.sha256(block_string.encode()).hexdigest()
-    
-    def add_block(self, action: str, document_id: str, document_hash: str, user_id: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
-        """Add a new block to the chain."""
-        previous_block = self.chain[-1]
-        index = previous_block["index"] + 1
-        
-        block = {
-            "index": index,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+    # PostgreSQL transaction-level advisory lock.
+    #
+    # This prevents two simultaneous block insertions
+    # from calculating the same latest block.
+    ADVISORY_LOCK_KEY = 73918421
+
+    # 64 hexadecimal zero characters.
+    # Used as the previous_hash of the genesis block.
+    GENESIS_HASH = "0" * 64
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    @staticmethod
+    def calculate_hash(block_data: dict[str, Any]) -> str:
+        """
+        Calculate the SHA-256 hash of a block's contents.
+
+        The hash field itself is excluded because a block
+        cannot contain a hash of itself.
+        """
+
+        data = block_data.copy()
+        data.pop("hash", None)
+
+        block_string = json.dumps(
+            data,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+
+        return hashlib.sha256(
+            block_string.encode("utf-8")
+        ).hexdigest()
+
+    async def _acquire_chain_lock(self) -> None:
+        """
+        Acquire a PostgreSQL transaction-level advisory lock.
+
+        The lock exists only for the current database transaction.
+        """
+
+        await self.db.execute(
+            text(
+                "SELECT pg_advisory_xact_lock(:lock_key)"
+            ),
+            {
+                "lock_key": self.ADVISORY_LOCK_KEY
+            },
+        )
+
+    async def _get_latest_block(
+        self,
+    ) -> BlockchainBlock | None:
+        """Return the latest block in the chain."""
+
+        result = await self.db.execute(
+            select(BlockchainBlock)
+            .order_by(BlockchainBlock.block_index.desc())
+            .limit(1)
+        )
+
+        return result.scalar_one_or_none()
+
+    async def _create_genesis(self) -> BlockchainBlock:
+        """
+        Create the first block in the chain.
+
+        Genesis is not associated with a document or user.
+        """
+
+        timestamp = datetime.utcnow()
+
+        block_data = {
+            "block_index": 0,
+            "created_at": timestamp.isoformat(),
+            "action": "GENESIS",
+            "document_id": None,
+            "document_hash": None,
+            "previous_hash": self.GENESIS_HASH,
+            "user_id": None,
+            "metadata": {},
+        }
+
+        block_hash = self.calculate_hash(block_data)
+
+        genesis = BlockchainBlock(
+            block_index=0,
+            created_at=timestamp,
+            action="GENESIS",
+            document_id=None,
+            document_hash=None,
+            previous_hash=self.GENESIS_HASH,
+            hash=block_hash,
+            user_id=None,
+            block_metadata={},
+        )
+
+        self.db.add(genesis)
+
+        await self.db.flush()
+
+        return genesis
+
+    async def add_block(
+        self,
+        action: str,
+        document_id: str | None,
+        document_hash: str | None,
+        user_id: str | None,
+        metadata: dict[str, Any] | None = None,
+    ) -> BlockchainBlock:
+        """
+        Append a new block to the hash chain.
+
+        The operation is protected by a PostgreSQL
+        transaction-level advisory lock so concurrent
+        uploads cannot append based on the same previous block.
+        """
+
+        # Prevent concurrent chain modifications.
+        await self._acquire_chain_lock()
+
+        # Find the current end of the chain.
+        previous_block = await self._get_latest_block()
+
+        # Create genesis if this is the first block.
+        if previous_block is None:
+            previous_block = await self._create_genesis()
+
+        block_index = previous_block.block_index + 1
+
+        timestamp = datetime.utcnow()
+
+        block_data = {
+            "block_index": block_index,
+            "created_at": timestamp.isoformat(),
             "action": action,
             "document_id": document_id,
             "document_hash": document_hash,
+            "previous_hash": previous_block.hash,
             "user_id": user_id,
-            "previous_hash": previous_block["hash"],
-            "hash": "",  # Will be filled below
-            "metadata": metadata or {}
+            "metadata": metadata or {},
         }
-        
-        block["hash"] = self._calculate_hash(block)
-        self.chain.append(block)
-        self._save()
+
+        block_hash = self.calculate_hash(block_data)
+
+        block = BlockchainBlock(
+            block_index=block_index,
+            created_at=timestamp,
+            action=action,
+            document_id=document_id,
+            document_hash=document_hash,
+            previous_hash=previous_block.hash,
+            hash=block_hash,
+            user_id=user_id,
+            block_metadata=metadata or {},
+        )
+
+        self.db.add(block)
+
+        await self.db.flush()
+
         return block
-    
-    def verify_document(self, document_id: str, current_hash: str) -> Dict[str, Any]:
+
+    async def verify_document(
+        self,
+        document_id: str,
+        current_hash: str,
+    ) -> dict[str, Any]:
         """
-        Verify a document against its canonical original hash.
+        Verify a document against its original UPLOAD block.
 
-        Only the UPLOAD block is considered the canonical
-        integrity anchor for the document.
+        The first UPLOAD block for the document is treated
+        as the canonical integrity anchor.
         """
 
-        for block in self.chain:
-            if (
-                block["document_id"] == document_id
-                and block["action"] == "UPLOAD"
-            ):
-                stored_hash = block["document_hash"]
-                block_number = block["index"]
+        result = await self.db.execute(
+            select(BlockchainBlock)
+            .where(
+                BlockchainBlock.document_id == document_id,
+                BlockchainBlock.action == "UPLOAD",
+            )
+            .order_by(BlockchainBlock.block_index.asc())
+            .limit(1)
+        )
 
-                if current_hash == stored_hash:
-                    return {
-                    "verified": True,
-                    "status": "VERIFIED",
-                    "block_number": block_number,
-                    "stored_hash": stored_hash,
-                }
+        block = result.scalar_one_or_none()
 
-                return {
-                "verified": False,
-                "status": "TAMPERED",
-                "block_number": block_number,
-                "stored_hash": stored_hash,
-                "current_hash": current_hash,
+        # No blockchain anchor exists yet.
+        if block is None:
+            return {
+                "status": "PENDING",
+                "document_id": document_id,
+                "message": (
+                    "No blockchain anchor found "
+                    "for this document."
+                ),
             }
 
+        # Current file matches the canonical hash.
+        if current_hash == block.document_hash:
+            return {
+                "status": "VERIFIED",
+                "document_id": document_id,
+                "block_index": block.block_index,
+                "message": "Document integrity verified.",
+            }
+
+        # Current file differs from the canonical hash.
         return {
-            "verified": False,
-            "status": "PENDING",
-            "block_number": None,
-            "stored_hash": None,
+            "status": "TAMPERED",
+            "document_id": document_id,
+            "block_index": block.block_index,
+            "message": (
+                "Document hash does not match "
+                "the anchored hash."
+            ),
         }
-    def verify_chain_integrity(self) -> bool:
-        """Verify that the entire chain is intact (no tampering)."""
-        for i in range(1, len(self.chain)):
-            current = self.chain[i]
-            previous = self.chain[i - 1]
-            
-            # Check if hash matches
-            if current["previous_hash"] != previous["hash"]:
-                print(f"❌ Chain broken at block {i}")
+
+    async def verify_chain_integrity(self) -> bool:
+        """
+        Verify the cryptographic links between every block.
+
+        This checks:
+
+        1. Genesis is block 0.
+        2. Genesis points to the zero hash.
+        3. Genesis's own hash is correct.
+        4. Block indexes are sequential.
+        5. Every block points to the previous block.
+        6. Every block's own hash is correct.
+        """
+
+        result = await self.db.execute(
+            select(BlockchainBlock)
+            .order_by(BlockchainBlock.block_index.asc())
+        )
+
+        blocks = result.scalars().all()
+
+        # An empty chain is considered valid.
+        if not blocks:
+            return True
+
+        # ---------------------------------------------------------
+        # 1. Verify genesis block
+        # ---------------------------------------------------------
+
+        genesis = blocks[0]
+
+        if genesis.block_index != 0:
+            return False
+
+        if genesis.previous_hash != self.GENESIS_HASH:
+            return False
+
+        genesis_data = {
+            "block_index": genesis.block_index,
+            "created_at": genesis.created_at.isoformat(),
+            "action": genesis.action,
+            "document_id": genesis.document_id,
+            "document_hash": genesis.document_hash,
+            "previous_hash": genesis.previous_hash,
+            "user_id": genesis.user_id,
+            "metadata": genesis.block_metadata or {},
+        }
+
+        calculated_genesis_hash = self.calculate_hash(
+            genesis_data
+        )
+
+        if genesis.hash != calculated_genesis_hash:
+            return False
+
+        # ---------------------------------------------------------
+        # 2. Verify every subsequent block
+        # ---------------------------------------------------------
+
+        for i in range(1, len(blocks)):
+            current = blocks[i]
+            previous = blocks[i - 1]
+
+            # Block numbering must remain sequential.
+            if current.block_index != previous.block_index + 1:
                 return False
-            
-            # Check if block's own hash is valid
-            if current["hash"] != self._calculate_hash(current):
-                print(f"❌ Block {i} hash mismatch")
+
+            # Current block must point to the previous block.
+            if current.previous_hash != previous.hash:
                 return False
-        
+
+            # Recalculate current block's hash.
+            block_data = {
+                "block_index": current.block_index,
+                "created_at": current.created_at.isoformat(),
+                "action": current.action,
+                "document_id": current.document_id,
+                "document_hash": current.document_hash,
+                "previous_hash": current.previous_hash,
+                "user_id": current.user_id,
+                "metadata": current.block_metadata or {},
+            }
+
+            calculated_hash = self.calculate_hash(
+                block_data
+            )
+
+            if current.hash != calculated_hash:
+                return False
+
         return True
-    
-    def get_chain(self) -> List[Dict[str, Any]]:
-        """Return the full chain."""
-        return self.chain
-    
-    def get_blocks_for_document(self, document_id: str) -> List[Dict[str, Any]]:
-        """Get all blocks related to a specific document."""
-        return [b for b in self.chain if b["document_id"] == document_id]
 
-# Singleton instance
-blockchain = Blockchain()
+    async def get_chain(
+        self,
+    ) -> list[BlockchainBlock]:
+        """Return the complete blockchain in chronological order."""
 
-print(f"🔗 Blockchain initialized with {len(blockchain.chain)} blocks at {BLOCKCHAIN_PATH}")
+        result = await self.db.execute(
+            select(BlockchainBlock)
+            .order_by(BlockchainBlock.block_index.asc())
+        )
+
+        return list(result.scalars().all())
+
+    async def get_blocks_for_document(
+        self,
+        document_id: str,
+    ) -> list[BlockchainBlock]:
+        """Return all blockchain blocks associated with a document."""
+
+        result = await self.db.execute(
+            select(BlockchainBlock)
+            .where(
+                BlockchainBlock.document_id == document_id
+            )
+            .order_by(BlockchainBlock.block_index.asc())
+        )
+
+        return list(result.scalars().all())

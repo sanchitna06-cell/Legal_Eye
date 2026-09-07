@@ -63,3 +63,9 @@ class SupabaseStorage:
 
         except Exception:
             return False
+    def delete_file(self, storage_key: str) -> None:
+        """Delete a file from Supabase Storage."""
+
+        self.client.storage.from_(
+            self.bucket_name
+        ).remove([storage_key])

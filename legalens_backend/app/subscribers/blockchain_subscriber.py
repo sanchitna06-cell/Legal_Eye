@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.core.blockchain import blockchain
+from app.core.blockchain import BlockchainService
 from app.core.contracts import (
     DocumentUploadedPayload,
     ProcessingType,
@@ -14,9 +14,11 @@ from app.models.document_integrity import DocumentIntegrity
 
 async def handle_document_uploaded(
     payload: DocumentUploadedPayload,
-):
+) -> None:
     async with AsyncSessionLocal() as db:
+        blockchain = BlockchainService(db)
 
+        # Create integrity processing job
         job = FileProcessingJob(
             case_file_id=payload.document_id,
             processing_type=ProcessingType.INTEGRITY_ANCHOR,
@@ -26,8 +28,9 @@ async def handle_document_uploaded(
         )
 
         db.add(job)
-        await db.commit()
+        await db.flush()
 
+        # Verify that the document exists
         document = await db.get(
             Document,
             payload.document_id,
@@ -44,7 +47,8 @@ async def handle_document_uploaded(
             f"{payload.document_id}"
         )
 
-        block = blockchain.add_block(
+        # Add document hash to the cryptographic hash chain
+        block = await blockchain.add_block(
             action="UPLOAD",
             document_id=payload.document_id,
             document_hash=payload.sha256_hash,
@@ -55,17 +59,19 @@ async def handle_document_uploaded(
             },
         )
 
+        # Create the canonical integrity record
         integrity = DocumentIntegrity(
             case_file_id=document.id,
             sha256_hash=payload.sha256_hash,
             algorithm="SHA-256",
-            blockchain_block_id=block["index"],
-            blockchain_hash=block["hash"],
-            anchored_at=datetime.utcnow(),
+            blockchain_block_id=block.id,
+            blockchain_hash=block.hash,
+            anchored_at=block.created_at,
         )
 
         db.add(integrity)
 
+        # Mark integrity processing job as completed
         job.status = ProcessingJobStatus.COMPLETED
         job.completed_at = datetime.utcnow()
 
@@ -73,6 +79,6 @@ async def handle_document_uploaded(
 
     print(
         f"✅ Integrity anchor created: "
-        f"block #{block['index']} "
+        f"block #{block.block_index} "
         f"for {payload.document_id}"
     )

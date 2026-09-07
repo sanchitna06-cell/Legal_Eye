@@ -19,7 +19,9 @@ from app.core.database import AsyncSessionLocal
 from app.models.case_file_page import CaseFilePage
 
 
-async def handle_text_extracted(payload: TextExtractedPayload):
+async def handle_text_extracted(
+    payload: TextExtractedPayload,
+) -> None:
     """Extract entities from text using AI."""
 
     print(

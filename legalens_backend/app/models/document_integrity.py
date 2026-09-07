@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy import (
     String,
     DateTime,
-    Integer,
     ForeignKey,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,9 +37,11 @@ class DocumentIntegrity(Base):
         default="SHA-256",
     )
 
-    blockchain_block_id: Mapped[int | None] = mapped_column(
-        Integer,
+    blockchain_block_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("blockchain_blocks.id"),
         nullable=True,
+        index=True,
     )
 
     blockchain_hash: Mapped[str | None] = mapped_column(
@@ -59,9 +60,11 @@ class DocumentIntegrity(Base):
         nullable=False,
     )
 
-    # Relationship
-
     case_file = relationship(
         "Document",
         back_populates="integrity",
+    )
+
+    blockchain_block = relationship(
+        "BlockchainBlock",
     )

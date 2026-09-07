@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.models.user import User
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
     create_refresh_token,
     verify_refresh_token,
+    get_current_active_user_for_password_change,
 )
-from app.core.contracts import LoginRequest, LoginResponse, RefreshTokenRequest
+from app.core.contracts import LoginRequest, LoginResponse, RefreshTokenRequest, ChangePasswordRequest
 from app.services.auth_service import AuthService
+from app.services.audit_service import AuditService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -76,14 +80,32 @@ async def login_for_swagger(
 @router.post("/refresh", response_model=LoginResponse)
 async def refresh_access_token(
     request: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     payload = verify_refresh_token(request.refresh_token)
 
+    user_id = payload["user_id"]
+
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User no longer exists",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
+        )
+
     token_data = {
-        "sub": payload["sub"],
-        "user_id": payload["user_id"],
-        "role": payload["role"],
-        "full_name": payload["full_name"],
+        "sub": user.username,
+        "user_id": user.id,
+        "role": user.role.value,
     }
 
     new_access_token = create_access_token(token_data)
@@ -93,9 +115,62 @@ async def refresh_access_token(
         refresh_token=request.refresh_token,
         token_type="Bearer",
         user={
-            "id": payload["user_id"],
-            "username": payload["sub"],
-            "full_name": payload["full_name"],
-            "role": payload["role"],
+            "id": user.id,
+            "username": user.username,
+            "full_name": user.full_name,
+            "role": user.role.value,
         },
     )
+@router.post("/change-password")
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_active_user_for_password_change),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User).where(
+            User.id == current_user["user_id"]
+        )
+    )
+
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found",
+        )
+
+    was_forced_change = user.must_change_password
+
+    auth_service = AuthService(db)
+
+    changed = await auth_service.change_password(
+        user=user,
+        current_password=request.current_password,
+        new_password=request.new_password,
+    )
+
+    if not changed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Current password is incorrect or "
+                "new password is the same as the current password."
+            ),
+        )
+
+    await AuditService.log(
+        db,
+        user_id=user.id,
+        action="PASSWORD_CHANGED",
+        details={
+            "forced_change": was_forced_change,
+        },
+    )
+
+    await db.commit()
+
+    return {
+        "message": "Password changed successfully.",
+    }

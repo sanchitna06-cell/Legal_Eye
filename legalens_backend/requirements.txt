@@ -6,6 +6,7 @@ argon2-cffi-bindings==26.1.0
 asyncpg==0.31.0
 certifi==2026.7.22
 cffi==2.1.1
+charset-normalizer==3.5.1
 click==8.5.0
 cryptography==50.0.1
 deprecation==2.1.0
@@ -20,6 +21,7 @@ hyperframe==6.1.0
 idna==3.19
 multidict==6.7.1
 packaging==26.3
+pillow==12.3.0
 postgrest==2.31.0
 propcache==0.5.2
 psycopg==3.3.5
@@ -29,9 +31,13 @@ pycparser==3.0
 pydantic==2.13.5
 pydantic_core==2.46.5
 PyJWT==2.13.0
+pymupdf==1.28.2
+PyPDF2==3.0.1
+pytesseract==0.3.13
 python-dotenv==1.2.3
 python-multipart==0.0.32
 realtime==2.31.0
+requests==2.34.2
 SQLAlchemy==2.0.52
 starlette==1.6.0
 storage3==2.31.0
@@ -42,6 +48,8 @@ supabase-functions==2.31.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzdata==2026.3
+urllib3==2.7.0
 uvicorn==0.52.4
 websockets==15.0.1
 yarl==1.24.5
+    

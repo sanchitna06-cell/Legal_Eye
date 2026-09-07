@@ -73,3 +73,11 @@ class CaseFilePage(Base):
             name="uq_case_file_page",
         ),
     )
+    annotations = relationship(
+        "Annotation",
+        back_populates="page",
+    )
+    flags = relationship(
+    "PageFlag",
+    back_populates="page",
+)

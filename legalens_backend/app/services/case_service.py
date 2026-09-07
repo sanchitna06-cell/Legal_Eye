@@ -6,9 +6,13 @@ class CaseService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def get_all_cases(self):
-        stmt = select(Case)
+    async def get_all_cases(self, user_id: str):
+        stmt = select(Case).where(
+        Case.created_by == user_id
+    )
+
         result = await self.db.execute(stmt)
+
         return result.scalars().all()
     
     async def get_case_by_id(self, case_id: str) -> Case | None:
@@ -25,7 +29,7 @@ class CaseService:
             description=case_data.get("description", ""),
             classification=case_data.get("classification", "CONFIDENTIAL"),
             department=case_data.get("department", ""),
-            lead_investigator_id=current_user.get("user_id"),
+            created_by=current_user.get("user_id"),
         )
         self.db.add(case)
         await self.db.commit()
