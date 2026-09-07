@@ -247,7 +247,9 @@ class RefreshTokenRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -268,6 +270,58 @@ class UploadResponse(BaseModel):
     blockchain_block_id: int | None = None
     status: str
     message: str
+
+# ============================================================
+# ANNOTATIONS
+# ============================================================
+
+class AnnotationCreate(BaseModel):
+    """
+    Data supplied by the frontend when creating an annotation.
+
+    Server-controlled fields such as id, page_id, created_by,
+    and timestamps are intentionally excluded.
+    """
+    annotation_type: str = Field(..., min_length=1, max_length=50)
+    content: str | None = None
+    position: dict[str, Any]
+class AnnotationUpdate(BaseModel):
+    annotation_type: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+    )
+    content: str | None = None
+    position: dict[str, Any] | None = None
+
+class AnnotationResponse(BaseModel):
+    """
+    Annotation returned by the API.
+    """
+    id: str
+    page_id: str
+    created_by: str
+    annotation_type: str
+    content: str | None = None
+    position: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+class PageFlagCreate(BaseModel):
+    flag_type: str = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+    )
+    reason: str | None = None
+
+
+class PageFlagResponse(BaseModel):
+    id: str
+    page_id: str
+    flagged_by: str
+    flag_type: str
+    reason: str | None = None
+    created_at: datetime
 class VerifyResponse(BaseModel):
     """
     Result of document integrity verification.

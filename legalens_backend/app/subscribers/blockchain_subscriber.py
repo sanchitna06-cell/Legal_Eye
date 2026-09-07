@@ -14,7 +14,7 @@ from app.models.document_integrity import DocumentIntegrity
 
 async def handle_document_uploaded(
     payload: DocumentUploadedPayload,
-):
+) -> None:
     async with AsyncSessionLocal() as db:
 
         job = FileProcessingJob(

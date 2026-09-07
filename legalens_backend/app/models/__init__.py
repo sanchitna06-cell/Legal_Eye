@@ -6,6 +6,9 @@ from app.models.document_integrity import DocumentIntegrity
 from app.models.entity import Entity
 from app.models.audit_log import AuditLog
 from app.models.file_processing_job import FileProcessingJob
+from app.models.annotation import Annotation
+from app.models.annotation_history import AnnotationHistory
+from app.models.page_flag import PageFlag
 
 __all__ = [
     "User",
@@ -16,4 +19,7 @@ __all__ = [
     "FileProcessingJob",
     "Entity",
     "AuditLog",
+    "Annotation",
+    "AnnotationHistory",
+    "PageFlag",
 ]

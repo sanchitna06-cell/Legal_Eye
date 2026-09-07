@@ -47,6 +47,11 @@ class User(Base):
         default=True,
         nullable=False,
     )
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False, 
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -73,4 +78,16 @@ class User(Base):
     audit_logs = relationship(
         "AuditLog",
         back_populates="user",
+    )
+    annotations = relationship(
+        "Annotation",
+        back_populates="creator",
+    )
+    annotation_history = relationship(
+        "AnnotationHistory",
+        back_populates="changer",
+    )
+    page_flags = relationship(
+        "PageFlag",
+        back_populates="creator",
     )
