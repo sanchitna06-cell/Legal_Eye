@@ -1,0 +1,845 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ============================================================
+ * JURY HASH — DESIGN SYSTEM
+ * ============================================================
+ *
+ * Ink, parchment, brass, burgundy and restrained olive.
+ *
+ * IMPORTANT:
+ * This stylesheet intentionally avoids the generic
+ * blue/purple AI-SaaS visual language.
+ *
+ * ============================================================
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brass: var(--brass);
+  --color-brass-dim: var(--brass-dim);
+
+  --color-parchment: var(--parchment);
+  --color-ink: var(--ink);
+
+  --color-burgundy: var(--burgundy);
+  --color-olive: var(--olive);
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+}
+
+/* ============================================================
+   ROOT DESIGN TOKENS
+   ============================================================ */
+
+:root {
+  --radius: 0.25rem;
+
+  --ink: oklch(0.16 0.011 60);
+  --parchment: oklch(0.94 0.014 85);
+
+  --brass: oklch(0.74 0.09 82);
+  --brass-dim: oklch(0.55 0.06 80);
+
+  --burgundy: oklch(0.42 0.09 20);
+  --olive: oklch(0.52 0.05 130);
+
+  --background: oklch(0.155 0.009 60);
+  --foreground: oklch(0.93 0.012 85);
+
+  --surface: oklch(0.19 0.011 62);
+  --surface-raised: oklch(0.225 0.012 64);
+
+  --card: oklch(0.19 0.011 62);
+  --card-foreground: oklch(0.93 0.012 85);
+
+  --popover: oklch(0.2 0.011 62);
+  --popover-foreground: oklch(0.93 0.012 85);
+
+  --primary: oklch(0.74 0.09 82);
+  --primary-foreground: oklch(0.16 0.011 60);
+
+  --secondary: oklch(0.245 0.012 64);
+  --secondary-foreground: oklch(0.9 0.012 85);
+
+  --muted: oklch(0.24 0.01 62);
+  --muted-foreground: oklch(0.68 0.014 78);
+
+  --accent: oklch(0.28 0.02 70);
+  --accent-foreground: oklch(0.93 0.012 85);
+
+  --destructive: oklch(0.48 0.13 22);
+  --destructive-foreground: oklch(0.95 0.01 85);
+
+  --border: oklch(0.3 0.012 66);
+  --input: oklch(0.28 0.012 66);
+  --ring: oklch(0.62 0.07 82);
+
+  --shadow-chamber: 0 24px 60px -24px oklch(0 0 0 / 0.75);
+
+  --rule-brass: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--brass) 60%, transparent),
+    transparent
+  );
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    background: var(--color-background);
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+
+    font-family: var(--font-sans);
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brass) 35%, transparent);
+  }
+}
+
+/* ============================================================
+   LEGAL LABEL
+   ============================================================ */
+
+@utility label-legal {
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+/* ============================================================
+   BRASS HAIRLINE
+   ============================================================ */
+
+@utility rule-brass {
+  height: 1px;
+  background: var(--rule-brass);
+}
+
+/* ============================================================
+   PAPER / FILM GRAIN
+   ============================================================ */
+
+@utility grain {
+  position: relative;
+
+  &::after {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    opacity: 0.35;
+
+    mix-blend-mode: overlay;
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+}
+
+/* ============================================================
+   CHAMBER PANEL
+   ============================================================ */
+
+@utility chamber-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface-raised) 92%, transparent),
+    var(--surface)
+  );
+
+  border: 1px solid var(--border);
+
+  box-shadow: var(--shadow-chamber);
+}
+
+/* ============================================================
+   LEGAL FOCUS
+   ============================================================ */
+
+@utility focus-legal {
+  &:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--brass) 70%, transparent);
+
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================
+   ============================================================
+   CINEMATIC INTRO
+   ============================================================
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   COURTROOM ATMOSPHERE
+   ------------------------------------------------------------ */
+
+@keyframes haze-drift {
+  0% {
+    transform: scale(1.14) translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: scale(1.04) translate3d(-1.5%, -1%, 0);
+  }
+}
+
+/* ------------------------------------------------------------
+   CAMERA IMPACT
+   ------------------------------------------------------------ */
+
+@keyframes shake-impact {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  12% {
+    transform: translate3d(0, 4px, 0);
+  }
+
+  18% {
+    transform: translate3d(0, 7px, 0) scale(1.006);
+  }
+
+  32% {
+    transform: translate3d(-2px, -2px, 0);
+  }
+
+  48% {
+    transform: translate3d(2px, 2px, 0);
+  }
+
+  68% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ------------------------------------------------------------
+   IMPACT LIGHT
+   ------------------------------------------------------------ */
+
+@keyframes bloom-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+
+  18% {
+    opacity: 0.8;
+    transform: scale(0.88);
+  }
+
+  34% {
+    opacity: 0.55;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+/* ------------------------------------------------------------
+   DUST / IMPACT PARTICLES
+   ------------------------------------------------------------ */
+
+@keyframes dust-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.35);
+  }
+
+  20% {
+    opacity: 0.5;
+  }
+
+  55% {
+    opacity: 0.28;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0), -60px, 0) scale(1);
+  }
+}
+
+/* ------------------------------------------------------------
+   BRAND SHEEN
+   ------------------------------------------------------------ */
+
+@keyframes sheen-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-16deg);
+
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateX(160%) skewX(-16deg);
+
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------
+   GENERIC RISE
+   ------------------------------------------------------------ */
+
+@keyframes rise-in {
+  0% {
+    opacity: 0;
+
+    transform: translate3d(0, 14px, 0);
+  }
+
+  100% {
+    opacity: 1;
+
+    transform: none;
+  }
+}
+
+@utility animate-rise-in {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   GAVEL + SOUND BLOCK SCENE
+   ============================================================
+
+   Ported from the reference startup prototype: the gavel and its
+   sound block sit inside a 1536x1024 canvas box (the gavel image
+   fills the box; the block is a separate layer planted beneath the
+   gavel head at measured geometry).
+
+     --block-left    3.71%   of the box width
+     --block-top    65.33%   of the box height
+     --block-width  60%
+
+   The gavel rotates about the handle-end pivot (95.05% / 75.4% of
+   the box) so the head arcs down onto the block's brass plate.
+
+   Poses (data-gp):
+     appear -> fades in already raised (+8deg)
+     ready  -> settles 8deg to 5.5deg
+     strike -> ONE uninterrupted 1.75s double-strike run; contact at
+               34% (~0.595s) and 70% (~1.225s). The impact blooms and
+               the block's recoil are frame-locked to those frames.
+     exit   -> holds -2deg and recedes
+
+   TIMING: the strike run starts at 1450ms, so contacts land around
+   2045ms and 2675ms - keep in sync with intro-timeline.ts.
+   ============================================================ */
+
+.le-gavel-scene {
+  --block-left: 3.71%;
+  --block-top: 65.33%;
+  --block-width: 60%;
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(720px, 72vw, 96vh);
+  aspect-ratio: 1536 / 1024;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, opacity;
+  z-index: 10;
+}
+
+.le-gavel-scene img {
+  display: block;
+  -webkit-user-drag: none;
+}
+
+/* Warm pool of light grounding the scene */
+.le-scene-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1%;
+  height: 26%;
+  background: radial-gradient(
+    ellipse 46% 62% at 32% 0%,
+    color-mix(in srgb, #e0a84f 20%, transparent),
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+/* Sound block - the planted layer; only recoils at impact */
+.le-block-wrap {
+  position: absolute;
+  left: var(--block-left);
+  top: var(--block-top);
+  width: var(--block-width);
+  will-change: transform;
+}
+
+.le-block {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Restrained golden bloom at the strike point (the block's plate) */
+.le-impact-glow {
+  position: absolute;
+  left: 32%;
+  top: 72%;
+  width: 30%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #ffd682 80%, transparent) 0%,
+    color-mix(in srgb, #e0a84f 36%, transparent) 38%,
+    transparent 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.le-gavel-scene[data-gp="strike"] .le-impact-glow-1 {
+  animation: impact-burst 0.55s ease-out 0.595s forwards;
+}
+
+.le-gavel-scene[data-gp="strike"] .le-impact-glow-2 {
+  animation: impact-burst 0.55s ease-out 1.225s forwards;
+}
+
+@keyframes impact-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  20% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.5);
+  }
+}
+
+/* The gavel pivots at the handle end */
+.le-gavel-rot {
+  position: absolute;
+  inset: 0;
+  /* Pivot ≈ handle knob: 1460/1536 of the width, 772/1024 of the height. */
+  transform-origin: 95.05% 75.4%;
+  will-change: transform;
+}
+
+.le-gavel-rot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Each pose lands where the next begins, so the gavel never snaps */
+.le-gavel-scene[data-gp="appear"] .le-gavel-rot {
+  transform: rotate(8deg);
+}
+
+.le-gavel-scene[data-gp="exit"] .le-gavel-rot {
+  transform: rotate(-2deg);
+}
+
+.le-gavel-scene[data-gp="appear"] {
+  animation: scene-appear 0.3s ease-out forwards;
+}
+
+@keyframes scene-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.le-gavel-scene[data-gp="ready"],
+.le-gavel-scene[data-gp="strike"],
+.le-gavel-scene[data-gp="exit"] {
+  opacity: 1;
+}
+
+.le-gavel-scene[data-gp="ready"] .le-gavel-rot {
+  animation: gavel-ready 0.3s cubic-bezier(0.22, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes gavel-ready {
+  from {
+    transform: rotate(8deg);
+  }
+  to {
+    transform: rotate(5.5deg);
+  }
+}
+
+/* The judge strikes twice: wind-up, STRIKE 1 at 34%, lift for a bigger
+   second swing, STRIKE 2 at 70%, then rebound and settle. 1.75s total, so
+   with the strike starting at 1450ms the impacts land at ~2045ms and
+   ~2675ms. */
+.le-gavel-scene[data-gp="strike"] .le-gavel-rot {
+  animation: gavel-double-strike 1.75s forwards;
+}
+
+@keyframes gavel-double-strike {
+  0% {
+    transform: rotate(5.5deg);
+    animation-timing-function: ease-out;
+  }
+  18% {
+    transform: rotate(9deg);
+    animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  }
+  34% {
+    transform: rotate(-4deg) translateY(0.4%) scale(1, 0.985); /* STRIKE 1 */
+    animation-timing-function: ease-out;
+  }
+  41% {
+    transform: rotate(-1.2deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.3);
+  }
+  52% {
+    transform: rotate(9.5deg);
+    animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  }
+  70% {
+    transform: rotate(-4deg) translateY(0.4%) scale(1, 0.985); /* STRIKE 2 */
+    animation-timing-function: ease-out;
+  }
+  77% {
+    transform: rotate(-1deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.3);
+  }
+  88% {
+    transform: rotate(1deg);
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    transform: rotate(-2deg);
+  }
+}
+
+/* Tiny recoil of the block as the head lands - at both impact frames */
+.le-gavel-scene[data-gp="strike"] .le-block-wrap {
+  animation: block-recoil-double 1.75s forwards;
+}
+
+@keyframes block-recoil-double {
+  0%,
+  30% {
+    transform: translateY(0);
+  }
+  34% {
+    transform: translateY(0.7%);
+  }
+  38%,
+  66% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(0.9%);
+  }
+  74%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* The scene recedes once the strikes are done */
+.le-gavel-scene[data-gp="exit"] {
+  animation: gavel-exit 0.3s ease-in forwards;
+}
+
+@keyframes gavel-exit {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-1.2%) scale(0.95);
+  }
+}
+
+@media (max-width: 760px) {
+  .le-gavel-scene {
+    width: 94vw;
+  }
+}
+/* ============================================================
+   CENTER BRAND PROTECTION
+   ============================================================
+
+   The JURY HASH wordmark is intentionally placed above the
+   gavel visual layer.
+
+   This prevents the gavel from visually "cutting through"
+   the typography.
+
+   The brand is the hero identity.
+   The gavel is the cinematic foreground action.
+   ============================================================ */
+
+/*
+ * The brand reveal is the final positioned full-screen
+ * centered layer in CinematicIntro.tsx.
+ *
+ * Give it a higher stacking context.
+ */
+.absolute.inset-x-0.top-1\/2 {
+  z-index: 60;
+
+  /*
+   * Prevent the brand layer from interfering with the
+   * gavel animation itself.
+   */
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   Brand typography
+   ------------------------------------------------------------ */
+
+.absolute.inset-x-0.top-1\/2 h1 {
+  position: relative;
+
+  z-index: 62;
+
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.42);
+}
+
+/* ------------------------------------------------------------
+   Brand icon
+   ------------------------------------------------------------ */
+
+.absolute.inset-x-0.top-1\/2 svg {
+  position: relative;
+
+  z-index: 62;
+
+  filter: drop-shadow(0 4px 18px color-mix(in oklab, var(--brass) 18%, transparent));
+}
+
+/* ============================================================
+   COURTROOM LAYER
+   ============================================================
+
+   Keep courtroom atmospheric and behind the gavel/brand.
+   ============================================================ */
+
+.fixed.inset-0.z-50 > div:first-child {
+  z-index: 1;
+}
+
+/*
+ * Camera-shake wrapper.
+ *
+ * Keep above courtroom.
+ */
+.fixed.inset-0.z-50 > div:nth-child(2) {
+  z-index: 10;
+}
+
+/*
+ * Gavel stage itself.
+ */
+.fixed.inset-0.z-50 > div:nth-child(2) > div:first-child {
+  z-index: 20;
+}
+
+/*
+ * Brand remains above the gavel.
+ */
+.fixed.inset-0.z-50 > div:nth-child(2) > div:last-child {
+  z-index: 60;
+}
+
+/* ============================================================
+   CASE ARCHIVE SURFACES
+   ============================================================ */
+
+@utility case-card {
+  position: relative;
+
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface-raised) 70%, transparent),
+    var(--surface)
+  );
+
+  border: 1px solid var(--border);
+
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+
+  &:hover {
+    transform: translateY(-3px);
+
+    border-color: color-mix(in oklab, var(--brass) 45%, var(--border));
+
+    box-shadow: 0 18px 40px -26px oklch(0 0 0 / 0.9);
+  }
+}
+
+/* ============================================================
+   CONFIDENTIAL CASE
+   ============================================================ */
+
+@utility case-card-confidential {
+  border-color: color-mix(in oklab, var(--burgundy) 55%, var(--border));
+
+  background: linear-gradient(
+    18deg,
+    color-mix(in oklab, var(--burgundy) 9%, var(--surface-raised)),
+    var(--surface)
+  );
+
+  &:hover {
+    border-color: color-mix(in oklab, var(--burgundy) 80%, transparent);
+  }
+}
+
+/* ============================================================
+   CONFIDENTIAL SEAL
+   ============================================================ */
+
+@utility seal-confidential {
+  display: inline-flex;
+
+  align-items: center;
+  gap: 0.35rem;
+
+  border: 1px solid color-mix(in oklab, var(--burgundy) 65%, transparent);
+
+  color: color-mix(in oklab, var(--burgundy) 62%, var(--parchment));
+
+  padding: 0.125rem 0.45rem;
+
+  font-size: 0.625rem;
+
+  letter-spacing: 0.14em;
+
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.001ms !important;
+
+    scroll-behavior: auto !important;
+  }
+}

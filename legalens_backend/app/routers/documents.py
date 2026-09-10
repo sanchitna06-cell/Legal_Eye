@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.security import get_current_lawyer
 from sqlalchemy import select
 from app.models.case import Case
+from app.models.case_file_page import CaseFilePage
 from app.core.event_bus import event_bus
 from app.models.document_integrity import DocumentIntegrity
 from app.core.contracts import UploadResponse, DocumentUploadedPayload
@@ -160,9 +161,84 @@ async def upload_document(
         file_name=file.filename,
         sha256_hash=sha256_hash,
         blockchain_block_id=integrity.blockchain_block_id,
-        status="PROCESSED",
-        message="Document uploaded and text processing completed.",
+        status="UPLOADED",
+        message="Document uploaded successfully and queued for processing.",
+        )
+@router.get("/case/{case_id}")
+async def get_case_documents(
+    case_id: str,
+    current_user: dict = Depends(get_current_lawyer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return documents for a case only if the lawyer owns the case."""
+
+    stmt = (
+        select(Document)
+        .join(Case, Document.case_id == Case.id)
+        .where(
+            Document.case_id == case_id,
+            Case.created_by == current_user["user_id"],
+        )
+        .order_by(Document.uploaded_at.asc())
     )
+
+    result = await db.execute(stmt)
+    documents = result.scalars().all()
+
+    return {
+        "documents": [
+            {
+                "id": document.id,
+                "file_name": document.file_name,
+                "file_size_bytes": document.file_size_bytes,
+                "mime_type": document.mime_type,
+                "status": document.status,
+                "uploaded_at": document.uploaded_at,
+            }
+            for document in documents
+        ]
+    }
+@router.get("/{document_id}/pages")
+async def get_document_pages(
+    document_id: str,
+    current_user: dict = Depends(get_current_lawyer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return page-level data only if the lawyer owns the document's case."""
+
+    stmt = (
+        select(CaseFilePage)
+        .join(Document, CaseFilePage.case_file_id == Document.id)
+        .join(Case, Document.case_id == Case.id)
+        .where(
+            Document.id == document_id,
+            Case.created_by == current_user["user_id"],
+        )
+        .order_by(CaseFilePage.page_number.asc())
+    )
+
+    result = await db.execute(stmt)
+    pages = result.scalars().all()
+
+    if not pages:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found or has no processed pages.",
+        )
+
+    return {
+        "pages": [
+            {
+                "id": page.id,
+                "page_number": page.page_number,
+                "extracted_text": page.extracted_text,
+                "extraction_method": page.extraction_method,
+                "ocr_confidence": page.ocr_confidence,
+                "extraction_status": page.extraction_status,
+            }
+            for page in pages
+        ]
+    }
 @router.get("/{document_id}")
 async def get_document(
     document_id: str,

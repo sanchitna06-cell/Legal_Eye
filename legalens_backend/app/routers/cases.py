@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import select
@@ -19,6 +19,13 @@ router = APIRouter()
 class CaseCreate(BaseModel):
     title: str
     description: str
+    classification: str = Field(
+        ...,
+        pattern="^(general|confidential)$",
+    )
+    title: str
+    description: str
+    classification: str
 
 
 @router.get("/cases")
@@ -63,7 +70,7 @@ async def create_case(
         case_number=f"LL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
         title=case.title,
         description=case.description,
-        classification="CONFIDENTIAL",
+        classification=case.classification.upper(),
         department=None,
         created_by=current_user["user_id"],
         created_at=datetime.utcnow(),
