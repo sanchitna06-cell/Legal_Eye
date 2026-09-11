@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Scale, FileText, Clock, Users, ChevronRight, Lock } from "lucide-react";
+import { Search, Scale, FileText, Clock, Users, ChevronRight, Lock, X, Menu } from "lucide-react";
 import { useCaseActions, useCases } from "@/lib/case-store";
 import {
   CLASSIFICATION_LABEL,
@@ -9,14 +9,15 @@ import {
   STATUS_TONE,
   caseSearchText,
   isConfidential,
+  type CaseCategory,
   type CaseClassification,
   type CaseRecord,
   type CaseStatus,
 } from "@/data/cases";
-import { JuryHashMark } from "@/components/brand/JURYHashMark";
-import { UserProfileMenu } from "@/components/layout/UserProfileMenu";
 import { getCaseDocuments, type BackendDocument } from "@/lib/api";
 import { getSession } from "@/lib/user-store";
+import { SidebarDrawer } from "@/components/dashboard/SidebarDrawer";
+import { AppHeader } from "@/components/layout/AppHeader";
 
 export const Route = createFileRoute("/records")({
   beforeLoad: () => {
@@ -54,6 +55,10 @@ function Records() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CaseStatus | "All">("All");
   const [classFilter, setClassFilter] = useState<CaseClassification | "All">("All");
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [category, setCategory] = useState<CaseCategory | null>(null);
+
   const [selectedId, setSelectedId] = useState<string | undefined>(() => {
     const first = records[0];
     if (!first) return undefined;
@@ -61,67 +66,98 @@ function Records() {
     return first.id;
   });
 
-  // Keep the URL in sync so records can be deep-linked (dashboard cards, drawer).
+  // Keep the URL in sync so records can be deep-linked from dashboard cards,
+  // sidebar pinned cases, and other record links.
   useEffect(() => {
-    if (caseParam && records.some((c) => c.id === caseParam)) setSelectedId(caseParam);
+    if (caseParam && records.some((c) => c.id === caseParam)) {
+      setSelectedId(caseParam);
+    }
   }, [caseParam, records]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     return records.filter((c) => {
       if (q && !caseSearchText(c).includes(q)) return false;
       if (statusFilter !== "All" && c.status !== statusFilter) return false;
       if (classFilter !== "All" && c.classification !== classFilter) return false;
+      if (category && c.category !== category) return false;
+
       return true;
     });
-  }, [query, records, statusFilter, classFilter]);
+  }, [query, records, statusFilter, classFilter, category]);
 
   const selected = selectedId ? records.find((c) => c.id === selectedId) : undefined;
 
   function selectCase(id: string) {
     setSelectedId(id);
-    navigate({ to: "/records", search: { case: id }, replace: true });
+    navigate({
+      to: "/records",
+      search: { case: id },
+      replace: true,
+    });
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/92 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-4">
-          <Link to="/dashboard" className="focus-legal flex items-center gap-2.5">
-            <JuryHashMark className="h-6 w-6 text-brass" />
-            <span className="font-display text-base tracking-wide">
-              JURY <span className="text-brass">HASH</span>
-            </span>
-          </Link>
-          <div className="ml-auto flex items-center gap-3">
-            <div className="relative hidden sm:block">
-              <Search className="pointer-events-none absolute left-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <SidebarDrawer
+        expanded={sidebarExpanded}
+        mobileOpen={mobileDrawerOpen}
+        onToggle={() => setSidebarExpanded((v) => !v)}
+        onMobileClose={() => setMobileDrawerOpen(false)}
+        onSelectCategory={setCategory}
+        activeCategory={category}
+      />
+
+      <AppHeader onMenu={() => setMobileDrawerOpen(true)} menuOpen={mobileDrawerOpen} />
+
+      <div
+        className={`transition-[padding-left] duration-300 ease-out ${
+          sidebarExpanded ? "md:pl-80" : "md:pl-16"
+        }`}
+      >
+        <main className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
+          <div className="pt-20 sm:pt-12">
+            <p className="label-legal">JURY HASH · Case Archive</p>
+
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+              <div className="flex flex-wrap items-baseline gap-4">
+                <h1 className="font-display text-[clamp(1.9rem,4vw,2.9rem)] leading-none tracking-[-0.01em] text-parchment">
+                  Case Records
+                </h1>
+
+                <span className="font-mono text-[11px] tracking-[0.14em] text-brass-dim uppercase">
+                  {filtered.length} matters
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 h-px w-full rule-brass" />
+          </div>
+
+          {/* Search */}
+          <section aria-label="Search case records" className="mt-6 space-y-2.5">
+            <div className="relative max-w-xl">
+              <Search
+                className="pointer-events-none absolute left-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Search case records"
                 placeholder="Search matters, courts, case numbers"
-                className="focus-legal w-56 border-b border-input bg-transparent py-1.5 pl-6 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 hover:border-brass-dim focus:border-brass lg:w-72"
+                className="focus-legal w-full border-b border-input bg-transparent py-2 pl-6 text-sm text-parchment outline-none transition-colors placeholder:text-muted-foreground/70 hover:border-brass-dim focus:border-brass"
               />
             </div>
-            <UserProfileMenu />
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        {/* Docket list */}
-        <section aria-label="Case docket">
-          <div className="flex items-baseline justify-between">
-            <h1 className="font-display text-2xl">Case Records</h1>
-            <span className="label-legal">{filtered.length} matters</span>
-          </div>
-          <div className="mt-5 h-px w-full rule-brass" />
+          </section>
 
           {/* Lifecycle + classification filters */}
-          <div className="mt-5 space-y-2.5">
+          <section aria-label="Case filters" className="mt-6 space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="label-legal mr-1">Status</span>
+
               {(["All", ...STATUS_OPTIONS] as Array<CaseStatus | "All">).map((s) => (
                 <button
                   key={s}
@@ -138,8 +174,10 @@ function Records() {
                 </button>
               ))}
             </div>
+
             <div className="flex flex-wrap items-center gap-2">
               <span className="label-legal mr-1">Classification</span>
+
               {(["All", ...CLASSIFICATION_OPTIONS] as Array<CaseClassification | "All">).map(
                 (cls) => (
                   <button
@@ -160,80 +198,130 @@ function Records() {
                 ),
               )}
             </div>
+
+            {category && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCategory(null)}
+                  className="focus-legal inline-flex items-center gap-1.5 border border-brass/40 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-brass uppercase transition-colors hover:bg-brass/10"
+                >
+                  Category: {category}
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+          </section>
+
+          <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+            {/* Docket list */}
+            <section aria-label="Case docket">
+              <div className="flex items-baseline justify-between">
+                <h2 className="font-display text-[26px] text-parchment">Docket</h2>
+
+                <span className="label-legal">
+                  {filtered.length} {filtered.length === 1 ? "matter" : "matters"}
+                </span>
+              </div>
+
+              <div className="mt-3 h-px w-full bg-border" />
+
+              {records.length === 0 ? (
+                <div className="mt-5 border border-dashed border-border px-5 py-12 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    The archive is empty. Add your first case from the dashboard.
+                  </p>
+
+                  <Link
+                    to="/upload"
+                    className="focus-legal mt-4 inline-block border border-brass/60 bg-brass/10 px-4 py-2 text-xs text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
+                  >
+                    Upload a case file
+                  </Link>
+                </div>
+              ) : (
+                <ul className="mt-5 space-y-px">
+                  {filtered.map((c) => {
+                    const active = c.id === selectedId;
+
+                    return (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          onClick={() => selectCase(c.id)}
+                          aria-current={active ? "true" : undefined}
+                          className={`focus-legal group block w-full border-l-2 px-4 py-4 text-left transition-colors ${
+                            active
+                              ? isConfidential(c)
+                                ? "border-burgundy bg-surface"
+                                : "border-brass bg-surface"
+                              : "border-transparent hover:border-brass-dim hover:bg-surface/60"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-1.5">
+                              {isConfidential(c) && (
+                                <Lock
+                                  className="h-3 w-3 shrink-0 text-burgundy"
+                                  aria-label="Confidential matter"
+                                />
+                              )}
+
+                              <span className="font-mono text-[10px] tracking-[0.14em] text-brass-dim">
+                                {c.id}
+                              </span>
+                            </span>
+
+                            <span
+                              className={`border px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase ${STATUS_TONE[c.status]}`}
+                            >
+                              {c.status}
+                            </span>
+                          </div>
+
+                          <p className="mt-2.5 font-display font-medium text-[15px] leading-snug text-parchment">
+                            {c.title}
+                          </p>
+
+                          <p className="mt-1.5 text-xs text-muted-foreground">{c.court}</p>
+
+                          <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+                            <Clock className="h-3 w-3" />
+                            Updated {c.updated}
+                          </p>
+                        </button>
+                      </li>
+                    );
+                  })}
+
+                  {filtered.length === 0 && (
+                    <li className="px-4 py-10 text-sm text-muted-foreground">
+                      No matter answers that search.
+                    </li>
+                  )}
+                </ul>
+              )}
+            </section>
+
+            {selected ? (
+              <CaseFile record={selected} />
+            ) : records.length > 0 ? (
+              <p className="text-sm text-muted-foreground">Select a matter from the docket.</p>
+            ) : null}
           </div>
 
-          {records.length === 0 ? (
-            <div className="mt-5 border border-dashed border-border px-5 py-12 text-center">
-              <p className="text-sm text-muted-foreground">
-                The archive is empty. Add your first case from the dashboard.
-              </p>
-              <Link
-                to="/upload"
-                className="focus-legal mt-4 inline-block border border-brass/60 bg-brass/10 px-4 py-2 text-xs text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
-              >
-                Upload a case file
-              </Link>
-            </div>
-          ) : (
-            <ul className="mt-5 space-y-px">
-              {filtered.map((c) => {
-                const active = c.id === selectedId;
-                return (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => selectCase(c.id)}
-                      aria-current={active ? "true" : undefined}
-                      className={`focus-legal group block w-full border-l-2 px-4 py-4 text-left transition-colors ${
-                        active
-                          ? isConfidential(c)
-                            ? "border-burgundy bg-surface"
-                            : "border-brass bg-surface"
-                          : "border-transparent hover:border-brass-dim hover:bg-surface/60"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-1.5">
-                          {isConfidential(c) && (
-                            <Lock
-                              className="h-3 w-3 shrink-0 text-burgundy"
-                              aria-label="Confidential matter"
-                            />
-                          )}
-                          <span className="font-mono text-[10px] tracking-[0.14em] text-brass-dim">
-                            {c.id}
-                          </span>
-                        </span>
-                        <span
-                          className={`border px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase ${STATUS_TONE[c.status]}`}
-                        >
-                          {c.status}
-                        </span>
-                      </div>
-                      <p className="mt-2.5 font-display text-[15px] leading-snug text-parchment">
-                        {c.title}
-                      </p>
-                      <p className="mt-1.5 text-xs text-muted-foreground">{c.court}</p>
-                      <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
-                        <Clock className="h-3 w-3" /> Updated {c.updated}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-              {filtered.length === 0 && (
-                <li className="px-4 py-10 text-sm text-muted-foreground">
-                  No matter answers that search.
-                </li>
-              )}
-            </ul>
-          )}
-        </section>
-
-        {selected ? (
-          <CaseFile record={selected} />
-        ) : records.length > 0 ? (
-          <p className="text-sm text-muted-foreground">Select a matter from the docket.</p>
-        ) : null}
+          {/* Mobile sidebar access */}
+          <div className="mt-10 flex items-center justify-center md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="focus-legal inline-flex items-center gap-2 border border-border bg-surface/60 px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
+            >
+              <Menu className="h-3.5 w-3.5" />
+              Pinned cases & archive
+            </button>
+          </div>
+        </main>
       </div>
     </div>
   );
@@ -280,6 +368,7 @@ function CaseFile({ record }: { record: CaseRecord }) {
       cancelled = true;
     };
   }, [record.id]);
+
   async function openDocument(documentId: string) {
     setOpeningDocumentId(documentId);
 
@@ -299,8 +388,11 @@ function CaseFile({ record }: { record: CaseRecord }) {
       <header className="chamber-panel grain p-8">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="font-mono text-[11px] tracking-[0.16em] text-brass">{record.id}</span>
+
           <span className="h-3 w-px bg-border" />
+
           <span className="label-legal">{record.subject}</span>
+
           {isConfidential(record) && (
             <span className="seal-confidential ml-auto">
               <Lock className="h-3 w-3" />
@@ -308,10 +400,13 @@ function CaseFile({ record }: { record: CaseRecord }) {
             </span>
           )}
         </div>
+
         <h2 className="mt-4 max-w-2xl font-display text-[clamp(1.6rem,2.6vw,2.35rem)] leading-tight text-parchment">
           {record.title}
         </h2>
+
         <div className="mt-7 h-px w-full rule-brass" />
+
         <dl className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
           {(
             [
@@ -332,14 +427,17 @@ function CaseFile({ record }: { record: CaseRecord }) {
           {/* Confidentiality classification — editable */}
           <div>
             <dt className="label-legal">Classification</dt>
+
             <dd className="mt-2">
               <select
                 value={record.classification}
                 onChange={(e) =>
-                  updateCase(record.id, { classification: e.target.value as CaseClassification })
+                  updateCase(record.id, {
+                    classification: e.target.value as CaseClassification,
+                  })
                 }
                 aria-label={`Classification of ${record.id}`}
-                className="focus-legal w-full cursor-pointer border-b border-input bg-transparent pb-1.5 text-sm text-parchment outline-none transition-colors [color-scheme:dark] hover:border-brass-dim focus:border-brass"
+                className="focus-legal w-full cursor-pointer border-b border-input bg-transparent pb-1.5 text-sm text-parchment outline-none transition-colors hover:border-brass-dim focus:border-brass"
               >
                 {CLASSIFICATION_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -353,12 +451,17 @@ function CaseFile({ record }: { record: CaseRecord }) {
           {/* Lifecycle status — editable */}
           <div>
             <dt className="label-legal">Status</dt>
+
             <dd className="mt-2">
               <select
                 value={record.status}
-                onChange={(e) => updateCase(record.id, { status: e.target.value as CaseStatus })}
+                onChange={(e) =>
+                  updateCase(record.id, {
+                    status: e.target.value as CaseStatus,
+                  })
+                }
                 aria-label={`Lifecycle status of ${record.id}`}
-                className="focus-legal w-full cursor-pointer border-b border-input bg-transparent pb-1.5 text-sm text-parchment outline-none transition-colors [color-scheme:dark] hover:border-brass-dim focus:border-brass"
+                className="focus-legal w-full cursor-pointer border-b border-input bg-transparent pb-1.5 text-sm text-parchment outline-none transition-colors hover:border-brass-dim focus:border-brass"
               >
                 {STATUS_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -378,20 +481,29 @@ function CaseFile({ record }: { record: CaseRecord }) {
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <div className="flex items-center gap-2.5">
                 <Scale className="h-4 w-4 text-brass" />
-                <h3 className="text-sm tracking-[0.12em] uppercase">Case Intelligence</h3>
+
+                <h3 className="text-sm font-medium tracking-[0.12em] uppercase">
+                  Case Intelligence
+                </h3>
               </div>
+
               <span className="label-legal">Derived from record</span>
             </div>
+
             <div className="space-y-8 p-6">
               <div>
                 <p className="label-legal">Summary of the matter</p>
+
                 <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-parchment/90">
                   {record.summary}
                 </p>
               </div>
+
               <div className="h-px w-full bg-border" />
+
               <div>
                 <p className="label-legal">Issues before the court</p>
+
                 <ol className="mt-4 space-y-3">
                   {record.issues.length > 0 ? (
                     record.issues.map((issue, i) => (
@@ -402,6 +514,7 @@ function CaseFile({ record }: { record: CaseRecord }) {
                         <span className="font-mono text-[11px] leading-6 text-brass-dim">
                           {String(i + 1).padStart(2, "0")}
                         </span>
+
                         <span>{issue}</span>
                       </li>
                     ))
@@ -412,9 +525,12 @@ function CaseFile({ record }: { record: CaseRecord }) {
                   )}
                 </ol>
               </div>
+
               <div className="h-px w-full bg-border" />
+
               <div>
                 <p className="label-legal">Authorities referred</p>
+
                 <ul className="mt-4 flex flex-wrap gap-2">
                   {record.authorities.length > 0 ? (
                     record.authorities.map((a) => (
@@ -437,14 +553,19 @@ function CaseFile({ record }: { record: CaseRecord }) {
           <article>
             <div className="flex items-center gap-2.5">
               <FileText className="h-4 w-4 text-brass" />
-              <h3 className="text-sm tracking-[0.12em] uppercase">Case History</h3>
+
+              <h3 className="text-sm font-medium tracking-[0.12em] uppercase"> Case History</h3>
             </div>
+
             <ol className="mt-6 border-l border-border pl-6">
               {record.history.map((e) => (
                 <li key={`${e.date}-${e.title}`} className="relative pb-8 last:pb-0">
                   <span className="absolute -left-[1.6rem] top-1.5 h-1.5 w-1.5 rounded-full bg-brass-dim" />
+
                   <p className="font-mono text-[11px] tracking-[0.12em] text-brass-dim">{e.date}</p>
+
                   <p className="mt-1.5 font-display text-base text-parchment">{e.title}</p>
+
                   <p className="mt-1 text-sm text-muted-foreground">{e.note}</p>
                 </li>
               ))}
@@ -457,17 +578,21 @@ function CaseFile({ record }: { record: CaseRecord }) {
           <div className="border border-border p-6">
             <div className="flex items-center gap-2.5">
               <Users className="h-4 w-4 text-brass" />
-              <h3 className="text-sm tracking-[0.12em] uppercase">Parties</h3>
+
+              <h3 className="text-sm font-medium tracking-[0.12em] uppercase"> Parties</h3>
             </div>
+
             <ul className="mt-5 space-y-5">
               {record.parties.map((p) => (
                 <li key={`${p.role}-${p.name}`}>
                   <p className="label-legal">{p.role}</p>
+
                   <p className="mt-1.5 text-sm text-parchment">{p.name}</p>
                 </li>
               ))}
             </ul>
           </div>
+
           <div className="border border-border p-6">
             <p className="label-legal">Case files</p>
 
@@ -504,13 +629,16 @@ function CaseFile({ record }: { record: CaseRecord }) {
               </ul>
             )}
           </div>
+
           <div className="border border-border p-6">
             <p className="label-legal">Record actions</p>
+
             <ul className="mt-4 space-y-1">
               {["Open full docket", "Export case brief", "Add note to file"].map((action) => (
                 <li key={action}>
                   <button className="focus-legal group flex w-full items-center justify-between py-2 text-sm text-muted-foreground transition-colors hover:text-brass">
                     {action}
+
                     <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 </li>

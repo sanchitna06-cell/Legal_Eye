@@ -16,3 +16,4 @@ LegalLens_Startup_Demo/
 venv/
 # Runtime blockchain state
 legalens_backend/app/storage/*.json
+Frontend/.freebuff/

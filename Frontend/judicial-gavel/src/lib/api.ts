@@ -1,6 +1,99 @@
-import { getAccessToken } from "@/lib/user-store";
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/lib/user-store";
 
 const API_BASE_URL = import.meta.env["VITE_API_BASE_URL"] ?? "http://localhost:8000";
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+
+  if (!refreshToken) {
+    return null;
+  }
+
+  // Prevent multiple simultaneous refresh requests.
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+        }),
+      });
+
+      if (!response.ok) {
+        clearTokens();
+        return null;
+      }
+
+      const data = (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        token_type: string;
+      };
+
+      setTokens(data.access_token, data.refresh_token);
+
+      return data.access_token;
+    } catch {
+      clearTokens();
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+async function authenticatedFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const token = getAccessToken();
+
+  if (!token) {
+    throw new Error("Authentication required.");
+  }
+
+  const makeRequest = (accessToken: string) => {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${accessToken}`);
+
+    return fetch(input, {
+      ...init,
+      headers,
+    });
+  };
+
+  let response = await makeRequest(token);
+
+  // Anything other than 401 is handled by the calling API function.
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const newToken = await refreshAccessToken();
+
+  if (!newToken) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  response = await makeRequest(newToken);
+
+  // Refresh succeeded but the retried request is still unauthorized.
+  if (response.status === 401) {
+    clearTokens();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  return response;
+}
 
 export interface LoginResponse {
   access_token: string;
@@ -46,17 +139,8 @@ export interface BackendCase {
 }
 
 export async function getCases(): Promise<BackendCase[]> {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
-  const response = await fetch(`${API_BASE_URL}/cases`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/cases`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -85,12 +169,12 @@ export async function getCaseDocuments(caseId: string): Promise<BackendDocument[
     throw new Error("Authentication required.");
   }
 
-  const response = await fetch(`${API_BASE_URL}/documents/case/${encodeURIComponent(caseId)}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/case/${encodeURIComponent(caseId)}`,
+    {
+      method: "GET",
     },
-  });
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -120,11 +204,10 @@ export async function createCase(data: CreateCaseInput): Promise<CreateCaseRespo
     throw new Error("Authentication required.");
   }
 
-  const response = await fetch(`${API_BASE_URL}/cases`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/cases`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -147,13 +230,13 @@ export async function uploadDocument(caseId: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/documents/upload/${encodeURIComponent(caseId)}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/upload/${encodeURIComponent(caseId)}`,
+    {
+      method: "POST",
+      body: formData,
     },
-    body: formData,
-  });
+  );
 
   if (!response.ok) {
     let message = "Failed to upload document.";
@@ -179,12 +262,12 @@ export async function getDocument(documentId: string): Promise<Blob> {
     throw new Error("Authentication required.");
   }
 
-  const response = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`,
+    {
+      method: "GET",
     },
-  });
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
@@ -234,13 +317,10 @@ export async function getDocumentAnalysis(documentId: string): Promise<DocumentA
     throw new Error("Authentication required.");
   }
 
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/analysis`,
     {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     },
   );
 
@@ -263,20 +343,38 @@ export interface DocumentAnalysisSummary {
 }
 
 /* ============================================================
-   ANNOTATIONS
-   ============================================================
-
-   The backend already models evidence annotations as
-
-     Annotation        (id, document_id, page, type, position JSONB,
-                        content, created_by, created_at)
-     AnnotationHistory (audit trail of every annotation revision)
-
-   These functions stay inside the authenticated API flow:
-   every request carries the session's bearer token and the
-   backend remains responsible for authorization. The frontend
-   never touches storage keys or the database directly.
+   DOCUMENT PAGES + ANNOTATIONS
    ============================================================ */
+
+export interface DocumentPage {
+  id: string;
+  page_number: number;
+  extracted_text: string | null;
+  extraction_method: string | null;
+  ocr_confidence: number | null;
+  extraction_status: string | null;
+}
+
+export async function getDocumentPages(documentId: string): Promise<DocumentPage[]> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/pages`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to load document pages.");
+  }
+
+  const data = (await response.json()) as {
+    pages: DocumentPage[];
+  };
+
+  return data.pages;
+}
 
 /** Free-form geometry/state payload persisted by the backend as JSON. */
 export type AnnotationPosition = Record<string, unknown>;
@@ -285,99 +383,103 @@ export type AnnotationType = "highlight" | "pen" | "rectangle" | "text" | "note"
 
 export interface Annotation {
   id: string;
-  document_id: string;
-  page: number;
-  type: AnnotationType | string;
-  /** Backend persists this verbatim as the annotation position JSON. */
-  position: AnnotationPosition;
+  page_id: string;
+  created_by: string;
+  annotation_type: AnnotationType | string;
   content?: string | null;
-  created_by?: string | null;
-  created_at?: string;
+  position: AnnotationPosition;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface CreateAnnotationInput {
-  documentId: string;
-  page: number;
-  type: AnnotationType;
-  position: AnnotationPosition;
+export interface CreateAnnotationRequest {
+  annotation_type: AnnotationType;
   content?: string | null;
+  position: AnnotationPosition;
 }
 
-function authedJsonInit(token: string, method: string, body?: unknown): RequestInit {
-  return {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+export interface UpdateAnnotationRequest {
+  annotation_type?: AnnotationType;
+  content?: string | null;
+  position?: AnnotationPosition;
+}
+
+export async function getAnnotations(pageId: string): Promise<Annotation[]> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/annotations/${encodeURIComponent(pageId)}`,
+    {
+      method: "GET",
     },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  };
-}
-
-async function parseDetail(response: Response, fallback: string): Promise<never> {
-  const error = await response.json().catch(() => null);
-  throw new Error(error?.detail ?? fallback);
-}
-
-export async function getAnnotations(documentId: string): Promise<Annotation[]> {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/annotations`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-
-  if (response.status === 404) {
-    // No annotations exist for this document yet — that is not an error.
-    return [];
-  }
-
-  if (!response.ok) {
-    return parseDetail(response, "Failed to load annotations.");
-  }
-
-  const data = await response.json();
-  return data.annotations ?? data;
-}
-
-export async function createAnnotation(input: CreateAnnotationInput): Promise<Annotation> {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
-  const { documentId, ...payload } = input;
-
-  const response = await fetch(
-    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/annotations`,
-    authedJsonInit(token, "POST", payload),
   );
 
   if (!response.ok) {
-    return parseDetail(response, "Failed to save annotation.");
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to fetch annotations.");
+  }
+
+  return response.json();
+}
+
+export async function createAnnotation(
+  pageId: string,
+  annotation: CreateAnnotationRequest,
+): Promise<Annotation> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/annotations/${encodeURIComponent(pageId)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(annotation),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to create annotation.");
+  }
+
+  return response.json();
+}
+
+export async function updateAnnotation(
+  annotationId: string,
+  annotation: UpdateAnnotationRequest,
+): Promise<Annotation> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/annotations/${encodeURIComponent(annotationId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(annotation),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to update annotation.");
   }
 
   return response.json();
 }
 
 export async function deleteAnnotation(annotationId: string): Promise<void> {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${API_BASE_URL}/annotations/${encodeURIComponent(annotationId)}`,
-    authedJsonInit(token, "DELETE"),
+    {
+      method: "DELETE",
+    },
   );
 
   if (!response.ok) {
-    return parseDetail(response, "Failed to delete annotation.");
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to delete annotation.");
   }
 }

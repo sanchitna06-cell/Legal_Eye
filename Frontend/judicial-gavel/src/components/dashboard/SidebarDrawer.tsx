@@ -93,7 +93,7 @@ function SidebarSection({
   const [open, setOpen] = useState(defaultOpen);
   const expandedSection = !railCollapsed && open;
   return (
-    <section className="border-t border-border pt-5">
+    <section className="border-t border-border pt-3">
       <button
         type="button"
         onClick={() => {
@@ -101,14 +101,14 @@ function SidebarSection({
         }}
         aria-expanded={expandedSection}
         title={railCollapsed ? title : undefined}
-        className={`focus-legal flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-surface/40 ${
+        className={`focus-legal flex w-full items-center gap-2 px-3 py-1 text-left transition-colors hover:bg-surface/40 ${
           railCollapsed ? "md:justify-center" : "justify-between"
         }`}
       >
         <span className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 shrink-0 text-brass-dim" />
           <span
-            className={`text-[11px] font-bold tracking-[0.18em] text-muted-foreground uppercase ${HIDE_COLLAPSED}`}
+            className={`text-[12px] font-extrabold tracking-[0.18em] text-muted-foreground uppercase ${HIDE_COLLAPSED}`}
           >
             {title}
           </span>
@@ -238,7 +238,7 @@ export function SidebarDrawer({
       <aside
         aria-label="Case intelligence — navigation, pinned matters, case categories and archive"
         data-collapsed={expanded ? "false" : "true"}
-        className={`group fixed left-0 z-50 flex w-80 flex-col border-r border-border bg-background grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
+        className={`dark-chrome group fixed left-0 z-50 flex w-72 flex-col border-r border-chrome-border bg-sidebar grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
           max-md:inset-y-0
           md:bottom-0 md:top-0
           ${rail ? "md:w-16" : ""}
@@ -250,11 +250,13 @@ export function SidebarDrawer({
       >
         {/* Handle row — JURY HASH brand top-left; the triple-line button collapses (desktop) / closes (mobile). */}
         <div
-          className={`flex items-center justify-between border-b border-border px-5 py-4 ${
+          className={`flex items-center justify-between border-b border-border px-5 py-3 ${
             rail ? "md:justify-center md:px-0" : ""
           }`}
         >
-          <span className={`font-display text-base tracking-wide ${HIDE_COLLAPSED}`}>
+          <span
+            className={`font-display text-[20px] font-black text-base tracking-wide ${HIDE_COLLAPSED}`}
+          >
             JURY<span className="text-brass">HASH</span>
           </span>
           <button
@@ -278,22 +280,22 @@ export function SidebarDrawer({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-8">
+        <div className="flex-1 overflow-y-auto px-3 pb-6">
           <p
-            className={`px-3 pt-5 text-[10px] font-bold tracking-[0.18em] text-muted-foreground/60 uppercase ${HIDE_COLLAPSED}`}
+            className={`px-3 pt-4 text-[12px] font-bold tracking-[0.18em] text-muted-foreground/80 uppercase ${HIDE_COLLAPSED}`}
           >
             Case intelligence
           </p>
 
           {/* Primary navigation — mirrors the top bar so the rail stays usable when collapsed. */}
-          <nav aria-label="Sidebar primary" className="mt-2">
+          <nav aria-label="Sidebar primary" className="mt-1">
             <ul className="space-y-0.5">
               {SIDEBAR_NAV.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     title={rail ? item.label : undefined}
-                    className={`focus-legal flex items-center gap-3 px-3 py-2 text-[11px] font-bold tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:bg-surface/40 hover:text-parchment data-[status=active]:bg-surface/60 data-[status=active]:text-parchment ${
+                    className={`focus-legal flex items-center gap-3 px-3 py-2 text-[10px] font-mono font-bold tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:bg-surface/40 hover:text-parchment data-[status=active]:bg-surface/80 data-[status=active]:text-parchment ${
                       rail ? "md:justify-center" : ""
                     }`}
                   >
@@ -306,7 +308,7 @@ export function SidebarDrawer({
           </nav>
 
           <p
-            className={`px-3 pt-7 text-[10px] font-bold tracking-[0.18em] text-muted-foreground/60 uppercase ${HIDE_COLLAPSED}`}
+            className={`px-3 pt-5 text-[11px] font-bold tracking-[0.18em] text-muted-foreground/80 uppercase ${HIDE_COLLAPSED}`}
           >
             Matters
           </p>
@@ -326,7 +328,7 @@ export function SidebarDrawer({
                 ))}
               </ul>
             ) : (
-              <p className="mt-4 px-3 text-xs leading-relaxed text-muted-foreground/80">
+              <p className="mt-3 px-3 text-xs leading-relaxed text-muted-foreground/80">
                 No pinned cases yet. Pin a matter from its case card or record for one-tap access
                 here.
               </p>
@@ -336,7 +338,7 @@ export function SidebarDrawer({
           {/* The Bar — case-type browser */}
           <SidebarSection
             icon={Scale}
-            title="The Bar"
+            title="Categories"
             count={CASE_CATEGORIES.length}
             railCollapsed={rail}
           >
@@ -354,7 +356,7 @@ export function SidebarDrawer({
           </SidebarSection>
 
           {/* Archive — positioned lower, with clear breathing space */}
-          <div className="mt-12">
+          <div className="mt-6">
             <SidebarSection
               icon={Archive}
               title="Archived Cases"
@@ -368,7 +370,7 @@ export function SidebarDrawer({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 px-3 text-xs leading-relaxed text-muted-foreground/80">
+                <p className="mt-3 px-3 text-xs leading-relaxed text-muted-foreground/80">
                   Completed cases will appear here when a matter is closed.
                 </p>
               )}
@@ -376,7 +378,7 @@ export function SidebarDrawer({
           </div>
         </div>
 
-        <div className={`border-t border-border px-5 py-3 ${HIDE_COLLAPSED}`}>
+        <div className={`border-t border-border px-5 py-2.5 ${HIDE_COLLAPSED}`}>
           <p className="text-[10px] font-bold tracking-[0.14em] text-muted-foreground/70 uppercase">
             Case Archive
           </p>

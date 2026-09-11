@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import type { PDFDocumentProxy, PDFPageProxy } from "@/hooks/usePdfDocument";
 
-export function usePdfPage(pdf: PDFDocumentProxy | null, pageNumber: number): PDFPageProxy | null {
+export function usePdfPage(
+  pdf: PDFDocumentProxy | null,
+  pageNumber: number,
+  enabled = true,
+): PDFPageProxy | null {
   const [page, setPage] = useState<PDFPageProxy | null>(null);
 
   useEffect(() => {
-    if (!pdf) {
+    if (!pdf || !enabled) {
       setPage(null);
       return;
     }
@@ -16,7 +20,9 @@ export function usePdfPage(pdf: PDFDocumentProxy | null, pageNumber: number): PD
     void pdf
       .getPage(clamped)
       .then((proxy) => {
-        if (!cancelled) setPage(proxy);
+        if (!cancelled) {
+          setPage(proxy);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -28,7 +34,7 @@ export function usePdfPage(pdf: PDFDocumentProxy | null, pageNumber: number): PD
     return () => {
       cancelled = true;
     };
-  }, [pdf, pageNumber]);
+  }, [pdf, pageNumber, enabled]);
 
   return page;
 }

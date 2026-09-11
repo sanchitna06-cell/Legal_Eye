@@ -119,7 +119,7 @@ export function CinematicIntro({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden bg-background grain"
+      className="startup-sequence fixed inset-0 z-50 overflow-hidden grain"
       aria-hidden="true"
       style={{ opacity: phase === "done" ? 0 : 1, transition: "opacity 900ms ease" }}
     >
@@ -172,10 +172,13 @@ export function CinematicIntro({ onComplete }: { onComplete: () => void }) {
           transition: "opacity 1100ms ease, transform 1100ms cubic-bezier(0.22,1,0.36,1)",
         }}
       >
-        <JuryHashMark className="mb-6 h-10 w-10 text-brass" />
+        <JuryHashMark className="mb-6 h-10 w-10 text-[var(--startup-accent)]" />{" "}
         <div className="relative overflow-hidden">
-          <h1 className="font-display text-[clamp(2.5rem,9vw,5.5rem)] leading-none tracking-[-0.02em] text-parchment">
-            JURY <span className="text-brass">HASH</span>
+          <h1
+            className="font-display text-[clamp(2.5rem,9vw,5.5rem)] leading-none tracking-[-0.02em]"
+            style={{ color: "var(--startup-text)" }}
+          >
+            JURY <span style={{ color: "var(--startup-accent)" }}>HASH</span>
           </h1>
           {brandVisible && (
             <span
@@ -184,8 +187,19 @@ export function CinematicIntro({ onComplete }: { onComplete: () => void }) {
             />
           )}
         </div>
-        <div className="mt-6 h-px w-40 rule-brass" />
-        <p className="label-legal mt-5">Legal Records · Case History · Intelligence</p>
+        <div
+          className="mt-6 h-px w-40"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, color-mix(in oklab, var(--startup-accent) 60%, transparent), transparent)",
+          }}
+        />
+        <p
+          className="mt-5 text-[11px] font-medium uppercase tracking-[0.18em]"
+          style={{ color: "var(--startup-muted)" }}
+        >
+          Legal Records · Case History · Intelligence
+        </p>
       </div>
     </div>
   );

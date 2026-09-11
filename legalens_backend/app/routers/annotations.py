@@ -5,6 +5,12 @@ from app.core.contracts import AnnotationCreate, AnnotationResponse, AnnotationU
 from app.core.database import get_db
 from app.core.security import get_current_lawyer
 from app.services.annotation_service import AnnotationService
+from sqlalchemy import select
+
+from app.models.annotation import Annotation
+from app.models.case_file_page import CaseFilePage
+from app.models.document import Document
+from app.models.case import Case
 
 
 router = APIRouter(
@@ -115,3 +121,29 @@ async def delete_annotation(
         )
 
     await db.commit()
+@router.get("/documents/{document_id}/annotations")
+async def get_document_annotations(
+    document_id: str,
+    current_user: dict = Depends(get_current_lawyer),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(Annotation)
+        .join(CaseFilePage, Annotation.page_id == CaseFilePage.id)
+        .join(Document, CaseFilePage.case_file_id == Document.id)
+        .join(Case, Document.case_id == Case.id)
+        .where(
+            Document.id == document_id,
+            Case.created_by == current_user["user_id"],
+            Annotation.deleted_at.is_(None),
+        )
+        .order_by(
+            CaseFilePage.page_number.asc(),
+            Annotation.created_at.asc(),
+        )
+    )
+
+    result = await db.execute(stmt)
+    annotations = result.scalars().all()
+
+    return annotations

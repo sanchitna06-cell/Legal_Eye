@@ -59,11 +59,6 @@ function Dashboard() {
 
   const openMatters = useMemo(() => cases.filter(isOpenMatter), [cases]);
 
-  // The pure-black backdrop is exclusive to the lawyer's dashboard. Any other
-  // role that ever lands here (e.g. admin) keeps the warm ink tone, and no
-  // other page shares this background.
-  const isLawyerView = user?.role !== "admin";
-
   const hasQuery = query.trim().length > 0;
   const hasFilters = Object.values(filters).some((v) => v.trim());
 
@@ -77,7 +72,7 @@ function Dashboard() {
   }, [query, filters, category, openMatters]);
 
   return (
-    <div className={`min-h-screen ${isLawyerView ? "bg-black" : "bg-[#11100f]"}`}>
+    <div className="min-h-screen bg-background">
       <SidebarDrawer
         expanded={sidebarExpanded}
         mobileOpen={mobileDrawerOpen}
@@ -98,7 +93,7 @@ function Dashboard() {
       >
         <main className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
           {/* Page title */}
-          <div className="pt-20 sm:pt-16">
+          <div className="pt-16 sm:pt-12">
             <p className="label-legal">JURY HASH · Case Manager</p>
             <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
               <h1 className="font-display text-[clamp(1.9rem,4vw,2.9rem)] leading-none tracking-[-0.01em] text-parchment">
@@ -112,7 +107,7 @@ function Dashboard() {
           </div>
 
           {/* Search */}
-          <section aria-label="Search cases" className="mt-8">
+          <section aria-label="Search cases" className="mt-6">
             <CaseSearch
               value={query}
               onChange={setQuery}
@@ -122,15 +117,15 @@ function Dashboard() {
           </section>
 
           {/* Overview */}
-          <div className="mt-8">
+          <div className="mt-6">
             <CaseStats cases={cases} />
           </div>
 
           {/* Case records */}
-          <section aria-label="Case records" className="mt-12">
+          <section aria-label="Case records" className="mt-10">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <div className="flex flex-wrap items-baseline gap-4">
-                <h2 className="font-display text-2xl text-parchment">Active matters</h2>
+                <h2 className="font-display text-[26px] text-parchment">Active matters</h2>
                 {category && (
                   <button
                     type="button"
@@ -153,15 +148,15 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={openSidebar}
-                className="focus-legal inline-flex items-center gap-1.5 text-[11px] tracking-[0.14em] text-brass-dim uppercase transition-colors hover:text-brass"
+                className="focus-legal inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.14em] text-brass-dim uppercase transition-colors hover:text-brass"
               >
                 Pinned & archived <ArrowUpRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="mt-3 h-px w-full border-border" />
+            <div className="mt-3 h-px w-full bg-[var(--rule-brass)]" />
 
             {filtered.length > 0 ? (
-              <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((record) => (
                   <CaseCard key={record.id} record={record} />
                 ))}
@@ -196,7 +191,7 @@ function Dashboard() {
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="focus-legal inline-flex items-center gap-2 border border-border bg-black/60 px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
+              className="focus-legal inline-flex items-center gap-2 border border-border bg-surface/60 px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
             >
               <Menu className="h-3.5 w-3.5" />
               Pinned cases & archive

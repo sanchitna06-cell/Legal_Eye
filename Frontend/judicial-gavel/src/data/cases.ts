@@ -41,9 +41,9 @@ export const CASE_CATEGORIES: CaseCategory[] = [
 
 /** Tailwind tones for the status label — shared by docket, cards and drawer. */
 export const STATUS_TONE: Record<CaseStatus, string> = {
-  Active: "text-olive border-olive/40",
+  Active: "text-success border-success/40",
   Reserved: "text-brass border-brass/40",
-  Appeal: "text-parchment border-border",
+  Appeal: "text-foreground border-border",
   Disposed: "text-muted-foreground border-border",
 };
 

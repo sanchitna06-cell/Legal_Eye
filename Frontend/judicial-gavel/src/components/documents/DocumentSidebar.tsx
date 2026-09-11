@@ -221,7 +221,7 @@ export function DocumentSidebar({
       <aside
         aria-label="Document analysis — navigation and analysis tools"
         data-collapsed={expanded ? "false" : "true"}
-        className={`group fixed left-0 z-50 flex w-80 flex-col border-r border-border bg-background grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
+        className={`dark-chrome group fixed left-0 z-50 flex w-80 flex-col border-r border-chrome-border bg-sidebar grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
           max-md:inset-y-0
           md:bottom-0 md:top-0
           ${rail ? "md:w-16" : ""}
@@ -265,7 +265,7 @@ export function DocumentSidebar({
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
             <p
-              className={`px-3 pt-5 text-[10px] font-bold tracking-[0.18em] text-muted-foreground/60 uppercase ${HIDE_COLLAPSED}`}
+              className={`px-3 pt-5 text-[11px] font-bold tracking-[0.18em] text-muted-foreground/60 uppercase ${HIDE_COLLAPSED}`}
             >
               Case Intelligence
             </p>

@@ -154,25 +154,22 @@ function UploadCase() {
             aria-label="File uploaded"
             className="chamber-panel grain mt-10 p-8 text-center sm:p-12"
           >
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-olive/50 text-olive">
+            {" "}
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-success/50 text-success">
               <Check className="h-6 w-6" />
             </span>
-
             <h2 className="mt-6 font-display text-2xl text-parchment">
               File uploaded successfully
             </h2>
-
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
               <span className="font-mono text-xs tracking-[0.14em] text-brass">{recordedId}</span>{" "}
               has been securely added to your JURY HASH archive.
             </p>
-
             {file && (
               <p className="mx-auto mt-2 max-w-md truncate text-xs text-muted-foreground/80">
                 {file.name}
               </p>
             )}
-
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link to="/records" search={{ case: createdCaseId ?? undefined }} className="...">
                 Open file
@@ -331,7 +328,7 @@ function UploadCase() {
                 <div className="mt-6 flex items-center gap-4">
                   <button
                     type="submit"
-                    className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass px-5 py-2.5 text-sm text-primary-foreground transition-colors hover:bg-brass/80"
+                    className="focus-legal inline-flex items-center gap-2 border border-primary/60 bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-colors hover:bg-secondary-brown"
                   >
                     File case in the archive
                   </button>

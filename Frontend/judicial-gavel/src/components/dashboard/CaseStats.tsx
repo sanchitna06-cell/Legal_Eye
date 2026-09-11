@@ -69,8 +69,12 @@ export function CaseStats({ cases }: CaseStatsProps) {
               <Icon className={`h-3.5 w-3.5 ${block.tone}`} />
               <span className="label-legal">{block.label}</span>
             </div>
-            <p className={`mt-2 font-display text-3xl leading-none ${block.tone}`}>{block.value}</p>
-            <p className="mt-2 text-[11px] text-muted-foreground/80">{block.note}</p>
+            <p
+              className={`mt-2 font-display font-medium text-3xl font-medium leading-none ${block.tone}`}
+            >
+              {block.value}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground/80">{block.note}</p>
           </div>
         );
       })}

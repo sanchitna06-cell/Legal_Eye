@@ -61,7 +61,9 @@ export function CaseCard({ record }: { record: CaseRecord }) {
       </div>
 
       {/* Matter title */}
-      <h3 className="mt-3 font-display text-[17px] leading-snug text-parchment">{record.title}</h3>
+      <h3 className="mt-3 font-display font-medium text-[17px] leading-snug text-parchment">
+        {record.title}
+      </h3>
       {record.subject && <p className="label-legal mt-2">{record.subject}</p>}
 
       {/* Meta rows */}
@@ -115,7 +117,7 @@ export function CaseCard({ record }: { record: CaseRecord }) {
             </span>
           )}
         </span>
-        <span className="ml-auto flex items-center gap-1 text-[11px] tracking-[0.12em] text-brass uppercase transition-transform group-hover:translate-x-0.5">
+        <span className="ml-auto flex items-center gap-1 text-[11px] font-medium tracking-[0.12em] text-brass uppercase transition-transform group-hover:translate-x-0.5">
           View case <ChevronRight className="h-3 w-3" />
         </span>
       </div>

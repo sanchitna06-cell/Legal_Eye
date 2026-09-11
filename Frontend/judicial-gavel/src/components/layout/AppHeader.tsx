@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { UserProfileMenu } from "@/components/layout/UserProfileMenu";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 interface AppHeaderProps {
   /** Mobile-only: opens the off-canvas sidebar drawer below md. */
@@ -29,7 +30,8 @@ export function AppHeader({ onMenu, menuOpen = false }: AppHeaderProps) {
         </button>
       )}
 
-      <div className="fixed right-4 top-4 z-50">
+      <div className="fixed right-4 top-4 z-50 flex items-center gap-2">
+        <ThemeToggle />
         <UserProfileMenu />
       </div>
     </>

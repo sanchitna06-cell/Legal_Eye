@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { THEME_BOOTSTRAP_SNIPPET } from "@/lib/theme-store";
 
 function NotFoundComponent() {
   return (
@@ -101,8 +102,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          Apply the persisted theme before first paint so a light-mode user
+          never sees the dark default flash on refresh. Mutating <html> in a
+          plain inline script keeps hydration from fighting the class list.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SNIPPET }} />
         <HeadContent />
       </head>
       <body>

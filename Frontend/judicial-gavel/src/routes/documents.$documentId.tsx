@@ -1,7 +1,8 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, TriangleAlert } from "lucide-react";
 import { UserProfileMenu } from "@/components/layout/UserProfileMenu";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { DocumentSidebar } from "@/components/documents/DocumentSidebar";
 import { DocumentHeader } from "@/components/documents/DocumentHeader";
 import { PdfViewer, PdfViewerError, PdfViewerLoading } from "@/components/documents/PdfViewer";
@@ -9,9 +10,21 @@ import { CaseTimeline, InconsistencyIdentifier } from "@/components/documents/An
 import { usePdfDocument } from "@/hooks/usePdfDocument";
 import { DEFAULT_ANNOTATION_COLOR } from "@/hooks/useAnnotationStore";
 import { useAnnotationStore, type AnnotationTool } from "@/hooks/useAnnotationStore";
+
+import type { AnnotationType } from "@/lib/api";
 import { useDocumentAnalysis } from "@/hooks/useDocumentAnalysis";
 import { useCases } from "@/lib/case-store";
-import { getCaseDocuments, type BackendDocument } from "@/lib/api";
+import {
+  createAnnotation,
+  deleteAnnotation,
+  getAnnotations,
+  getCaseDocuments,
+  getDocumentPages,
+  updateAnnotation,
+  type Annotation,
+  type AnnotationPosition,
+  type BackendDocument,
+} from "@/lib/api";
 import { getSession } from "@/lib/user-store";
 
 export const Route = createFileRoute("/documents/$documentId")({
@@ -64,12 +77,134 @@ function DocumentWorkspace() {
   const [eraserSize, setEraserSize] = useState(24);
 
   const { pdf, loading, error } = usePdfDocument(documentId);
-  const { analysis, analysisLoading, analysisError, annotations, annotationsLoading } =
-    useDocumentAnalysis(documentId);
+  const { analysis, analysisLoading, analysisError } = useDocumentAnalysis(documentId);
+
+  /* ============================================================
+     ANNOTATION PERSISTENCE
+     The backend stores annotations against CaseFilePage.id, while the
+     PDF viewer works in human-facing page numbers. Resolve that mapping
+     once, then load annotation rows only for pages the viewer reaches.
+     ============================================================ */
+  const [documentPages, setDocumentPages] = useState<Awaited<ReturnType<typeof getDocumentPages>>>(
+    [],
+  );
+  const [annotationsByPage, setAnnotationsByPage] = useState<
+    Map<number, Array<Annotation & { page: number }>>
+  >(new Map());
+  const annotationPagesRef = useRef(new Map<number, Array<Annotation & { page: number }>>());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setDocumentPages([]);
+    annotationPagesRef.current = new Map();
+    setAnnotationsByPage(new Map());
+
+    getDocumentPages(documentId)
+      .then((pages) => {
+        if (!cancelled) setDocumentPages(pages);
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentPages([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
+
+  const pageIdByNumber = useMemo(
+    () => new Map(documentPages.map((page) => [page.page_number, page.id])),
+    [documentPages],
+  );
+
+  useEffect(() => {
+    const pageId = pageIdByNumber.get(pageNumber);
+
+    if (!pageId) return;
+
+    let cancelled = false;
+
+    getAnnotations(pageId)
+      .then((pageAnnotations) => {
+        if (cancelled) return;
+
+        const resolved = pageAnnotations.map((annotation) => ({
+          ...annotation,
+          page: pageNumber,
+        }));
+
+        annotationPagesRef.current.set(pageNumber, resolved);
+
+        setAnnotationsByPage(new Map(annotationPagesRef.current));
+      })
+      .catch(() => {
+        // An annotation fetch failure must not block the PDF workspace.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pageIdByNumber, pageNumber]);
+
+  const serverAnnotations = useMemo(
+    () => Array.from(annotationsByPage.values()).flat(),
+    [annotationsByPage],
+  );
+
+  const createOnServer = useCallback(
+    async ({
+      page,
+      type,
+      position,
+      content,
+    }: {
+      page: number;
+      type: AnnotationType;
+      position: AnnotationPosition;
+      content?: string | null;
+    }) => {
+      const pageId = pageIdByNumber.get(page);
+      if (!pageId) throw new Error(`No backend page id for PDF page ${page}.`);
+
+      return createAnnotation(pageId, {
+        annotation_type: type,
+        position,
+        content: content ?? null,
+      });
+    },
+    [pageIdByNumber],
+  );
+
+  const updateOnServer = useCallback(
+    async ({
+      annotationId,
+      type,
+      position,
+      content,
+    }: {
+      annotationId: string;
+      type: AnnotationType;
+      position: AnnotationPosition;
+      content?: string | null;
+    }) => {
+      return updateAnnotation(annotationId, {
+        annotation_type: type,
+        position,
+        content: content ?? null,
+      });
+    },
+    [],
+  );
+
+  const deleteOnServer = useCallback((annotationId: string) => deleteAnnotation(annotationId), []);
 
   const annotationStore = useAnnotationStore({
     documentId,
-    serverAnnotations: annotationsLoading ? [] : annotations,
+    serverAnnotations,
+    createOnServer,
+    updateOnServer,
+    deleteOnServer,
   });
 
   // Document metadata comes from the existing case-documents API.
@@ -150,7 +285,7 @@ function DocumentWorkspace() {
     <div className="flex min-h-screen flex-col bg-background">
       {/* ============ TOP BAR ============ */}
       <header
-        className={`sticky top-0 z-30 border-b border-border bg-background/92 backdrop-blur transition-[padding-left] duration-300 ease-out ${
+        className={`sticky top-0 z-30 border-b border-border bg-[var(--document-header)] backdrop-blur transition-[padding-left] duration-300 ease-out ${
           sidebarExpanded ? "md:pl-80" : "md:pl-16"
         }`}
       >
@@ -188,6 +323,7 @@ function DocumentWorkspace() {
                 className="focus-legal w-56 border-b border-input bg-transparent py-1.5 pl-6 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 hover:border-brass-dim focus:border-brass lg:w-72"
               />
             </div>
+            <ThemeToggle />
             <UserProfileMenu />
           </div>
         </div>

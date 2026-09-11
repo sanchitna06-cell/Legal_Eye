@@ -213,12 +213,12 @@ function ProfilePage() {
             <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-border pt-6">
               <button
                 type="submit"
-                className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass px-6 py-3 text-sm font-medium tracking-wide text-primary-foreground transition-colors hover:bg-brass/90"
+                className="focus-legal inline-flex items-center gap-2 border border-primary/60 bg-primary px-6 py-3 text-sm font-medium tracking-wide text-primary-foreground transition-colors hover:bg-secondary-brown"
               >
                 Save changes
               </button>
               {saved && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-olive">
+                <span className="inline-flex items-center gap-1.5 text-xs text-success">
                   <Check className="h-3.5 w-3.5" />
                   Profile updated
                 </span>

@@ -15,41 +15,69 @@ interface PdfPageCanvasProps {
   /** Rendered at device resolution, laid out at CSS scale. */
   className?: string;
 
+  /**
+   * Controls whether PDF.js work is active for this page.
+   * The viewer keeps the page shell mounted for stable scrolling,
+   * but only renders pages inside the viewport window.
+   */
+  shouldRender?: boolean;
+
   onRendered?: (width: number, height: number) => void;
 
   /**
    * Enables native browser text selection.
    *
-   * This is used by both the Select and Highlighter tools.
+   * Used by both the Select and Highlighter tools.
    */
   enableTextSelection?: boolean;
 
   /**
    * Called when the user finishes selecting text.
    *
-   * The rectangles are normalized to the PDF page:
-   * x0/y0/x1/y1 are all in the range 0..1.
-   *
-   * The parent decides whether the current tool should turn
-   * this selection into a persistent annotation.
+   * Rectangles are normalized to 0..1 page coordinates.
    */
   onTextSelection?: (rects: TextSelectionRect[], selectedText: string) => void;
 }
 
 /**
- * Renders a single PDF page:
+ * Renders one PDF page.
  *
- *   canvas
- *      ↓
- *   transparent text layer
+ * Layer order:
  *
- * The canvas contains the original PDF rendering.
- * The text layer provides native browser text selection.
+ *   1. PDF canvas
+ *   2. Transparent native text-selection layer
  *
- * When text is selected, the browser Range is converted into
- * normalized page-space rectangles and reported through
- * onTextSelection().
+ * The annotation system remains outside this component.
+ *
+ * The text layer is intentionally transparent because the actual
+ * document pixels come from the PDF canvas underneath it.
  */
+
+/*
+ * Text extraction is relatively expensive. Cache the promise per PDF page so
+ * toggling Select/Highlighter or briefly leaving/re-entering the render window
+ * does not ask PDF.js to extract the same page text again.
+ */
+type TextContent = Awaited<ReturnType<PDFPageProxy["getTextContent"]>>;
+
+const textContentCache = new WeakMap<PDFPageProxy, Promise<TextContent>>();
+
+function getCachedTextContent(pdfPage: PDFPageProxy): Promise<TextContent> {
+  const cached = textContentCache.get(pdfPage);
+
+  if (cached) {
+    return cached;
+  }
+
+  const promise = pdfPage.getTextContent().catch((error) => {
+    textContentCache.delete(pdfPage);
+    throw error;
+  });
+
+  textContentCache.set(pdfPage, promise);
+  return promise;
+}
+
 export function PdfPageCanvas({
   page,
   scale,
@@ -57,9 +85,11 @@ export function PdfPageCanvas({
   onRendered,
   enableTextSelection = false,
   onTextSelection,
+  shouldRender = true,
 }: PdfPageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
+
   const renderTaskRef = useRef<{
     cancel: () => void;
     promise: Promise<unknown>;
@@ -73,12 +103,12 @@ export function PdfPageCanvas({
     const canvasElement = canvasRef.current;
     const currentPage = page;
 
-    if (canvasElement === null || currentPage === null) {
+    if (canvasElement === null || currentPage === null || !shouldRender) {
       return;
     }
 
-    const canvas: HTMLCanvasElement = canvasElement;
-    const pdfPage: PDFPageProxy = currentPage;
+    const canvas = canvasElement;
+    const pdfPage = currentPage;
 
     const contextElement = canvas.getContext("2d");
 
@@ -86,16 +116,14 @@ export function PdfPageCanvas({
       return;
     }
 
-    const context: CanvasRenderingContext2D = contextElement;
+    const context = contextElement;
 
     let cancelled = false;
 
     async function renderPage() {
       /*
-       * IMPORTANT:
-       * If this canvas is still associated with an earlier PDF.js
-       * render task, wait for that task to finish cancelling before
-       * starting another render on the same canvas.
+       * PDF.js cannot safely start another render on the same canvas
+       * while the previous render task is still cancelling.
        */
       const previousTask = renderTaskRef.current;
 
@@ -103,7 +131,7 @@ export function PdfPageCanvas({
         try {
           await previousTask.promise;
         } catch {
-          // Expected when the previous render was cancelled.
+          // Cancellation is expected when changing page/scale.
         }
 
         if (renderTaskRef.current === previousTask) {
@@ -156,10 +184,8 @@ export function PdfPageCanvas({
         onRendered?.(cssViewport.width, cssViewport.height);
       } catch {
         /*
-         * PDF.js throws RenderCancelledException when a render
-         * is cancelled because the page/scale changed.
-         *
-         * That is expected and should not reach the console.
+         * RenderCancelledException is expected when the page or
+         * scale changes while PDF.js is rendering.
          */
       } finally {
         if (renderTaskRef.current === renderTask) {
@@ -179,36 +205,24 @@ export function PdfPageCanvas({
         activeTask.cancel();
       }
     };
-  }, [page, scale, onRendered]);
+  }, [page, scale, onRendered, shouldRender]);
 
   /* ---------------------------------------------------------------------- */
-  /* Text selection                                                         */
+  /* Native text selection                                                  */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
     const layer = textLayerRef.current;
 
-    if (layer === null) {
+    if (layer === null || !enableTextSelection || !shouldRender) {
       return;
     }
 
-    if (!enableTextSelection) {
-      return;
-    }
+    let frameId: number | null = null;
 
-    /**
-     * Convert the browser's client-space selection rectangles into
-     * normalized page coordinates.
-     *
-     * Browser coordinates:
-     *
-     *   viewport / screen pixels
-     *
-     * Annotation coordinates:
-     *
-     *   0..1 normalized page space
-     */
-    const handleSelection = () => {
+    const processSelection = () => {
+      frameId = null;
+
       if (!onTextSelection) {
         return;
       }
@@ -222,10 +236,16 @@ export function PdfPageCanvas({
       const range = selection.getRangeAt(0);
 
       /*
-       * Ignore selections that do not belong to this page's
-       * text layer.
+       * Only process selections that actually belong to
+       * this PDF page's text layer.
        */
       if (!layer.contains(range.commonAncestorContainer)) {
+        return;
+      }
+
+      const selectedText = selection.toString();
+
+      if (!selectedText.trim()) {
         return;
       }
 
@@ -240,17 +260,13 @@ export function PdfPageCanvas({
       const rects: TextSelectionRect[] = [];
 
       for (const rect of clientRects) {
-        /*
-         * Browser selections can contain tiny/empty rectangles.
-         * Ignore those because they cannot produce a useful highlight.
-         */
         if (rect.width <= 0 || rect.height <= 0) {
           continue;
         }
 
         /*
-         * Convert viewport coordinates to coordinates relative
-         * to this PDF page.
+         * Convert browser viewport coordinates into
+         * coordinates relative to this PDF page.
          */
         const left = rect.left - layerRect.left;
         const top = rect.top - layerRect.top;
@@ -284,46 +300,40 @@ export function PdfPageCanvas({
         return;
       }
 
-      const selectedText = selection.toString();
-
-      if (!selectedText.trim()) {
-        return;
-      }
-
-      /*
-       * Report the selection to the parent.
-       *
-       * The parent decides whether this becomes a persistent
-       * "highlight" annotation.
-       */
       onTextSelection(rects, selectedText);
     };
 
     /*
-     * selectionchange fires while the user is dragging.
+     * Wait until the browser has completely finished the
+     * native selection before reading its geometry.
      *
-     * We deliberately wait for pointerup below so that we only
-     * create a highlight once the selection is complete.
+     * IMPORTANT:
+     * We deliberately do NOT listen to selectionchange here.
+     * selectionchange fires continuously while the user is
+     * dragging and would cause the highlighter to commit
+     * partial selections.
      */
     const handlePointerUp = () => {
-      /*
-       * requestAnimationFrame gives the browser one frame to
-       * finalize the native selection before we inspect it.
-       */
-      window.requestAnimationFrame(() => {
-        handleSelection();
-      });
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+
+      frameId = requestAnimationFrame(processSelection);
     };
 
-    layer.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      layer.removeEventListener("pointerup", handlePointerUp);
+      document.removeEventListener("pointerup", handlePointerUp);
+
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
     };
-  }, [enableTextSelection, onTextSelection]);
+  }, [enableTextSelection, onTextSelection, shouldRender]);
 
   /* ---------------------------------------------------------------------- */
-  /* Text layer                                                             */
+  /* PDF text layer                                                         */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
@@ -333,31 +343,46 @@ export function PdfPageCanvas({
       return;
     }
 
-    const layer: HTMLDivElement = textLayerElement;
-
+    const layer = textLayerElement;
     const currentPage = page;
 
-    if (currentPage === null) {
-      layer.innerHTML = "";
+    if (currentPage === null || !shouldRender) {
+      layer.replaceChildren();
       return;
     }
 
-    const pdfPage: PDFPageProxy = currentPage;
+    const pdfPage = currentPage;
 
     let cancelled = false;
 
     async function renderTextLayer() {
-      layer.innerHTML = "";
+      /*
+       * Clear the old text layer before rendering the new page.
+       */
+      layer.replaceChildren();
 
       const viewport = pdfPage.getViewport({
         scale,
       });
 
-      const textContent = await pdfPage.getTextContent();
+      const textContent = await getCachedTextContent(pdfPage);
 
       if (cancelled) {
         return;
       }
+
+      /*
+       * Build transparent text spans from PDF.js text items.
+       *
+       * Important difference from the old implementation:
+       *
+       * We use the COMPLETE text transformation matrix instead
+       * of only tx[4], tx[5] and tx[3].
+       *
+       * This makes positioning work much better with rotated,
+       * scaled and transformed PDF text.
+       */
+      const fragment = document.createDocumentFragment();
 
       for (const item of textContent.items) {
         if (!("str" in item) || !item.str) {
@@ -368,34 +393,104 @@ export function PdfPageCanvas({
 
         const tx = item.transform;
 
-        const userX = tx[4];
-        const userY = tx[5];
+        /*
+         * PDF.js text transform:
+         *
+         * [a, b, c, d, e, f]
+         *
+         * Combine it with the page viewport transform.
+         */
+        const viewportTransform = viewport.transform;
 
-        const fontSize = Math.abs(tx[3]);
+        const v0 = viewportTransform[0] ?? 1;
+        const v1 = viewportTransform[1] ?? 0;
+        const v2 = viewportTransform[2] ?? 0;
+        const v3 = viewportTransform[3] ?? 1;
+        const v4 = viewportTransform[4] ?? 0;
+        const v5 = viewportTransform[5] ?? 0;
 
-        const x = userX * scale;
+        const t0 = tx[0] ?? 1;
+        const t1 = tx[1] ?? 0;
+        const t2 = tx[2] ?? 0;
+        const t3 = tx[3] ?? 1;
+        const t4 = tx[4] ?? 0;
+        const t5 = tx[5] ?? 0;
 
-        const y = viewport.height - userY * scale;
+        const a = v0 * t0 + v2 * t1;
+
+        const b = v1 * t0 + v3 * t1;
+
+        const c = v0 * t2 + v2 * t3;
+
+        const d = v1 * t2 + v3 * t3;
+
+        const e = v0 * t4 + v2 * t5 + v4;
+
+        const f = v1 * t4 + v3 * t5 + v5;
+        /*
+         * Font height comes from the transformed Y axis.
+         */
+        const fontHeight = Math.sqrt(c * c + d * d);
+
+        if (!Number.isFinite(fontHeight) || fontHeight <= 0) {
+          continue;
+        }
+
+        /*
+         * Text angle.
+         */
+        const angle = Math.atan2(b, a);
+
+        /*
+         * Width of the original PDF text run.
+         *
+         * PDF.js provides item.width in PDF user units.
+         */
+        const itemWidth =
+          "width" in item && typeof item.width === "number" ? item.width * scale : 0;
 
         span.textContent = item.str;
 
+        /*
+         * Position the span using the transformed PDF
+         * coordinates.
+         */
         span.style.position = "absolute";
 
-        span.style.left = `${x}px`;
+        span.style.left = `${e}px`;
 
-        span.style.top = `${y - fontSize * scale}px`;
+        /*
+         * The PDF transform places the text baseline.
+         * Move upward by the font height so the DOM text box
+         * occupies the same visual region.
+         */
+        span.style.top = `${f - fontHeight}px`;
 
-        span.style.fontSize = `${fontSize * scale}px`;
+        span.style.fontSize = `${fontHeight}px`;
 
         span.style.lineHeight = "1";
 
         span.style.whiteSpace = "pre";
 
+        span.style.margin = "0";
+
+        span.style.padding = "0";
+
         span.style.transformOrigin = "0 0";
 
         /*
-         * The PDF itself is rendered by the canvas.
-         * These spans are only used for text selection.
+         * Preserve rotation from the PDF.
+         */
+        if (Math.abs(angle) > 0.0001) {
+          span.style.transform = `rotate(${angle}rad)`;
+        }
+
+        /*
+         * Transparent text is intentional.
+         *
+         * The PDF canvas is the visible document.
+         * This span exists only so the browser can perform
+         * real native text selection.
          */
         span.style.color = "transparent";
 
@@ -404,7 +499,7 @@ export function PdfPageCanvas({
         span.style.webkitTextFillColor = "transparent";
 
         /*
-         * Native browser text selection.
+         * Native selection.
          */
         span.style.userSelect = enableTextSelection ? "text" : "none";
 
@@ -415,19 +510,20 @@ export function PdfPageCanvas({
         span.style.cursor = enableTextSelection ? "text" : "default";
 
         /*
-         * Metadata used by the annotation system.
+         * Prevent the browser from adding visual layout
+         * differences around the transparent text.
          */
-        span.dataset["scale"] = String(scale);
+        span.style.display = "inline-block";
 
-        span.dataset["originX"] = String(x);
+        /*
+         * Metadata retained for the annotation system.
+         */
 
-        span.dataset["originY"] = String(y - fontSize * scale);
+        fragment.appendChild(span);
+      }
 
-        span.dataset["userX"] = String(userX);
-
-        span.dataset["userY"] = String(userY);
-
-        layer.appendChild(span);
+      if (!cancelled) {
+        layer.appendChild(fragment);
       }
     }
 
@@ -435,68 +531,60 @@ export function PdfPageCanvas({
 
     return () => {
       cancelled = true;
-      layer.innerHTML = "";
+      layer.replaceChildren();
     };
-  }, [page, scale, enableTextSelection]);
+  }, [page, scale, enableTextSelection, shouldRender]);
 
   /* ---------------------------------------------------------------------- */
   /* Page dimensions                                                        */
   /* ---------------------------------------------------------------------- */
 
-  const pageWidth = page
+  const pageViewport = page
     ? page.getViewport({
         scale,
-      }).width
-    : undefined;
+      })
+    : null;
 
-  const pageHeight = page
-    ? page.getViewport({
-        scale,
-      }).height
-    : undefined;
+  const pageWidth = pageViewport?.width;
+  const pageHeight = pageViewport?.height;
 
   /* ---------------------------------------------------------------------- */
-  /* Page container                                                         */
+  /* Render                                                                 */
   /* ---------------------------------------------------------------------- */
 
   return (
     <div
       className="relative"
       style={{
-        width: pageWidth ? `${pageWidth}px` : undefined,
-
-        height: pageHeight ? `${pageHeight}px` : undefined,
+        width: pageWidth !== undefined ? `${pageWidth}px` : undefined,
+        height: pageHeight !== undefined ? `${pageHeight}px` : undefined,
       }}
     >
-      {/* -------------------------------------------------------------- */}
-      {/* PDF canvas                                                     */}
-      {/* -------------------------------------------------------------- */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Original PDF                                                     */}
+      {/* ---------------------------------------------------------------- */}
 
       <canvas
         ref={canvasRef}
         className={className}
         aria-label="Original document page"
         role="img"
+        style={{
+          display: "block",
+        }}
       />
 
-      {/* -------------------------------------------------------------- */}
-      {/* PDF text layer                                                 */}
-      {/* -------------------------------------------------------------- */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Native text-selection layer                                      */}
+      {/* ---------------------------------------------------------------- */}
 
       <div
         ref={textLayerRef}
         className="absolute inset-0 overflow-hidden"
         style={{
           pointerEvents: enableTextSelection ? "auto" : "none",
-
           userSelect: enableTextSelection ? "text" : "none",
-
           WebkitUserSelect: enableTextSelection ? "text" : "none",
-
-          /*
-           * Text layer sits above the canvas
-           * but below annotation UI.
-           */
           zIndex: 2,
         }}
         aria-hidden={!enableTextSelection}

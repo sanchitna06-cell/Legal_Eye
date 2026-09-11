@@ -75,6 +75,11 @@ interface PdfDocumentPageProps {
   pageNumber: number;
   effectiveScale: number;
   tool: AnnotationTool;
+  shouldRender: boolean;
+  estimatedPageSize: {
+    width: number;
+    height: number;
+  };
 
   shapesForPage: (page: number) => LocalAnnotation[];
 
@@ -99,6 +104,8 @@ function PdfDocumentPage({
   pageNumber,
   effectiveScale,
   tool,
+  shouldRender,
+  estimatedPageSize,
   shapesForPage,
   color,
   strokeWidth,
@@ -112,14 +119,23 @@ function PdfDocumentPage({
   onCloseTextEditor,
   setPageRef,
 }: PdfDocumentPageProps) {
-  const pageProxy = usePdfPage(pdf, pageNumber);
+  const pageProxy = usePdfPage(pdf, pageNumber, shouldRender);
 
   const [pageSize, setPageSize] = useState({
-    width: 0,
-    height: 0,
+    width: estimatedPageSize.width,
+    height: estimatedPageSize.height,
   });
 
   const shapes = useMemo(() => shapesForPage(pageNumber), [shapesForPage, pageNumber]);
+
+  useEffect(() => {
+    if (!shouldRender) {
+      setPageSize({
+        width: estimatedPageSize.width,
+        height: estimatedPageSize.height,
+      });
+    }
+  }, [estimatedPageSize.height, estimatedPageSize.width, shouldRender]);
 
   const handleRendered = useCallback((width: number, height: number) => {
     setPageSize((previous) => {
@@ -173,24 +189,10 @@ function PdfDocumentPage({
     [color, onAddShape, pageNumber, strokeWidth, tool],
   );
   /*
-   * Keep the page wrapper mounted while PDF.js is loading.
-   * This gives the viewer a stable DOM target for scrolling.
+   * Keep the page shell mounted even when this page is outside the render
+   * window. Its estimated dimensions preserve continuous-scroll geometry
+   * without asking PDF.js to load/render the page.
    */
-  if (!pageProxy) {
-    return (
-      <div
-        ref={(node) => setPageRef(pageNumber, node)}
-        data-pdf-page={pageNumber}
-        data-page-number={pageNumber}
-        className="relative shrink-0 bg-white shadow-[0_18px_50px_-18px_rgba(0,0,0,0.85)] ring-1 ring-black/60"
-        style={{
-          width: "min(850px, calc(100vw - 220px))",
-          minHeight: "200px",
-        }}
-      />
-    );
-  }
-
   return (
     <div
       ref={(node) => setPageRef(pageNumber, node)}
@@ -198,13 +200,14 @@ function PdfDocumentPage({
       data-page-number={pageNumber}
       className="relative shrink-0 bg-white shadow-[0_18px_50px_-18px_rgba(0,0,0,0.85)] ring-1 ring-black/60"
       style={{
-        width: pageSize.width || undefined,
-        height: pageSize.height || undefined,
+        width: pageSize.width || estimatedPageSize.width || undefined,
+        height: pageSize.height || estimatedPageSize.height || undefined,
       }}
     >
       <PdfPageCanvas
         page={pageProxy}
         scale={effectiveScale}
+        shouldRender={shouldRender}
         enableTextSelection={tool === "select" || tool === "highlighter"}
         onTextSelection={handleTextSelection}
         onRendered={handleRendered}
@@ -281,6 +284,25 @@ export function PdfViewer({
 
   const [textEditor, setTextEditor] = useState<TextEditorState | null>(null);
 
+  /*
+   * Only pages inside this generous viewport window are allowed to ask
+   * PDF.js for a page proxy, render a canvas, or build a text layer.
+   *
+   * The page shells themselves remain mounted, so continuous scrolling and
+   * page navigation remain intact.
+   */
+  const [renderWindow, setRenderWindow] = useState<Set<number>>(() => {
+    const initial = new Set<number>();
+    const first = Math.max(1, page - 3);
+    const last = Math.min(pdf.numPages, page + 3);
+
+    for (let pageNumber = first; pageNumber <= last; pageNumber += 1) {
+      initial.add(pageNumber);
+    }
+
+    return initial;
+  });
+
   const frameRef = useRef<HTMLDivElement | null>(null);
 
   /*
@@ -324,6 +346,7 @@ export function PdfViewer({
   /* ---------------------------------------------------------------------- */
 
   const handleOpenTextEditor = useCallback((state: TextEditorState) => {
+    console.log("OPEN TEXT EDITOR", state);
     setTextEditor(state);
   }, []);
 
@@ -404,6 +427,65 @@ export function PdfViewer({
     updateFrameSize();
   }, [updateFrameSize]);
 
+  /*
+   * Keep a generous render window around the visible viewport. Intersection
+   * Observer handles the continuous scroll without running scroll handlers
+   * for PDF rendering work.
+   */
+  useEffect(() => {
+    const frame = frameRef.current;
+
+    if (!frame) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setRenderWindow((previous) => {
+          const next = new Set(previous);
+          let changed = false;
+
+          for (const entry of entries) {
+            const pageNumber = Number((entry.target as HTMLElement).dataset.pageNumber);
+
+            if (!Number.isFinite(pageNumber)) {
+              continue;
+            }
+
+            if (entry.isIntersecting) {
+              if (!next.has(pageNumber)) {
+                next.add(pageNumber);
+                changed = true;
+              }
+            } else if (next.has(pageNumber)) {
+              next.delete(pageNumber);
+              changed = true;
+            }
+          }
+
+          return changed ? next : previous;
+        });
+      },
+      {
+        root: frame,
+        rootMargin: "1800px 0px 1800px 0px",
+        threshold: 0,
+      },
+    );
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const node = pageRefs.current[pageNumber];
+
+      if (node) {
+        observer.observe(node);
+      }
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [pdf]);
+
   /* ---------------------------------------------------------------------- */
   /* Base PDF page dimensions                                               */
   /* ---------------------------------------------------------------------- */
@@ -461,6 +543,14 @@ export function PdfViewer({
   }, [basePageSize, frameSize]);
 
   const effectiveScale = fitMode ? fitScale : zoom;
+
+  const estimatedPageSize = useMemo(
+    () => ({
+      width: basePageSize.width * effectiveScale,
+      height: basePageSize.height * effectiveScale,
+    }),
+    [basePageSize.height, basePageSize.width, effectiveScale],
+  );
 
   /* ---------------------------------------------------------------------- */
   /* Zoom                                                                    */
@@ -741,7 +831,7 @@ export function PdfViewer({
 
       <div
         ref={setFrameRef}
-        className={`relative min-h-0 shrink-0 overflow-auto bg-[#0d0c0b] ${
+        className={`relative min-h-0 shrink-0 overflow-auto bg-surface-deep ${
           tool === "pan" ? "cursor-grab select-none" : ""
         }`}
         role="region"
@@ -801,6 +891,8 @@ export function PdfViewer({
                   pageNumber={pageNumber}
                   effectiveScale={effectiveScale}
                   tool={tool}
+                  shouldRender={renderWindow.has(pageNumber)}
+                  estimatedPageSize={estimatedPageSize}
                   shapesForPage={shapesForPage}
                   color={color}
                   strokeWidth={strokeWidth}

@@ -80,10 +80,14 @@ export interface SampleDocument {
   timestamp: string;
 }
 
+/**
+ * Chart series colors. The hues match the status tokens (info / brass accent /
+ * error) and read as CSS variables so the chart re-themes with light/dark.
+ */
 export const ACTIVITY_COLORS = {
-  api: "#38bdf8",
-  audit: "#a78bfa",
-  security: "#f87171",
+  api: "var(--info)",
+  audit: "var(--brass)",
+  security: "var(--error)",
 } as const;
 
 export const METRICS: MetricCard[] = [
@@ -94,7 +98,7 @@ export const METRICS: MetricCard[] = [
     delta: "↑ 2 from last week",
     deltaUp: true,
     icon: Users,
-    iconBoxColor: "bg-[#2a3f5e]",
+    iconBoxColor: "bg-info/15 text-info",
   },
   {
     id: "total-cases",
@@ -103,7 +107,7 @@ export const METRICS: MetricCard[] = [
     delta: "↑ 12 from last week",
     deltaUp: true,
     icon: FolderKanban,
-    iconBoxColor: "bg-[#1f4d3a]",
+    iconBoxColor: "bg-success/15 text-success",
   },
   {
     id: "evidence-files",
@@ -112,7 +116,7 @@ export const METRICS: MetricCard[] = [
     delta: "↑ 18 from last week",
     deltaUp: true,
     icon: FileText,
-    iconBoxColor: "bg-[#3a2a5e]",
+    iconBoxColor: "bg-accent/25 text-accent-foreground",
   },
   {
     id: "security-events",
@@ -121,7 +125,7 @@ export const METRICS: MetricCard[] = [
     delta: "↓ 40% from last week",
     deltaUp: false,
     icon: ShieldCheck,
-    iconBoxColor: "bg-[#1f4d3a]",
+    iconBoxColor: "bg-success/15 text-success",
   },
 ];
 
@@ -261,9 +265,9 @@ export function createTemporaryPassword(): string {
 
 export function getMetricDeltaIcon(metric: MetricCard): React.ReactNode {
   if (metric.deltaUp) {
-    return React.createElement(TrendingUp, { className: "h-3 w-3 text-emerald-400" });
+    return React.createElement(TrendingUp, { className: "h-3 w-3 text-success" });
   }
-  return React.createElement(TrendingDown, { className: "h-3 w-3 text-rose-400" });
+  return React.createElement(TrendingDown, { className: "h-3 w-3 text-error" });
 }
 
 export function formatLastLogin(value: string): string {
@@ -272,15 +276,16 @@ export function formatLastLogin(value: string): string {
 }
 
 export function statusColorFor(status: string): string {
-  if (status === "active") return "text-emerald-400";
-  if (status === "pending") return "text-amber-400";
-  return "text-red-400";
+  if (status === "active") return "text-success";
+  if (status === "pending") return "text-warning";
+  return "text-error";
 }
 
+/** Dot fill for the status indicator — a status token, not a raw hex. */
 export function statusBgFor(status: string): string {
-  if (status === "active") return "#34d399";
-  if (status === "pending") return "#fbbf24";
-  return "#f87171";
+  if (status === "active") return "var(--success)";
+  if (status === "pending") return "var(--warning)";
+  return "var(--error)";
 }
 
 export function roleVariantFor(role: string): "default" | "secondary" | "outline" {

@@ -11,7 +11,7 @@ import { JuryHashMark } from "@/components/brand/JURYHashMark";
 import { login } from "@/lib/api";
 
 import { setTokens, signIn } from "@/lib/user-store";
-
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 export function LoginPanel() {
   const navigate = useNavigate();
 
@@ -89,8 +89,8 @@ export function LoginPanel() {
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.15fr_1fr]">
-      {/* Chamber side */}
-      <section className="relative hidden overflow-hidden border-r border-border lg:block grain">
+      {/* Chamber side — cinematic courtroom, dark in BOTH themes. */}
+      <section className="dark-chrome login-cinematic relative hidden overflow-hidden border-r border-border lg:block grain">
         <img
           src={courtroom}
           alt="A dim courtroom seen through haze, with a judge's bench and seated figures"
@@ -146,7 +146,11 @@ export function LoginPanel() {
       </section>
 
       {/* Authentication side */}
-      <section className="flex items-center justify-center px-6 py-16 sm:px-12">
+      <section className="login-auth-surface relative flex items-center justify-center bg-background px-6 py-16 text-foreground sm:px-12">
+        <div className="absolute right-6 top-6 sm:right-10 sm:top-8">
+          <ThemeToggle />
+        </div>
+
         <div className="w-full max-w-sm animate-rise-in">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <JuryHashMark className="h-7 w-7 text-brass" />

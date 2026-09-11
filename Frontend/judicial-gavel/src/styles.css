@@ -8,7 +8,16 @@
  * JURY HASH — DESIGN SYSTEM
  * ============================================================
  *
- * Ink, parchment, brass, burgundy and restrained olive.
+ * The official Legal Eye palette — primary brown, secondary brown,
+ * accent beige, light beige, charcoal and warm greys — drives every
+ * token. Light mode is the warm parchment build; dark mode keeps the
+ * brown/beige/black identity (never blue/purple).
+ *
+ * Theme contract: tokens live on :root (light) and are overridden
+ * under `.dark`. Chrome surfaces (sidebar/header) keep charcoal in
+ * BOTH themes via the `.dark-chrome` scope. Legacy brand aliases
+ * (--brass, --parchment, --ink, --olive, --burgundy) map onto the
+ * palette so existing utility classes re-theme automatically.
  *
  * IMPORTANT:
  * This stylesheet intentionally avoids the generic
@@ -24,9 +33,9 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+--font-display: "Times New Roman", Times, serif;
+--font-sans: "Times New Roman", Times, serif;
+--font-mono: "Times New Roman", ui-monospace, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -67,56 +76,125 @@
 
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-deep: var(--surface-deep);
+  --color-surface-modal: var(--surface-modal);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
+  /* Brand palette source-of-truth aliases. */
+  --color-primary-brown: var(--primary-brown);
+  --color-secondary-brown: var(--secondary-brown);
+  --color-accent-beige: var(--accent-beige);
+  --color-light-beige: var(--light-beige);
+  --color-charcoal: var(--charcoal);
+  --color-dark-grey: var(--dark-grey);
+  --color-grey: var(--grey);
+  --color-light-grey: var(--light-grey);
+
+  /* Dark-chrome scope: charcoal sidebar/header in BOTH themes. */
+  --color-chrome: var(--chrome);
+  --color-chrome-foreground: var(--chrome-foreground);
+  --color-chrome-muted: var(--chrome-muted);
+  --color-chrome-border: var(--chrome-border);
+  --color-chrome-raised: var(--chrome-raised);
+  --color-chrome-hover: var(--chrome-hover);
 }
 
 /* ============================================================
-   ROOT DESIGN TOKENS
+   ROOT DESIGN TOKENS — LIGHT MODE (default)
    ============================================================ */
 
 :root {
+  color-scheme: light;
+
   --radius: 0.25rem;
 
-  --ink: oklch(0.16 0.011 60);
-  --parchment: oklch(0.94 0.014 85);
+  /* Brand palette (single source of truth). */
+  --primary-brown: #4e342e;
+  --secondary-brown: #7b5e4b;
+  --accent-beige: #d7c3a9;
+  --light-beige: #f5efe6;
+  --charcoal: #1a1a1a;
+  --dark-grey: #4a4a4a;
+  --grey: #8d8d8d;
+  --light-grey: #e8e1d9;
+  /* The brief lists a distinct disabled-text value — keep it exact. */
+  --disabled-text: #8d8d5d;
 
-  --brass: oklch(0.74 0.09 82);
-  --brass-dim: oklch(0.55 0.06 80);
+  /* Status — same hues in both themes, surfaces adapt around them. */
+  --success: #6b8f71;
+  --warning: #b08968;
+  --error: #8b5e5e;
+  --info: #6b7c93;
 
-  --burgundy: oklch(0.42 0.09 20);
-  --olive: oklch(0.52 0.05 130);
+  --background: #f6f5f3;
+  --foreground: #000000;
 
-  --background: oklch(0.155 0.009 60);
-  --foreground: oklch(0.93 0.012 85);
+  --surface: #e9d9cd;
+  --surface-raised: #e8e1d9;
 
-  --surface: oklch(0.19 0.011 62);
-  --surface-raised: oklch(0.225 0.012 64);
+  --card: #e8e1d9;
+  --card-foreground: #1a1a1a;
 
-  --card: oklch(0.19 0.011 62);
-  --card-foreground: oklch(0.93 0.012 85);
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
 
-  --popover: oklch(0.2 0.011 62);
-  --popover-foreground: oklch(0.93 0.012 85);
+  --primary: #4e342e;
+  --primary-foreground: #ffffff;
 
-  --primary: oklch(0.74 0.09 82);
-  --primary-foreground: oklch(0.16 0.011 60);
+  --secondary: #7b5e4b;
+  --secondary-foreground: #ffffff;
 
-  --secondary: oklch(0.245 0.012 64);
-  --secondary-foreground: oklch(0.9 0.012 85);
+  --muted: #e8e1d9;
+  --muted-foreground: #4a4a4a;
 
-  --muted: oklch(0.24 0.01 62);
-  --muted-foreground: oklch(0.68 0.014 78);
+  --accent: #d7c3a9;
+  --accent-foreground: #1a1a1a;
 
-  --accent: oklch(0.28 0.02 70);
-  --accent-foreground: oklch(0.93 0.012 85);
+  --destructive: #8b5e5e;
+  --destructive-foreground: #ffffff;
 
-  --destructive: oklch(0.48 0.13 22);
-  --destructive-foreground: oklch(0.95 0.01 85);
+  --border: #e8e1d9;
+  --input: #8d8d8d;
+  --ring: #7b5e4b;
 
-  --border: oklch(0.3 0.012 66);
-  --input: oklch(0.28 0.012 66);
-  --ring: oklch(0.62 0.07 82);
+  --header: #1a1a1a;
+  --header-foreground: #f5efe6;
+  --sidebar: #7b5e4b;
+  --sidebar-foreground: #f5efe6;
 
-  --shadow-chamber: 0 24px 60px -24px oklch(0 0 0 / 0.75);
+  /* Modal/surface level between card and main background. */
+  --surface-modal: #ebe1d9;
+  /* Deepest content well (e.g. the PDF viewer backdrop around pages). */
+  --surface-deep: #e8e1d9;
+
+  /* Legacy brand aliases -> palette (existing classes keep working). */
+  --ink: #1a1a1a;
+  --parchment: #4a4a4a;
+  --brass: #4e342e;
+  --brass-dim: #7b5e4b;
+  --burgundy: #8b5e5e;
+  --olive: #6b8f71;
+
+  /* Dark-chrome scope values (identical in both themes). */
+  --chrome: #1a1a1a;
+  --chrome-foreground: #f5efe6;
+  --chrome-muted: #f5efe6;
+  --chrome-border: #2e2c28;
+  --chrome-raised: #917b6d;
+  --chrome-hover: #171717;
+
+  --document-header: #d7c3a9;
+
+  --shadow-chamber: 0 24px 60px -24px oklch(0 0 0 / 0.35);
 
   --rule-brass: linear-gradient(
     90deg,
@@ -125,6 +203,154 @@
     transparent
   );
 }
+/* ============================================================
+   STARTUP SEQUENCE SCOPE
+   Independent from application/sidebar theme.
+   ============================================================ */
+
+@utility startup-sequence {
+  --startup-bg: #0b0b0b;
+
+  --startup-text: #D7c3a9;
+
+  --startup-muted: #a89f93;
+
+  --startup-accent: #F5EFE6;
+
+  --startup-border: #3a3026;
+
+  --startup-glow: #ffffff;
+
+  color: var(--startup-text);
+  background-color: var(--startup-bg);
+  color-scheme: dark;
+}
+/* ============================================================
+   LOGIN AUTH SURFACE — LIGHT MODE
+   Isolated from sidebar/application chrome.
+   Dark mode continues using the existing application palette.
+   ============================================================ */
+html:not(.dark) .login-auth-surface {
+  --background: #f8f6f1;
+  --foreground: #1a1a1a;
+
+  --surface: #ebe1d9;
+  --surface-raised: #ffffff;
+
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  --primary: #4e342e;
+  --primary-foreground: #f5efe6;
+
+  --secondary: #7b5e4b;
+  --secondary-foreground: #f5efe6;
+
+  --muted: #e8e1d9;
+  --muted-foreground: #4a4a4a;
+
+  --accent: #d7c3a9;
+  --accent-foreground: #1a1a1a;
+
+  --destructive: #8b5e5e;
+  --destructive-foreground: #ffffff;
+
+  --border: #d7c3a9;
+  --input: #8d8d8d;
+  --ring: #7b5e4b;
+
+  --brass: #4e342e;
+  --brass-dim: #7b5e4b;
+  --parchment: #1a1a1a;
+
+  --rule-brass: #d7c3a9;
+}
+/* ============================================================
+   LOGIN CINEMATIC SIDE — LIGHT MODE
+   Scoped only to the login page's left cinematic panel.
+   Does NOT change the application sidebar/header chrome.
+   ============================================================ */
+
+html:not(.dark) .login-cinematic {
+  --chrome-foreground: #e8e1d9;
+  --chrome-muted: #b8a99a;
+
+  --parchment: #e8e1d9;
+
+  --brass: #d7c3a9;
+  --brass-dim: #7b5e4b;
+
+  --border: #4a4a4a;
+}
+
+/* ============================================================
+   DARK MODE
+   Retains the brown/beige/black identity — never a cold inversion.
+   ============================================================ */
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0f0f0f;
+  --foreground: #ffffff;
+  --document-header: #1a1a1a;
+  --surface: #29231f;
+  --surface-raised: #6e6559;
+
+  --card: #1b1300;
+  --card-foreground: #1b1300;
+
+  --popover: #663b00;
+  --popover-foreground: #663b00;
+
+  --primary: #d7c3a9;
+  --primary-foreground: #1a1a1a;
+
+  --secondary: #4e342e;
+  --secondary-foreground: #663b00;
+
+  --muted: #663b00;
+  --muted-foreground: #ffffff;
+
+  --accent: #663b00;
+  --accent-foreground: #663b00;
+
+  --destructive: #8b5e5e;
+  --destructive-foreground: #ffffff;
+
+  --border: #33302c;
+  --input: #4a4a4a;
+  --ring: #d7c3a9;
+
+  --header: #1a1a1a;
+  --header-foreground: #f5efe6;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #f5efe6;
+
+  --surface-modal: #422202;
+  --surface-deep: #141312;
+
+  /* Legacy brand aliases -> palette. */
+  --ink: #663b00;
+  --parchment: #f5efe6;
+  --brass: #d7c3a9;
+  --brass-dim: #a89f93;
+  --burgundy: #663b00;
+  --olive: #8fae94;
+
+  --chrome: #1a1a1a;
+  --chrome-foreground: #f5efe6;
+  --chrome-muted: #a89f93;
+  --chrome-border: #2e2c28;
+  --chrome-raised: #262421;
+  --chrome-hover: #171717;
+
+  --shadow-chamber: 0 24px 60px -24px oklch(0 0 0 / 0.75);
+}
+
 
 /* ============================================================
    BASE
@@ -169,6 +395,55 @@
 
   ::selection {
     background: color-mix(in oklab, var(--brass) 35%, transparent);
+  }
+}
+
+/* ============================================================
+   DARK-CHROME SCOPE
+   Sidebar / header keep their charcoal presence in BOTH themes.
+   Applying `.dark-chrome` re-points the generic tokens at the
+   chrome palette, so components inside can keep using semantic
+   classes (bg-background, text-muted-foreground, border-border…)
+   and still render correctly on charcoal in light mode.
+   ============================================================ */
+
+@utility dark-chrome {
+  color: var(--chrome-foreground);
+  background-color: var(--chrome);
+  color-scheme: dark;
+
+  --background: var(--chrome);
+  --foreground: var(--chrome-foreground);
+  --muted: var(--chrome-raised);
+  --muted-foreground: var(--chrome-muted);
+  --border: var(--chrome-border);
+  --input: var(--chrome-border);
+  --surface: var(--chrome-raised);
+  --surface-raised: var(--chrome-raised);
+  --card: var(--chrome-raised);
+  --card-foreground: var(--chrome-foreground);
+  --popover: var(--chrome-raised);
+  --popover-foreground: var(--chrome-foreground);
+  --accent: var(--secondary-brown);
+  --accent-foreground: var(--chrome-foreground);
+  --secondary: var(--primary-brown);
+  --secondary-foreground: var(--chrome-foreground);
+  --ring: var(--accent-beige);
+
+  /* Legacy brand aliases — the chrome renders like the dark theme. */
+  --ink: var(--chrome-foreground);
+  --parchment: var(--chrome-foreground);
+  --brass: var(--accent-beige);
+  --brass-dim: var(--chrome-muted);
+  --burgundy: #b08a8a;
+  --olive: #8fae94;
+
+  & ::selection {
+    background: color-mix(in oklab, var(--accent-beige) 30%, transparent);
+  }
+
+  & ::placeholder {
+    color: color-mix(in oklab, var(--chrome-muted) 80%, transparent);
   }
 }
 
@@ -238,7 +513,7 @@
 
 @utility focus-legal {
   &:focus-visible {
-    outline: 2px solid color-mix(in oklab, var(--brass) 70%, transparent);
+    outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
 
     outline-offset: 2px;
   }
@@ -781,7 +1056,7 @@
 
     border-color: color-mix(in oklab, var(--brass) 45%, var(--border));
 
-    box-shadow: 0 18px 40px -26px oklch(0 0 0 / 0.9);
+    box-shadow: 0 18px 40px -26px oklch(0 0 0 / 0.55);
   }
 }
 

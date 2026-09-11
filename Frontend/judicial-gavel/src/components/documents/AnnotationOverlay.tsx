@@ -592,8 +592,8 @@ export function AnnotationOverlay({
       style={{
         width: "100%",
         height: "100%",
-        zIndex: 20,
-        pointerEvents: editorActiveHere ? "none" : "none",
+        zIndex: 1,
+        pointerEvents: "none",
       }}
     >
       <svg
