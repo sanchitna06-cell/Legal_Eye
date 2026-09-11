@@ -49,8 +49,7 @@ export function AdminAuthGate() {
               Operate the system.
             </h1>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#8ea3bb]">
-              Monitor system activity, manage users, and ensure the security and integrity of
-              LegalLens.
+              Monitor system activity, manage users, and ensure the security and integrity of LegalLens.
             </p>
           </div>
         </div>
@@ -82,10 +81,7 @@ export function AdminAuthGate() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]"
-              >
+              <label htmlFor="email" className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
                 Admin email
               </label>
               <input
@@ -102,10 +98,7 @@ export function AdminAuthGate() {
 
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
-                <label
-                  htmlFor="password"
-                  className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]"
-                >
+                <label htmlFor="password" className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
                   Passphrase
                 </label>
                 <button
@@ -141,8 +134,7 @@ export function AdminAuthGate() {
 
           <div className="mt-8 border-t border-[#1a2737] pt-4">
             <p className="text-[10px] leading-relaxed text-[#5f7891]">
-              Prototype build — credential check is illustrative. No credentials are transmitted or
-              stored.
+              Prototype build — credential check is illustrative. No credentials are transmitted or stored.
             </p>
           </div>
         </div>

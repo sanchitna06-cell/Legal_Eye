@@ -1,27 +1,57 @@
-import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import React from "react";
+import { createFileRoute, ClientOnly, Outlet, useNavigate } from "@tanstack/react-router";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useAdmin } from "@/lib/admin-store";
 
+/**
+ * Layout route for every /admin/* page.
+ *
+ * The route is publicly reachable; a client-side guard redirects non-admin
+ * visitors to /admin-login (the session lives in localStorage, so the check
+ * has to run on the client). Signed-in admins get the shared AdminLayout with
+ * the sidebar; child routes render into the <Outlet />.
+ */
 function AdminRouteShell() {
   return (
     <ClientOnly fallback={null}>
-      <AdminDashboard />
+      <AdminGate>
+        <AdminLayout>
+          <Outlet />
+        </AdminLayout>
+      </AdminGate>
     </ClientOnly>
   );
 }
 
+function AdminGate({ children }: { children: React.ReactNode }) {
+  const admin = useAdmin();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!admin) {
+      navigate({ to: "/admin-login", replace: true });
+    }
+  }, [admin, navigate]);
+
+  if (!admin) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 export const Route = createFileRoute("/admin")({
   beforeLoad: () => {
-    // Route is publicly reachable; client-side guard in AdminDashboard
-    // redirects non-admin visitors to /admin-login.
+    // See AdminRouteShell: the guard is client-side.
   },
   component: AdminRouteShell,
   head: () => ({
     meta: [
-      { title: "Admin Dashboard — JURY HASH" },
+      { title: "Admin Console — Legal Eye" },
       {
         name: "description",
         content:
-          "JURY HASH admin console: monitor system activity, manage users, and ensure the security and integrity of the platform.",
+          "Legal Eye admin console: monitor system activity, manage users, and ensure the security and integrity of the platform.",
       },
     ],
   }),

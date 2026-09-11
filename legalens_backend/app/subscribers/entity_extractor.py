@@ -70,6 +70,22 @@ async def handle_text_extracted(
                 f"text_length={len(page.extracted_text or '')})"
             )
 
+        job = await db.get(
+            FileProcessingJob,
+            job_id,
+        )
+
+        if job is None:
+            raise RuntimeError(
+                f"Processing job {job_id} not found "
+                "while completing entity extraction."
+            )
+
+        job.status = ProcessingJobStatus.COMPLETED
+        job.completed_at = datetime.utcnow()
+
+        await db.commit()
+
     except Exception as e:
         print(
             f"❌ Entity extraction failed: {e}"

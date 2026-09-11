@@ -118,16 +118,26 @@ export function useAdminUsers() {
     reloadRef.current += 1;
   }
 
+  function syncFromStore() {
+    ensureSeed();
+    usersRef.current = users;
+  }
+
   function all(): AdminUserRecord[] {
+    syncFromStore();
     return usersRef.current.map((u) => ({ ...u }));
   }
 
   function findById(id: string): AdminUserRecord | undefined {
+    syncFromStore();
     return usersRef.current.find((u) => u.id === id);
   }
 
   function findByUsername(username: string): AdminUserRecord | undefined {
-    return usersRef.current.find((u) => u.username.toLowerCase() === username.toLowerCase());
+    syncFromStore();
+    return usersRef.current.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
+    );
   }
 
   function add(user: Omit<AdminUserRecord, "id" | "createdAt">): AdminUserRecord {

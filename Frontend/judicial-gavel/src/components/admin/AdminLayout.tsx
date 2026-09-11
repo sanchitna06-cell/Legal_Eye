@@ -6,9 +6,11 @@ import {
   Lock,
   ScrollText,
   Search,
+  Settings,
   Shield,
   ShieldCheck,
   Users,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -16,15 +18,7 @@ import { useAdmin, signOutAdmin, DEFAULT_ADMIN_USER } from "@/lib/admin-store";
 
 function ChevronDown({ className }: { className?: string }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 6 L8 10 L12 6" />
     </svg>
   );
@@ -40,13 +34,7 @@ function GovtEmblem() {
       focusable="false"
     >
       <title>Indian National Emblem</title>
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="32" cy="32" r="28" className="opacity-20" />
         <path d="M28 16 L28 32 L20 38 L28 44 L28 56 L32 52 L36 56 L36 44 L44 38 L36 32 L36 16 Z" />
         <path d="M28 16 L36 16 L32 20 Z" fill="currentColor" stroke="none" opacity="0.35" />
@@ -155,16 +143,33 @@ function AdminUserMenu() {
   );
 }
 
-const NAV: Array<{ to: string; label: string; icon: LucideIcon }> = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin", label: "User Management", icon: Users },
-  { to: "/admin", label: "Audit Logs", icon: ScrollText },
-  { to: "/admin", label: "Security Events", icon: Shield },
-  { to: "/admin", label: "Document Integrity", icon: ShieldCheck },
-  { to: "/admin", label: "Event Pipeline", icon: ScrollText },
-  { to: "/admin", label: "System Health", icon: CheckCircle },
-  { to: "/admin", label: "Settings", icon: Users },
+type AdminNavTo =
+  | "/admin"
+  | "/admin/users"
+  | "/admin/audit-logs"
+  | "/admin/security-events"
+  | "/admin/document-integrity"
+  | "/admin/event-pipeline"
+  | "/admin/system-health"
+  | "/admin/settings";
+
+const NAV: Array<{
+  to: AdminNavTo;
+  label: string;
+  icon: LucideIcon;
+  section: "Overview" | "Operations" | "System";
+}> = [
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, section: "Overview" },
+  { to: "/admin/users", label: "User Management", icon: Users, section: "Operations" },
+  { to: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText, section: "Operations" },
+  { to: "/admin/security-events", label: "Security Events", icon: Shield, section: "Operations" },
+  { to: "/admin/document-integrity", label: "Document Integrity", icon: ShieldCheck, section: "Operations" },
+  { to: "/admin/event-pipeline", label: "Event Pipeline", icon: Workflow, section: "System" },
+  { to: "/admin/system-health", label: "System Health", icon: CheckCircle, section: "System" },
+  { to: "/admin/settings", label: "Settings", icon: Settings, section: "System" },
 ];
+
+const NAV_SECTIONS: Array<"Overview" | "Operations" | "System"> = ["Overview", "Operations", "System"];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [searchFocused, setSearchFocused] = useState(false);
@@ -196,25 +201,28 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="mt-8 flex-1 space-y-1">
-          {NAV.map((item, index) => {
-            const active = item.to === "/admin";
-            return (
-              <Link
-                key={index}
-                to={item.to}
-                className={`focus-legal flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors ${
-                  active
-                    ? "border-l-2 border-[#38bdf8] bg-[#122236] text-white pl-4"
-                    : "border-l-2 border-transparent text-[#a3b6cd] hover:bg-[#122236] hover:text-white"
-                }`}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        <nav aria-label="Admin console" className="mt-8 flex-1 space-y-5">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section}>
+              <p className="px-3 pb-1.5 text-[10px] font-medium tracking-[0.22em] uppercase text-[#5f7891]">
+                {section}
+              </p>
+              <div className="space-y-1">
+                {NAV.filter((item) => item.section === section).map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    activeOptions={{ exact: item.to === "/admin" }}
+                    className="focus-legal flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm text-[#a3b6cd] outline-none transition-colors hover:bg-[#122236] hover:text-white data-[status=active]:border-[#38bdf8] data-[status=active]:bg-[#122236] data-[status=active]:pl-4 data-[status=active]:text-white"
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
 
         <div className="mt-auto space-y-3 border-t border-[#1a2737] pt-4">
           <div className="rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-3 text-center">
@@ -269,7 +277,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex flex-1 flex-col px-6 pb-10 pt-6">{children}</main>
+        <main className="flex flex-1 flex-col px-6 pb-10 pt-6">
+          {children}
+        </main>
       </div>
     </div>
   );

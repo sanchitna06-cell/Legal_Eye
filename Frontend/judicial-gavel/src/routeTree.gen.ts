@@ -16,6 +16,14 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecordsRouteImport } from './routes/records'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAuditLogsRouteImport } from './routes/admin/audit-logs'
+import { Route as AdminDocumentIntegrityRouteImport } from './routes/admin/document-integrity'
+import { Route as AdminEventPipelineRouteImport } from './routes/admin/event-pipeline'
+import { Route as AdminSecurityEventsRouteImport } from './routes/admin/security-events'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminSystemHealthRouteImport } from './routes/admin/system-health'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as DocumentsDocumentIdRouteImport } from './routes/documents.$documentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +61,46 @@ const UploadRoute = UploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDocumentIntegrityRoute = AdminDocumentIntegrityRouteImport.update({
+  id: '/document-integrity',
+  path: '/document-integrity',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventPipelineRoute = AdminEventPipelineRouteImport.update({
+  id: '/event-pipeline',
+  path: '/event-pipeline',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSecurityEventsRoute = AdminSecurityEventsRouteImport.update({
+  id: '/security-events',
+  path: '/security-events',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSystemHealthRoute = AdminSystemHealthRouteImport.update({
+  id: '/system-health',
+  path: '/system-health',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
 const DocumentsDocumentIdRoute = DocumentsDocumentIdRouteImport.update({
   id: '/documents/$documentId',
   path: '/documents/$documentId',
@@ -61,34 +109,57 @@ const DocumentsDocumentIdRoute = DocumentsDocumentIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/records': typeof RecordsRoute
   '/upload': typeof UploadRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/document-integrity': typeof AdminDocumentIntegrityRoute
+  '/admin/event-pipeline': typeof AdminEventPipelineRoute
+  '/admin/security-events': typeof AdminSecurityEventsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system-health': typeof AdminSystemHealthRoute
+  '/admin/users': typeof AdminUsersRoute
   '/documents/$documentId': typeof DocumentsDocumentIdRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/admin-login': typeof AdminLoginRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/records': typeof RecordsRoute
   '/upload': typeof UploadRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/document-integrity': typeof AdminDocumentIntegrityRoute
+  '/admin/event-pipeline': typeof AdminEventPipelineRoute
+  '/admin/security-events': typeof AdminSecurityEventsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system-health': typeof AdminSystemHealthRoute
+  '/admin/users': typeof AdminUsersRoute
   '/documents/$documentId': typeof DocumentsDocumentIdRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/records': typeof RecordsRoute
   '/upload': typeof UploadRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/document-integrity': typeof AdminDocumentIntegrityRoute
+  '/admin/event-pipeline': typeof AdminEventPipelineRoute
+  '/admin/security-events': typeof AdminSecurityEventsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/system-health': typeof AdminSystemHealthRoute
+  '/admin/users': typeof AdminUsersRoute
   '/documents/$documentId': typeof DocumentsDocumentIdRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,17 +171,32 @@ export interface FileRouteTypes {
     | '/profile'
     | '/records'
     | '/upload'
+    | '/admin/audit-logs'
+    | '/admin/document-integrity'
+    | '/admin/event-pipeline'
+    | '/admin/security-events'
+    | '/admin/settings'
+    | '/admin/system-health'
+    | '/admin/users'
     | '/documents/$documentId'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/admin-login'
     | '/dashboard'
     | '/profile'
     | '/records'
     | '/upload'
+    | '/admin/audit-logs'
+    | '/admin/document-integrity'
+    | '/admin/event-pipeline'
+    | '/admin/security-events'
+    | '/admin/settings'
+    | '/admin/system-health'
+    | '/admin/users'
     | '/documents/$documentId'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -120,12 +206,20 @@ export interface FileRouteTypes {
     | '/profile'
     | '/records'
     | '/upload'
+    | '/admin/audit-logs'
+    | '/admin/document-integrity'
+    | '/admin/event-pipeline'
+    | '/admin/security-events'
+    | '/admin/settings'
+    | '/admin/system-health'
+    | '/admin/users'
     | '/documents/$documentId'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   DashboardRoute: typeof DashboardRoute
   ProfileRoute: typeof ProfileRoute
@@ -185,6 +279,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit-logs': {
+      id: '/admin/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AdminAuditLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/document-integrity': {
+      id: '/admin/document-integrity'
+      path: '/document-integrity'
+      fullPath: '/admin/document-integrity'
+      preLoaderRoute: typeof AdminDocumentIntegrityRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/event-pipeline': {
+      id: '/admin/event-pipeline'
+      path: '/event-pipeline'
+      fullPath: '/admin/event-pipeline'
+      preLoaderRoute: typeof AdminEventPipelineRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/security-events': {
+      id: '/admin/security-events'
+      path: '/security-events'
+      fullPath: '/admin/security-events'
+      preLoaderRoute: typeof AdminSecurityEventsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/system-health': {
+      id: '/admin/system-health'
+      path: '/system-health'
+      fullPath: '/admin/system-health'
+      preLoaderRoute: typeof AdminSystemHealthRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/documents/$documentId': {
       id: '/documents/$documentId'
       path: '/documents/$documentId'
@@ -195,9 +345,33 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminAuditLogsRoute: typeof AdminAuditLogsRoute
+  AdminDocumentIntegrityRoute: typeof AdminDocumentIntegrityRoute
+  AdminEventPipelineRoute: typeof AdminEventPipelineRoute
+  AdminSecurityEventsRoute: typeof AdminSecurityEventsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSystemHealthRoute: typeof AdminSystemHealthRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAuditLogsRoute: AdminAuditLogsRoute,
+  AdminDocumentIntegrityRoute: AdminDocumentIntegrityRoute,
+  AdminEventPipelineRoute: AdminEventPipelineRoute,
+  AdminSecurityEventsRoute: AdminSecurityEventsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminSystemHealthRoute: AdminSystemHealthRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   DashboardRoute: DashboardRoute,
   ProfileRoute: ProfileRoute,

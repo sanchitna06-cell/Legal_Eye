@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File,Response
@@ -9,13 +10,21 @@ from sqlalchemy import select
 from app.models.case import Case
 from app.models.case_file_page import CaseFilePage
 from app.core.event_bus import event_bus
-from app.models.document_integrity import DocumentIntegrity
-from app.core.contracts import UploadResponse, DocumentUploadedPayload
+from app.core.contracts import (
+    DocumentStatusResponse,
+    UploadResponse,
+    DocumentUploadedPayload,
+)
 from app.models.document import Document
 from app.services.case_service import CaseService
+from app.services.document_status_service import get_document_status_for_user
 from app.services.supabase_storage import SupabaseStorage
 from app.services.audit_service import AuditService
 MAX_FILE_SIZE = 50 * 1024 * 1024
+
+# Strong references keep dispatched processing tasks from being
+# garbage-collected mid-run; completed tasks are discarded.
+_background_processing_tasks: set[asyncio.Task] = set()
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -110,60 +119,84 @@ async def upload_document(
     await db.commit()
     await db.refresh(doc)
 
-    # Emit event for processing
-    try:
-        await event_bus.publish(
-            "document.uploaded",
-            DocumentUploadedPayload(
-                document_id=file_id,
-                case_id=case_id,
-                file_name=file.filename,
-                sha256_hash=sha256_hash,
-                uploaded_by=current_user["user_id"],
+    # ----------------------------------------------------------
+    # Asynchronous processing hand-off.
+    #
+    # The document has been accepted and stored; the request now
+    # returns promptly while processing continues on the EXISTING
+    # event-driven pipeline. This does not replace or duplicate the
+    # pipeline: the same "document.uploaded" event drives the same
+    # subscribers (integrity anchoring, text extraction/OCR, entity
+    # extraction). Clients observe progress through the dedicated
+    # document status endpoint instead of waiting on this request.
+    # ----------------------------------------------------------
+
+    async def _dispatch_document_processing() -> None:
+        try:
+            await event_bus.publish(
+                "document.uploaded",
+                DocumentUploadedPayload(
+                    document_id=file_id,
+                    case_id=case_id,
+                    file_name=file.filename,
+                    sha256_hash=sha256_hash,
+                    uploaded_by=current_user["user_id"],
+                )
             )
-        )
 
-    except Exception as e:
-        print(
-            f"❌ Document processing failed "
-            f"for {file_id}: {e}"
-        )
+        except Exception as e:
+            # Background failures are logged for operators; the public
+            # status endpoint reports the resulting FAILED state.
+            print(
+                f"❌ Document processing failed "
+                f"for {file_id}: {e}"
+            )
 
-        return UploadResponse(
-            document_id=file_id,
-            case_id=case_id,
-            file_name=file.filename,
-            sha256_hash=sha256_hash,
-            blockchain_block_id=None,
-            status="ERROR",
-            message=(
-                "Document was uploaded successfully, "
-                "but processing failed."
-            ),
-        )
+    task = asyncio.create_task(_dispatch_document_processing())
+    _background_processing_tasks.add(task)
+    task.add_done_callback(_background_processing_tasks.discard)
 
-    integrity_result = await db.execute(
-        select(DocumentIntegrity).where(
-            DocumentIntegrity.case_file_id == file_id
-        )
-    )
-
-    integrity = integrity_result.scalar_one_or_none()
-
-    if integrity is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Document integrity record was not created.",
-        )
     return UploadResponse(
         document_id=file_id,
         case_id=case_id,
         file_name=file.filename,
         sha256_hash=sha256_hash,
-        blockchain_block_id=integrity.blockchain_block_id,
+        blockchain_block_id=None,
         status="UPLOADED",
         message="Document uploaded successfully and queued for processing.",
         )
+
+
+@router.get("/{document_id}/status", response_model=DocumentStatusResponse)
+async def get_document_processing_status(
+    document_id: str,
+    current_user: dict = Depends(get_current_lawyer),
+    db: AsyncSession = Depends(get_db),
+) -> DocumentStatusResponse:
+    """
+    Public, sanitized processing status for one document.
+
+    Requires authentication and case ownership: foreign or unknown
+    documents return the same opaque 404. The response contains only
+    the public status/stage contract — never internal job records,
+    storage keys, or infrastructure details.
+    """
+
+    status = await get_document_status_for_user(
+        db,
+        document_id,
+        current_user["user_id"],
+    )
+
+    if status is None:
+        # Same response whether the document is missing or owned by
+        # another user — existence is not revealed.
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found",
+        )
+
+    return status
 @router.get("/case/{case_id}")
 async def get_case_documents(
     case_id: str,

@@ -68,7 +68,8 @@ export function useAdmin(): AdminUser | null {
 export function checkAdminCredentials(email: string, password: string): boolean {
   const normalized = email.trim().toLowerCase();
   const emailMatch =
-    normalized === ADMIN_EMAIL.toLowerCase() || normalized === ALT_ADMIN_EMAIL.toLowerCase();
+    normalized === ADMIN_EMAIL.toLowerCase() ||
+    normalized === ALT_ADMIN_EMAIL.toLowerCase();
   return emailMatch && password === ADMIN_PASSWORD;
 }
 

@@ -220,7 +220,17 @@ export async function createCase(data: CreateCaseInput): Promise<CreateCaseRespo
 
   return response.json();
 }
-export async function uploadDocument(caseId: string, file: File) {
+export interface DocumentUploadResponse {
+  document_id: string;
+  case_id: string;
+  file_name: string;
+  sha256_hash: string;
+  blockchain_block_id: string | null;
+  status: string;
+  message: string;
+}
+
+export async function uploadDocument(caseId: string, file: File): Promise<DocumentUploadResponse> {
   const token = getAccessToken();
 
   if (!token) {
@@ -276,6 +286,50 @@ export async function getDocument(documentId: string): Promise<Blob> {
   }
 
   return response.blob();
+}
+
+/* ============================================================
+   DOCUMENT PROCESSING STATUS
+   ============================================================
+
+   Public contract served by the backend for one document.
+   Deliberately minimal: the backend derives this from its
+   internal processing state and exposes nothing about jobs,
+   storage, or infrastructure. Types live here only. */
+
+export type DocumentProcessingStatus = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
+
+export type DocumentProcessingStage =
+  "DOCUMENT_ANALYSIS" | "CASE_RECORD" | "INTEGRITY" | "COMPLETE";
+
+export interface DocumentStatusResponse {
+  status: DocumentProcessingStatus;
+  stage: DocumentProcessingStage;
+  message: string;
+}
+
+/**
+ * Fetch the public processing status for one document.
+ *
+ * Note: for foreign or unknown documents the backend responds 404
+ * without revealing which; this function surfaces the backend's
+ * detail message for that case.
+ */
+export async function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/status`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(error?.detail ?? "Failed to load document status.");
+  }
+
+  return response.json();
 }
 
 /* ============================================================

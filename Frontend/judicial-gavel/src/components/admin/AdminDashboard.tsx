@@ -10,16 +10,12 @@ import {
 } from "recharts";
 import {
   Users,
-  FolderKanban,
-  Shield,
   ShieldCheck,
   FileText,
   AlertTriangle,
   CheckCircle,
   Copy,
   Plus,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import {
   METRICS,
@@ -34,8 +30,8 @@ import {
   type HealthService,
   type UserRow,
 } from "@/lib/admin-data";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { useAdmin } from "@/lib/admin-store";
+import { CreateUserPanel } from "@/components/admin/CreateUserPanel";
+import { Link } from "@tanstack/react-router";
 import {
   Badge,
   Button,
@@ -55,44 +51,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui";
-import { useAdminUsers, generateTemporaryPassword } from "@/lib/admin-users";
-import { useNavigate } from "@tanstack/react-router";
+
+const linkGhostClass =
+  "inline-flex h-7 items-center rounded-md px-2 text-xs text-[#8ea3bb] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-[#38bdf8]";
 
 export function AdminDashboard() {
-  const admin = useAdmin();
-  const navigate = useNavigate();
-
-  React.useEffect(() => {
-    if (!admin) {
-      navigate({ to: "/admin-login", replace: true });
-    }
-  }, [admin, navigate]);
-
-  if (!admin) {
-    return null;
-  }
-
   return (
-    <AdminLayout>
-      <TooltipProvider>
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
-              JURY HASH · ADMIN CONSOLE
-            </p>
-            <h1 className="mt-1 font-display text-3xl leading-tight text-white">Admin Dashboard</h1>
-            <p className="mt-1 max-w-2xl text-sm text-[#8ea3bb]">
-              Monitor system activity, manage users, and ensure the security and integrity of JURY
-              HASH.
-            </p>
-          </div>
-          <div className="rounded-lg border border-[#1a2737] bg-[#0a1320] p-4 max-w-xs text-left">
-            <p className="text-xs text-[#8ea3bb] italic">
-              “Secure systems build trust in justice.”
-            </p>
-            <p className="mt-2 text-[10px] text-[#5f7891]">
-              — Digital India
-              <br />
+    <TooltipProvider>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">LEGAL EYE · ADMIN CONSOLE</p>
+          <h1 className="mt-1 font-display text-3xl leading-tight text-white">Admin Dashboard</h1>
+          <p className="mt-1 max-w-2xl text-sm text-[#8ea3bb]">
+            Monitor system activity, manage users, and ensure the security and integrity of Legal Eye.
+          </p>
+        </div>
+        <div className="rounded-lg border border-[#1a2737] bg-[#0a1320] p-4 max-w-xs text-left">
+          <p className="text-xs text-[#8ea3bb] italic">“Secure systems build trust in justice.”</p>
+          <p className="mt-2 text-[10px] text-[#5f7891]">
+            — Digital India
+            <br />
               Safer Citizens
               <br />
               Stronger Institutions
@@ -102,22 +80,15 @@ export function AdminDashboard() {
 
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {METRICS.map((metric) => (
-            <div
-              key={metric.id}
-              className="rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg"
-            >
+            <div key={metric.id} className="rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
               <div className="flex items-center gap-4">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${metric.iconBoxColor}`}
-                >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${metric.iconBoxColor}`}>
                   <metric.icon className="h-5 w-5 text-white/80" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-2xl font-semibold text-white">{metric.value}</p>
                   <p className="mt-1 text-xs text-emerald-400">{metric.delta}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                    {metric.label}
-                  </p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-[#8ea3bb]">{metric.label}</p>
                 </div>
               </div>
             </div>
@@ -125,34 +96,25 @@ export function AdminDashboard() {
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
+          <div className="flex flex-col lg:col-span-2 overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white">System Activity (Last 24 Hours)</h3>
               <div className="flex items-center gap-3 text-[10px]">
                 <span className="flex items-center gap-1.5 text-[#38bdf8]">
-                  <span
-                    className="flex h-2 w-2 rounded-full"
-                    style={{ backgroundColor: ACTIVITY_COLORS.api }}
-                  />
+                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.api }} />
                   API Requests
                 </span>
                 <span className="flex items-center gap-1.5 text-[#a78bfa]">
-                  <span
-                    className="flex h-2 w-2 rounded-full"
-                    style={{ backgroundColor: ACTIVITY_COLORS.audit }}
-                  />
+                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.audit }} />
                   Audit Events
                 </span>
                 <span className="flex items-center gap-1.5 text-[#f87171]">
-                  <span
-                    className="flex h-2 w-2 rounded-full"
-                    style={{ backgroundColor: ACTIVITY_COLORS.security }}
-                  />
+                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.security }} />
                   Security Events
                 </span>
               </div>
             </div>
-            <div className="h-[220px] w-full">
+            <div className="min-h-[220px] w-full flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={ACTIVITY_24H} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                   <defs>
@@ -169,60 +131,16 @@ export function AdminDashboard() {
                       <stop offset="100%" stopColor={ACTIVITY_COLORS.security} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid
-                    vertical={false}
-                    strokeDasharray="2 4"
-                    stroke="#1a2737"
-                    opacity={0.5}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#8ea3bb", fontSize: 10 }}
-                    dy={4}
-                  />
-                  <YAxis
-                    domain={[0, 80]}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#5f7891", fontSize: 10 }}
-                    dx={-4}
-                    width={26}
-                  />
+                  <CartesianGrid vertical={false} strokeDasharray="2 4" stroke="#1a2737" opacity={0.5} />
+                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: "#8ea3bb", fontSize: 10 }} dy={4} />
+                  <YAxis domain={[0, 80]} axisLine={false} tickLine={false} tick={{ fill: "#5f7891", fontSize: 10 }} dx={-4} width={26} />
                   <RechartsTooltip
-                    contentStyle={{
-                      background: "#0a1320",
-                      border: "1px solid #1a2737",
-                      color: "#fff",
-                      fontSize: 11,
-                    }}
+                    contentStyle={{ background: "#0a1320", border: "1px solid #1a2737", color: "#fff", fontSize: 11 }}
                     labelStyle={{ color: "#8ea3bb" }}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="api"
-                    stroke={ACTIVITY_COLORS.api}
-                    strokeWidth={2}
-                    fill="url(#apiGrad)"
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="audit"
-                    stroke={ACTIVITY_COLORS.audit}
-                    strokeWidth={2}
-                    fill="url(#auditGrad)"
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="security"
-                    stroke={ACTIVITY_COLORS.security}
-                    strokeWidth={2}
-                    fill="url(#securityGrad)"
-                    dot={false}
-                  />
+                  <Area type="monotone" dataKey="api" stroke={ACTIVITY_COLORS.api} strokeWidth={2} fill="url(#apiGrad)" dot={false} />
+                  <Area type="monotone" dataKey="audit" stroke={ACTIVITY_COLORS.audit} strokeWidth={2} fill="url(#auditGrad)" dot={false} />
+                  <Area type="monotone" dataKey="security" stroke={ACTIVITY_COLORS.security} strokeWidth={2} fill="url(#securityGrad)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -232,13 +150,9 @@ export function AdminDashboard() {
             <div className="border-b border-[#1a2737] px-4 py-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">Recent Security Events</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-[#8ea3bb] hover:text-white h-7 px-2"
-                >
+                <Link to="/admin/security-events" className={linkGhostClass}>
                   View All
-                </Button>
+                </Link>
               </div>
             </div>
             <div className="p-2 space-y-2">
@@ -248,25 +162,36 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
+        </div>
+
+        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
             <div className="border-b border-[#1a2737] px-4 py-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">System Health</h3>
-                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-400" /> All Operational
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-400" /> All Operational
+                  </span>
+                  <Link to="/admin/system-health" className={linkGhostClass}>
+                    View All
+                  </Link>
+                </div>
               </div>
             </div>
-            <div className="p-2 space-y-2">
+            <div className="flex flex-1 flex-col justify-between gap-2 p-2">
               {SYSTEM_HEALTH.map((service) => (
                 <HealthRow key={service.name} service={service} />
               ))}
             </div>
           </div>
+
+          <CreateUserPanel />
+          <DocumentIntegrityPanel />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
+        <div>
+          <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
             <div className="border-b border-[#1a2737] px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -275,13 +200,12 @@ export function AdminDashboard() {
                     Create and manage lawyer accounts. Administrators cannot access case data.
                   </p>
                 </div>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-[#38bdf8] text-[#0b131e] hover:bg-[#5cc0f5]"
+                <Link
+                  to="/admin/users"
+                  className="inline-flex h-8 items-center rounded-md bg-[#38bdf8] px-3 text-sm font-medium text-[#0b131e] transition-colors outline-none hover:bg-[#5cc0f5] focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
                 >
                   <Plus className="mr-1 h-3.5 w-3.5" /> New User
-                </Button>
+                </Link>
               </div>
             </div>
 
@@ -300,18 +224,10 @@ export function AdminDashboard() {
                     <SelectValue placeholder="All Roles" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-                    <SelectItem value="all" className="text-white">
-                      All Roles
-                    </SelectItem>
-                    <SelectItem value="ADMIN" className="text-white">
-                      Admin
-                    </SelectItem>
-                    <SelectItem value="LAWYER" className="text-white">
-                      Lawyer
-                    </SelectItem>
-                    <SelectItem value="ANALYST" className="text-white">
-                      Analyst
-                    </SelectItem>
+                    <SelectItem value="all" className="text-white">All Roles</SelectItem>
+                    <SelectItem value="ADMIN" className="text-white">Admin</SelectItem>
+                    <SelectItem value="LAWYER" className="text-white">Lawyer</SelectItem>
+                    <SelectItem value="ANALYST" className="text-white">Analyst</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select defaultValue="all">
@@ -319,18 +235,10 @@ export function AdminDashboard() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-                    <SelectItem value="all" className="text-white">
-                      All Status
-                    </SelectItem>
-                    <SelectItem value="active" className="text-white">
-                      Active
-                    </SelectItem>
-                    <SelectItem value="pending" className="text-white">
-                      Pending
-                    </SelectItem>
-                    <SelectItem value="inactive" className="text-white">
-                      Inactive
-                    </SelectItem>
+                    <SelectItem value="all" className="text-white">All Status</SelectItem>
+                    <SelectItem value="active" className="text-white">Active</SelectItem>
+                    <SelectItem value="pending" className="text-white">Pending</SelectItem>
+                    <SelectItem value="inactive" className="text-white">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -343,24 +251,12 @@ export function AdminDashboard() {
                     <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
                       <input type="checkbox" className="h-3.5 w-3.5 rounded border-[#1a2737]" />
                     </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Username
-                    </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Full Name
-                    </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Role
-                    </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Status
-                    </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Last Login
-                    </th>
-                    <th className="px-3 py-3 text-right text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      Actions
-                    </th>
+                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Username</th>
+                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Full Name</th>
+                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Role</th>
+                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Status</th>
+                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Last Login</th>
+                    <th className="px-3 py-3 text-right text-[10px] uppercase tracking-widest text-[#8ea3bb]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -372,27 +268,18 @@ export function AdminDashboard() {
             </div>
 
             <div className="flex items-center justify-between border-t border-[#1a2737] px-4 py-3">
-              <p className="text-[10px] text-[#8ea3bb]">
-                Showing 1–5 of {USER_MANAGEMENT.length} users
-              </p>
+              <p className="text-[10px] text-[#8ea3bb]">Showing 1–5 of {USER_MANAGEMENT.length} users</p>
               <Pagination />
             </div>
           </div>
-
-          <div className="flex flex-col gap-6">
-            <CreateUserPanel />
-            <DocumentIntegrityPanel />
-          </div>
         </div>
       </TooltipProvider>
-    </AdminLayout>
   );
 }
 
 function EventRow({ event }: { event: SecurityEvent }) {
   const Icon = event.type === "denied" || event.type === "blocked" ? AlertTriangle : CheckCircle;
-  const badgeVariant =
-    event.type === "success" ? "default" : event.type === "blocked" ? "destructive" : "secondary";
+  const badgeVariant = event.type === "success" ? "default" : event.type === "blocked" ? "destructive" : "secondary";
   return (
     <div className="flex flex-col gap-1.5 rounded-lg border border-[#1a2737] bg-[#0a1320] px-3 py-3">
       <div className="flex items-start justify-between gap-2">
@@ -400,10 +287,7 @@ function EventRow({ event }: { event: SecurityEvent }) {
           <Icon className="h-4 w-4 shrink-0 text-white/80" />
           <span className="text-sm text-white">{event.title}</span>
         </div>
-        <Badge
-          variant={badgeVariant}
-          className="cursor-default text-[10px] uppercase tracking-wider"
-        >
+        <Badge variant={badgeVariant} className="cursor-default text-[10px] uppercase tracking-wider">
           {event.badge}
         </Badge>
       </div>
@@ -417,10 +301,7 @@ function HealthRow({ service }: { service: HealthService }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-[#1a2737] bg-[#0a1320] px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <span
-          className="flex h-2 w-2 rounded-full"
-          style={{ backgroundColor: service.healthy ? "#34d399" : "#f87171" }}
-        />
+        <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: service.healthy ? "#34d399" : "#f87171" }} />
         <span className="text-sm text-white">{service.name}</span>
       </div>
       <span className="text-xs text-[#8ea3bb] tabular-nums">{service.latency}</span>
@@ -428,25 +309,10 @@ function HealthRow({ service }: { service: HealthService }) {
   );
 }
 
-function UserRowComponent({
-  row,
-  selected,
-  onSelect,
-}: {
-  row: UserRow;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const statusColor =
-    row.status === "active"
-      ? "text-emerald-400"
-      : row.status === "pending"
-        ? "text-amber-400"
-        : "text-red-400";
-  const statusBg =
-    row.status === "active" ? "#34d399" : row.status === "pending" ? "#fbbf24" : "#f87171";
-  const roleVariant =
-    row.role === "ADMIN" ? "default" : row.role === "LAWYER" ? "secondary" : "outline";
+function UserRowComponent({ row, selected, onSelect }: { row: UserRow; selected: boolean; onSelect: () => void }) {
+  const statusColor = row.status === "active" ? "text-emerald-400" : row.status === "pending" ? "text-amber-400" : "text-red-400";
+  const statusBg = row.status === "active" ? "#34d399" : row.status === "pending" ? "#fbbf24" : "#f87171";
+  const roleVariant = row.role === "ADMIN" ? "default" : row.role === "LAWYER" ? "secondary" : "outline";
   return (
     <tr className="border-b border-[#1a2737] last:border-0">
       <td className="p-3">
@@ -455,10 +321,7 @@ function UserRowComponent({
       <td className="px-3 py-3 text-sm font-mono text-white">{row.username}</td>
       <td className="px-3 py-3 text-sm text-white">{row.fullName}</td>
       <td className="px-3 py-3">
-        <Badge
-          variant={roleVariant}
-          className="cursor-default text-[10px] uppercase tracking-wider"
-        >
+        <Badge variant={roleVariant} className="cursor-default text-[10px] uppercase tracking-wider">
           {row.role}
         </Badge>
       </td>
@@ -470,10 +333,7 @@ function UserRowComponent({
       </td>
       <td className="px-3 py-3 text-xs text-[#8ea3bb] tabular-nums">{row.lastLogin}</td>
       <td className="px-3 py-3 text-right text-xs text-[#8ea3bb]">
-        <button
-          type="button"
-          className="underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] rounded"
-        >
+        <button type="button" className="underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] rounded">
           ...
         </button>
       </td>
@@ -487,21 +347,15 @@ function CopyableHash({ value }: { value: string }) {
 
   function copy() {
     if (!ref.current) return;
-    navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => {});
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
   }
 
   return (
     <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-      <span
-        ref={ref}
-        className="flex min-w-0 flex-1 items-center gap-2 text-xs font-mono text-white break-all"
-      >
+      <span ref={ref} className="flex min-w-0 flex-1 items-center gap-2 text-xs font-mono text-white break-all">
         {value}
       </span>
       <TooltipProvider>
@@ -528,10 +382,7 @@ function DocumentIntegrityPanel() {
   const [selectedTab, setSelectedTab] = React.useState<"integrity" | "block">("integrity");
   const [copiedSha, setCopiedSha] = React.useState(false);
   const [copiedBlock, setCopiedBlock] = React.useState(false);
-  const [verifyMessage, setVerifyMessage] = React.useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [verifyMessage, setVerifyMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [auditExpanded, setAuditExpanded] = React.useState(false);
 
   async function copySha() {
@@ -557,10 +408,7 @@ function DocumentIntegrityPanel() {
   }
 
   function handleVerifyIntegrity() {
-    setVerifyMessage({
-      type: "success",
-      text: "Integrity verified against block " + doc.blockNumber,
-    });
+    setVerifyMessage({ type: "success", text: "Integrity verified against block " + doc.blockNumber });
     setTimeout(() => setVerifyMessage(null), 4000);
   }
 
@@ -573,9 +421,9 @@ function DocumentIntegrityPanel() {
       <div className="border-b border-[#1a2737] px-4 py-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-white">Document Integrity</h3>
-          <Button variant="ghost" size="sm" className="text-[#8ea3bb] hover:text-white">
+          <Link to="/admin/document-integrity" className="inline-flex h-8 items-center rounded-md px-2 text-xs text-[#8ea3bb] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-[#38bdf8]">
             View All
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -587,10 +435,7 @@ function DocumentIntegrityPanel() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-white break-all">{doc.fileName}</p>
-              <Badge
-                variant="default"
-                className="shrink-0 text-[10px] uppercase tracking-wider text-emerald-100 border-emerald-500/40 bg-emerald-500/15 font-medium"
-              >
+              <Badge variant="default" className="shrink-0 text-[10px] uppercase tracking-wider text-emerald-100 border-emerald-500/40 bg-emerald-500/15 font-medium">
                 Verified
               </Badge>
             </div>
@@ -599,18 +444,10 @@ function DocumentIntegrityPanel() {
           </div>
         </div>
 
-        <Tabs
-          value={selectedTab}
-          onValueChange={(v) => setSelectedTab(v as "integrity" | "block")}
-          className="mt-4"
-        >
+        <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as "integrity" | "block")} className="mt-4">
           <TabsList className="grid w-full grid-cols-2 border border-[#1a2737]">
-            <TabsTrigger value="integrity" className="text-xs">
-              Integrity Details
-            </TabsTrigger>
-            <TabsTrigger value="block" className="text-xs">
-              Block Information
-            </TabsTrigger>
+            <TabsTrigger value="integrity" className="text-xs">Integrity Details</TabsTrigger>
+            <TabsTrigger value="block" className="text-xs">Block Information</TabsTrigger>
           </TabsList>
 
           <TabsContent value="integrity" className="mt-4 space-y-2">
@@ -632,9 +469,7 @@ function DocumentIntegrityPanel() {
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {copiedSha ? "Copied" : "Copy hash"}
-                    </TooltipContent>
+                    <TooltipContent side="right">{copiedSha ? "Copied" : "Copy hash"}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
@@ -658,9 +493,7 @@ function DocumentIntegrityPanel() {
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {copiedBlock ? "Copied" : "Copy block hash"}
-                    </TooltipContent>
+                    <TooltipContent side="right">{copiedBlock ? "Copied" : "Copy block hash"}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
@@ -690,27 +523,11 @@ function DocumentIntegrityPanel() {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#38bdf8]/40 text-[#38bdf8] hover:bg-[#38bdf8]/10"
-                onClick={handleVerifyIntegrity}
-              >
+              <Button variant="outline" size="sm" className="border-[#38bdf8]/40 text-[#38bdf8] hover:bg-[#38bdf8]/10" onClick={handleVerifyIntegrity}>
                 <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Verify Integrity
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#1a2737] text-[#8ea3bb] hover:text-white"
-                onClick={handleViewAuditLog}
-              >
-                <svg
-                  className="mr-1 h-3.5 w-3.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
+              <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white" onClick={handleViewAuditLog}>
+                <svg className="mr-1 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <path d="M4 4h14v6H8l-2 5v9h12v-7h2v7h6v-9l-2-5h-4V4z" />
                 </svg>
                 View Audit Log
@@ -718,9 +535,7 @@ function DocumentIntegrityPanel() {
             </div>
 
             {verifyMessage && (
-              <div
-                className={`mt-2 rounded-md border px-3 py-2 text-xs ${verifyMessage.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-red-500/40 bg-red-500/10 text-red-300"}`}
-              >
+              <div className={`mt-2 rounded-md border px-3 py-2 text-xs ${verifyMessage.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-red-500/40 bg-red-500/10 text-red-300"}`}>
                 {verifyMessage.text}
               </div>
             )}
@@ -730,9 +545,7 @@ function DocumentIntegrityPanel() {
             {auditExpanded ? (
               <div className="rounded-md border border-[#1a2737] bg-[#0a1320] p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white">
-                    Audit Log — {doc.fileName}
-                  </span>
+                  <span className="text-xs font-semibold text-white">Audit Log — {doc.fileName}</span>
                   <button
                     type="button"
                     onClick={() => setAuditExpanded(false)}
@@ -765,8 +578,8 @@ function DocumentIntegrityPanel() {
               </div>
             ) : (
               <p className="rounded-md border border-[#1a2737] bg-[#0a1320] p-3">
-                Block details are intentionally summarized for the prototype. A production system
-                would surface full block metadata from the blockchain service.
+                Block details are intentionally summarized for the prototype. A production system would surface full
+                block metadata from the blockchain service.
               </p>
             )}
           </TabsContent>
@@ -776,223 +589,22 @@ function DocumentIntegrityPanel() {
   );
 }
 
-function CreateUserPanel() {
-  const [fullName, setFullName] = React.useState("");
-  const [username, setUsername] = React.useState("");
-  const [temporaryPassword, setTemporaryPassword] = React.useState("");
-  const [role, setRole] = React.useState<"LAWYER" | "ANALYST">("LAWYER");
-  const [status, setStatus] = React.useState(true);
-  const [createResult, setCreateResult] = React.useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
-  const usersHook = useAdminUsers();
-
-  function handleGenerate() {
-    const generated = generateTemporaryPassword();
-    setTemporaryPassword(generated);
-    setCreateResult(null);
-  }
-
-  function handleCreateUser() {
-    setCreateResult(null);
-    if (!fullName.trim() || !username.trim() || !temporaryPassword.trim()) {
-      setCreateResult({
-        type: "error",
-        text: "Please fill in all fields before creating the user.",
-      });
-      return;
-    }
-
-    const existing = usersHook.findByUsername(username.trim());
-    if (existing && existing.id !== "u-admin") {
-      setCreateResult({
-        type: "error",
-        text: `A user with username "${username.trim()}" already exists.`,
-      });
-      return;
-    }
-
-    const created = usersHook.add({
-      fullName: fullName.trim(),
-      username: username.trim(),
-      role,
-      status: status ? "active" : "pending",
-      lastLogin: "-",
-    });
-
-    setCreateResult({
-      type: "success",
-      text: `User "${created.username}" created successfully.`,
-    });
-    setFullName("");
-    setUsername("");
-    setTemporaryPassword("");
-    setTimeout(() => setCreateResult(null), 6000);
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
-      <div className="border-b border-[#1a2737] px-4 py-3">
-        <h3 className="text-sm font-semibold text-white">Create New User</h3>
-      </div>
-
-      <div className="space-y-4 p-4">
-        {createResult && (
-          <div
-            className={`rounded-md border px-3 py-2 text-xs ${createResult.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-red-500/40 bg-red-500/10 text-red-300"}`}
-          >
-            {createResult.text}
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-[10px] tracking-widest uppercase text-[#8ea3bb]">Full Name</label>
-          <Input
-            type="text"
-            placeholder="e.g. Arjun Kapoor"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="bg-[#0a1320] border-[#1a2737] text-white placeholder:text-[#5f7891] focus-visible:ring-[#38bdf8]"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] tracking-widest uppercase text-[#8ea3bb]">Username</label>
-          <Input
-            type="text"
-            placeholder="e.g. arjun_k"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="bg-[#0a1320] border-[#1a2737] text-white placeholder:text-[#5f7891] focus-visible:ring-[#38bdf8]"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] tracking-widest uppercase text-[#8ea3bb]">
-            Temporary Password
-          </label>
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="••••••••"
-              value={temporaryPassword}
-              onChange={(e) => setTemporaryPassword(e.target.value)}
-              className="pr-20 bg-[#0a1320] border-[#1a2737] text-white placeholder:text-[#5f7891] focus-visible:ring-[#38bdf8]"
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={handleGenerate}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 border-[#1a2737] text-[#8ea3bb] hover:bg-[#38bdf8]/10 hover:text-white px-2"
-            >
-              Generate
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] tracking-widest uppercase text-[#8ea3bb]">Role</label>
-          <Select value={role} onValueChange={(v) => setRole(v as "LAWYER" | "ANALYST")}>
-            <SelectTrigger className="bg-[#0a1320] border-[#1a2737] text-white focus-visible:ring-[#38bdf8]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-              <SelectItem value="LAWYER" className="text-white focus:bg-[#38bdf8]/10">
-                LAWYER
-              </SelectItem>
-              <SelectItem value="ANALYST" className="text-white focus:bg-[#38bdf8]/10">
-                ANALYST
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-[10px] text-[#5f7891]">
-            Note: New users are created with LAWYER role. Administrator access is restricted.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2.5">
-          <span className="text-xs text-[#8ea3bb]">Account Status</span>
-          <button
-            type="button"
-            onClick={() => setStatus((prev) => !prev)}
-            className="flex items-center gap-3"
-          >
-            <span className={`text-xs ${status ? "text-emerald-400" : "text-amber-400"}`}>
-              {status ? "Active" : "Pending"}
-            </span>
-            <span
-              className={`relative inline-flex h-5 w-9 cursor-pointer rounded-full border border-[#1a2737] transition-colors ${status ? "bg-[#38bdf8]" : "bg-[#2a3f5e]"}`}
-            >
-              <span
-                className="pointer-events-none block h-4 w-4 rounded-full bg-white shadow transition-transform"
-                style={{ transform: status ? "translateX(10px)" : "translateX(0)" }}
-              />
-            </span>
-          </button>
-        </div>
-
-        <div className="flex gap-2 pt-1">
-          <Button
-            variant="outline"
-            type="button"
-            className="flex-1 border-[#1a2737] text-[#8ea3bb] hover:text-white"
-            onClick={() => {
-              setFullName("");
-              setUsername("");
-              setTemporaryPassword("");
-              setCreateResult(null);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="flex-1 bg-[#38bdf8] text-[#0b131e] hover:bg-[#5cc0f5]"
-            onClick={handleCreateUser}
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" /> Create User
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Pagination() {
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        className="border-[#1a2737] text-[#8ea3bb] hover:text-white disabled:opacity-40"
-        disabled
-      >
+      <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white disabled:opacity-40" disabled>
         &lt;
       </Button>
       <Button variant="secondary" size="sm" className="border-[#1a2737] text-white">
         1
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10"
-      >
+      <Button variant="outline" size="sm" className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10">
         2
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10"
-      >
+      <Button variant="outline" size="sm" className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10">
         3
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="border-[#1a2737] text-[#8ea3bb] hover:text-white"
-      >
+      <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white">
         &gt;
       </Button>
     </div>

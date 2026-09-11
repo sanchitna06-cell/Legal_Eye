@@ -272,6 +272,45 @@ class UploadResponse(BaseModel):
     message: str
 
 # ============================================================
+# DOCUMENT PROCESSING STATUS (PUBLIC API CONTRACT)
+#
+# Sanitized, frontend-facing representation of internal
+# document-processing state. Deliberately minimal:
+# no internal identifiers, job records, storage keys,
+# event names, or infrastructure details are exposed.
+# ============================================================
+
+class PublicDocumentStatus(str, Enum):
+    """Public ingestion status of one document."""
+
+    QUEUED = "QUEUED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class PublicProcessingStage(str, Enum):
+    """Broad public processing stage, decoupled from internal job types."""
+
+    DOCUMENT_ANALYSIS = "DOCUMENT_ANALYSIS"
+    CASE_RECORD = "CASE_RECORD"
+    INTEGRITY = "INTEGRITY"
+    COMPLETE = "COMPLETE"
+
+
+class DocumentStatusResponse(BaseModel):
+    """
+    Public processing status for one document.
+
+    This is the ONLY shape the status endpoint returns.
+    """
+
+    status: PublicDocumentStatus
+    stage: PublicProcessingStage
+    message: str = Field(min_length=1, max_length=200)
+
+
+# ============================================================
 # ANNOTATIONS
 # ============================================================
 
