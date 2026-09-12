@@ -373,3 +373,74 @@ class VerifyResponse(BaseModel):
     block_number: int | None
     last_verified_at: datetime
     message: str
+# ============================================================
+# CALENDAR
+# ============================================================
+
+class CalendarEventType(str, Enum):
+    HEARING = "HEARING"
+    FILING_DEADLINE = "FILING_DEADLINE"
+    CLIENT_MEETING = "CLIENT_MEETING"
+    COURT_APPEARANCE = "COURT_APPEARANCE"
+    REMINDER = "REMINDER"
+    OTHER = "OTHER"
+
+
+class CalendarEventCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    event_type: CalendarEventType = CalendarEventType.OTHER
+
+    start_at: datetime
+    end_at: datetime | None = None
+
+    all_day: bool = False
+    reminder_minutes: int | None = Field(
+        default=None,
+        ge=0,
+        le=10080,
+    )
+
+    case_id: str | None = None
+
+
+class CalendarEventUpdate(BaseModel):
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+    )
+    description: str | None = None
+    event_type: CalendarEventType | None = None
+
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+
+    all_day: bool | None = None
+
+    reminder_minutes: int | None = Field(
+        default=None,
+        ge=0,
+        le=10080,
+    )
+
+    case_id: str | None = None
+
+
+class CalendarEventResponse(BaseModel):
+    id: str
+    lawyer_id: str
+    case_id: str | None
+
+    title: str
+    description: str | None
+    event_type: CalendarEventType
+
+    start_at: datetime
+    end_at: datetime | None
+
+    all_day: bool
+    reminder_minutes: int | None
+
+    created_at: datetime
+    updated_at: datetime

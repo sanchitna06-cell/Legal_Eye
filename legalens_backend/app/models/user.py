@@ -91,3 +91,7 @@ class User(Base):
         "PageFlag",
         back_populates="creator",
     )
+    calendar_events = relationship(
+        "CalendarEvent",
+        back_populates="lawyer",
+    )

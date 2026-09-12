@@ -80,14 +80,17 @@ async def upload_document(
     # Generate immutable storage key
     storage_key = f"cases/{case_id}/{file_id}/original.pdf"
 
-    # Upload original file to private Supabase Storage
+    # Upload original file to private Supabase Storage.
+    # Blocking network I/O: keep it OFF the event loop so large
+    # originals cannot stall other requests while being accepted.
     storage = SupabaseStorage()
 
-    storage.upload_file(
-    storage_key=storage_key,
-    file_bytes=content,
-    content_type=file.content_type or "application/pdf",
-)
+    await asyncio.to_thread(
+        storage.upload_file,
+        storage_key,
+        content,
+        file.content_type or "application/pdf",
+    )
     
     # Create document record
     doc = Document(

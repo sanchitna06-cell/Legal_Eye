@@ -537,3 +537,165 @@ export async function deleteAnnotation(annotationId: string): Promise<void> {
     throw new Error(error?.detail ?? "Failed to delete annotation.");
   }
 }
+/* ============================================================
+   CALENDAR
+   ============================================================ */
+
+export type CalendarEventType =
+  | "HEARING"
+  | "FILING_DEADLINE"
+  | "CLIENT_MEETING"
+  | "COURT_APPEARANCE"
+  | "REMINDER"
+  | "OTHER";
+
+export interface CalendarEvent {
+  id: string;
+  lawyer_id: string;
+  case_id: string | null;
+
+  title: string;
+  description: string | null;
+  event_type: CalendarEventType;
+
+  start_at: string;
+  end_at: string | null;
+
+  all_day: boolean;
+  reminder_minutes: number | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCalendarEventInput {
+  title: string;
+  description?: string | null;
+  event_type?: CalendarEventType;
+
+  start_at: string;
+  end_at?: string | null;
+
+  all_day?: boolean;
+  reminder_minutes?: number | null;
+
+  case_id?: string | null;
+}
+
+export interface UpdateCalendarEventInput {
+  title?: string;
+  description?: string | null;
+  event_type?: CalendarEventType;
+
+  start_at?: string;
+  end_at?: string | null;
+
+  all_day?: boolean;
+  reminder_minutes?: number | null;
+
+  case_id?: string | null;
+}
+
+export async function getCalendarEvents(
+  start?: string,
+  end?: string,
+): Promise<CalendarEvent[]> {
+  const params = new URLSearchParams();
+
+  if (start) {
+    params.set("start", start);
+  }
+
+  if (end) {
+    params.set("end", end);
+  }
+
+  const query = params.toString();
+
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/calendar/events${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to load calendar events.",
+    );
+  }
+
+  return response.json();
+}
+
+export async function createCalendarEvent(
+  data: CreateCalendarEventInput,
+): Promise<CalendarEvent> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/calendar/events`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to create calendar event.",
+    );
+  }
+
+  return response.json();
+}
+
+export async function updateCalendarEvent(
+  eventId: string,
+  data: UpdateCalendarEventInput,
+): Promise<CalendarEvent> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/calendar/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to update calendar event.",
+    );
+  }
+
+  return response.json();
+}
+
+export async function deleteCalendarEvent(
+  eventId: string,
+): Promise<void> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/calendar/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to delete calendar event.",
+    );
+  }
+}

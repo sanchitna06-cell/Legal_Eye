@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  CalendarDays,
   FileClock,
   LayoutDashboard,
   ListChecks,
@@ -53,6 +54,7 @@ interface NavItem {
 
 const CASE_INTELLIGENCE: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
+  { key: "calendar", label: "Calendar", icon: CalendarDays, to: "/calendar" },
   { key: "records", label: "Case Records", icon: FileClock, to: "/records" },
   { key: "upload", label: "Upload Case", icon: Upload, to: "/upload" },
 ];

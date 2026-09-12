@@ -127,6 +127,23 @@ def _map_to_public_status(
             message=_public_message(PublicProcessingStage.INTEGRITY, PublicDocumentStatus.FAILED),
         )
 
+    # A failed integrity job must win even when text extraction later
+    # succeeds: reporting COMPLETED would falsely imply the document
+    # is anchored in the integrity chain.
+    integrity_jobs = [
+        job
+        for job in jobs
+        if job.processing_type is ProcessingType.INTEGRITY_ANCHOR
+        and job.status is ProcessingJobStatus.FAILED
+    ]
+
+    if integrity_jobs:
+        return DocumentStatusResponse(
+            status=PublicDocumentStatus.FAILED,
+            stage=PublicProcessingStage.INTEGRITY,
+            message=_public_message(PublicProcessingStage.INTEGRITY, PublicDocumentStatus.FAILED),
+        )
+
     if doc_status is DocumentStatus.ERROR:
         return DocumentStatusResponse(
             status=PublicDocumentStatus.FAILED,

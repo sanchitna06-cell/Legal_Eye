@@ -234,6 +234,7 @@ function Records() {
 
                   <Link
                     to="/upload"
+                    search={{ case: undefined }}                    
                     className="focus-legal mt-4 inline-block border border-brass/60 bg-brass/10 px-4 py-2 text-xs text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
                   >
                     Upload a case file
@@ -594,7 +595,23 @@ function CaseFile({ record }: { record: CaseRecord }) {
           </div>
 
           <div className="border border-border p-6">
-            <p className="label-legal">Case files</p>
+            <div className="flex items-center justify-between gap-4">
+              <p className="label-legal">Case files</p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate({
+                    to: "/upload",
+                    search: { case: record.id },
+                  })
+                }
+                className="focus-legal inline-flex shrink-0 items-center gap-1.5 border border-brass/50 bg-brass/[0.06] px-2.5 py-1.5 font-mono text-[10px] tracking-[0.1em] text-brass uppercase transition-colors hover:border-brass hover:bg-brass/10"
+              >
+                <span aria-hidden="true">+</span>
+                Add case file
+              </button>
+            </div>
 
             {documentsLoading ? (
               <p className="mt-4 text-xs text-muted-foreground">Loading case files...</p>

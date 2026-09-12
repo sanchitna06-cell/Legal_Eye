@@ -129,19 +129,89 @@ export function LoginPanel() {
             </p>
           </div>
 
-          <dl className="grid grid-cols-3 gap-8 border-t border-border pt-8">
-            {[
-              ["Matters", "1,284"],
-              ["Courts", "37"],
-              ["Records indexed", "96,510"],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <dt className="label-legal">{label}</dt>
+<div className="border-t border-border pt-7">
+  <div className="mb-5 flex items-center justify-between">
+    <p className="label-legal">National Judicial Data</p>
 
-                <dd className="mt-2 font-display text-2xl text-parchment">{value}</dd>
-              </div>
-            ))}
-          </dl>
+    <span className="font-mono text-[9px] tracking-[0.14em] text-muted-foreground uppercase">
+      Archive snapshot
+    </span>
+  </div>
+
+  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    {[
+      {
+        label: "Civil Cases",
+        value: "1,13,00,283",
+        aged: "67,83,207",
+        percentage: 60.03,
+      },
+      {
+        label: "Criminal Cases",
+        value: "4,18,97,804",
+        aged: "2,46,39,795",
+        percentage: 58.81,
+      },
+      {
+        label: "Total Cases",
+        value: "5,31,98,087",
+        aged: "3,14,23,002",
+        percentage: 59.07,
+      },
+      {
+        label: "Pre-Litigation / Pre-Trial",
+        value: "13,12,438",
+        aged: "7,54,843",
+        percentage: 57.51,
+      },
+    ].map((stat) => (
+      <div
+        key={stat.label}
+        className="border border-border/70 bg-black/20 px-4 py-4"
+      >
+        <p className="font-mono text-[9px] tracking-[0.12em] text-muted-foreground uppercase">
+          {stat.label}
+        </p>
+
+        <p className="mt-2 font-display text-[1.35rem] leading-none text-parchment">
+          {stat.value}
+        </p>
+
+        <div className="mt-3 flex items-end gap-2">
+          <div className="relative h-10 w-20 overflow-hidden">
+            <div
+              className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full"
+              style={{
+                background: `conic-gradient(
+                  from 270deg,
+                  var(--brass) 0deg ${stat.percentage * 1.8}deg,
+                  rgba(255,255,255,0.08) ${stat.percentage * 1.8}deg 180deg,
+                  transparent 180deg
+                )`,
+              }}
+            />
+
+            <div className="absolute left-1/2 top-2.5 h-15 w-15 -translate-x-1/2 rounded-full bg-[#0b0a09]" />
+          </div>
+
+          <div className="pb-0.5">
+            <p className="font-mono text-[11px] text-brass">
+              {stat.percentage.toFixed(2)}%
+            </p>
+
+            <p className="mt-1 whitespace-nowrap font-mono text-[8px] tracking-[0.06em] text-muted-foreground uppercase">
+              &gt; 1 year
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 font-mono text-[9px] text-muted-foreground">
+          {stat.aged} &gt; 1 year
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
         </div>
       </section>
 

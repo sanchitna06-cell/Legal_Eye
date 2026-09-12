@@ -78,3 +78,7 @@ class Case(Base):
         "AuditLog",
         back_populates="case",
     )
+    calendar_events = relationship(
+        "CalendarEvent",
+        back_populates="case",
+    )

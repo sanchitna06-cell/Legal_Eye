@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Archive,
+  CalendarDays,
   ChevronDown,
   FileText,
   LayoutDashboard,
@@ -170,6 +171,7 @@ function BarCategoryRow({
 /** Primary routes mirrored in the sidebar so the collapsed rail stays navigable. */
 const SIDEBAR_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/records", label: "Case Records", icon: FileText },
   { to: "/upload", label: "Upload Case", icon: Upload },
 ] as const;

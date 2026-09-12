@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useSearch } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { SidebarDrawer } from "@/components/dashboard/SidebarDrawer";
 import { useCaseActions, toCaseRecord } from "@/lib/case-store";
 import { getSession } from "@/lib/user-store";
 import { getDocumentStatus, uploadDocument, type DocumentProcessingStage } from "@/lib/api";
@@ -26,6 +27,13 @@ import { getDocumentStatus, uploadDocument, type DocumentProcessingStage } from 
 export const Route = createFileRoute("/upload")({
   beforeLoad: () => {
     if (!getSession()) throw redirect({ to: "/" });
+  },
+  validateSearch: (search: Record<string, unknown>) => {
+    const caseId = search["case"];
+
+    return {
+      case: typeof caseId === "string" && caseId.trim() ? caseId : undefined,
+    };
   },
   head: () => ({
     meta: [
@@ -119,7 +127,9 @@ type StepVisual = "pending" | "active" | "completed" | "failed";
 
 function UploadCase() {
   const { addCase } = useCaseActions();
-
+  const { case: existingCaseId } = useSearch({ from: "/upload" });
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [file, setFile] = useState<ChosenFile | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [confidential, setConfidential] = useState(false);
@@ -249,10 +259,10 @@ function UploadCase() {
     }
   }
 
-  async function submitForm(event: React.FormEvent<HTMLFormElement>) {
+    async function submitForm(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Duplicate submission guard: one filing at a time, ever.
+    // Duplicate submission guard: one filing at a time.
     if (busy || inFlightRef.current) return;
 
     if (!file) {
@@ -267,43 +277,68 @@ function UploadCase() {
     setPhase("SUBMITTING");
 
     const chosenFile = file;
-    const provisionalTitle = chosenFile.name
-      .replace(/\.[^.]+$/, "")
-      .replace(/[_-]+/g, " ")
-      .trim();
 
-    const record = toCaseRecord({
-      id: "",
-      title: provisionalTitle || "Untitled case",
-      court: "",
-      bench: "To be assigned",
-      status: "Active",
-      classification: confidential ? "confidential" : "general",
-      filed: format(new Date(), "dd MMM yyyy"),
-      subject: "",
-      petitioner: "",
-      respondent: "",
-      summary: "Case metadata pending document analysis.",
-      fileName: chosenFile.name,
-    });
-
-    let createdCaseId: string | null = null;
+    let targetCaseId = existingCaseId ?? null;
 
     try {
-      const createdCase = await addCase(record);
-      createdCaseId = createdCase.id;
+      /*
+       * Two supported workflows:
+       *
+       * 1. /upload
+       *    → create a new case, then upload the document into it.
+       *
+       * 2. /upload?case=<id>
+       *    → use the existing case and upload the document into it.
+       */
+      if (!targetCaseId) {
+        const provisionalTitle = chosenFile.name
+          .replace(/\.[^.]+$/, "")
+          .replace(/[_-]+/g, " ")
+          .trim();
 
-      // Pin the case immediately: if the upload fails, retry will
-      // reuse this case instead of creating a new one.
-      setOperation({ caseId: createdCase.id, documentId: null, file: chosenFile });
+        const record = toCaseRecord({
+          id: "",
+          title: provisionalTitle || "Untitled case",
+          court: "",
+          bench: "To be assigned",
+          status: "Active",
+          classification: confidential ? "confidential" : "general",
+          filed: format(new Date(), "dd MMM yyyy"),
+          subject: "",
+          petitioner: "",
+          respondent: "",
+          summary: "Case metadata pending document analysis.",
+          fileName: chosenFile.name,
+        });
 
-      const uploadResponse = await uploadDocument(createdCase.id, chosenFile.file);
+        const createdCase = await addCase(record);
+        targetCaseId = createdCase.id;
+      }
+
+      /*
+       * Pin the target case immediately.
+       *
+       * For a new case this prevents retries from creating duplicates.
+       * For an existing case this keeps the new document attached to
+       * the same case throughout the operation.
+       */
+      setOperation({
+        caseId: targetCaseId,
+        documentId: null,
+        file: chosenFile,
+      });
+
+      const uploadResponse = await uploadDocument(
+        targetCaseId,
+        chosenFile.file,
+      );
 
       setOperation({
-        caseId: createdCase.id,
+        caseId: targetCaseId,
         documentId: uploadResponse.document_id,
         file: chosenFile,
       });
+
       setPhase("PROCESSING");
       startStatusPolling(uploadResponse.document_id);
     } catch (submitError) {
@@ -318,12 +353,12 @@ function UploadCase() {
       setStage(null);
       setError(message);
 
-      if (createdCaseId) {
-        // The case exists — never resubmit into a second case.
+      if (targetCaseId) {
+        // The target case exists — never create or select a second case.
         inFlightRef.current = false;
         setPhase("FAILED");
       } else {
-        // Nothing was created: return to the form.
+        // Nothing was created.
         setOperation(null);
         setPhase("IDLE");
         inFlightRef.current = false;
@@ -436,7 +471,23 @@ function UploadCase() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader />
+      <SidebarDrawer
+      expanded={sidebarExpanded}
+      mobileOpen={mobileDrawerOpen}
+      onToggle={() => setSidebarExpanded((v) => !v)}
+      onMobileClose={() => setMobileDrawerOpen(false)}
+      onSelectCategory={() => {}}
+      activeCategory={null}
+    />
+      <AppHeader 
+      onMenu={() => setMobileDrawerOpen(true)}
+      menuOpen={mobileDrawerOpen}
+      />
+    <div
+      className={`transition-[padding-left] duration-300 ease-out ${
+        sidebarExpanded ? "md:pl-80" : "md:pl-16"
+      }`}
+    ></div>
 
       <main className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
         <div className="pt-10 sm:pt-14">
@@ -753,52 +804,64 @@ function UploadCase() {
                   </button>
                 </div>
 
-                {/* Confidentiality */}
-                <div
-                  className={`mt-4 flex items-start justify-between gap-4 border px-5 py-4 transition-colors ${
-                    confidential
-                      ? "border-burgundy/60 bg-burgundy/[0.06]"
-                      : "border-border bg-surface/40"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Lock
-                      className={`mt-0.5 h-4 w-4 ${
-                        confidential ? "text-burgundy" : "text-brass-dim"
-                      }`}
-                    />
-
-                    <div>
-                      <p className="text-sm text-parchment">Confidential matter</p>
-
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Restricts access to this record according to its confidential
-                        classification.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={confidential}
-                    disabled={busy}
-                    onClick={() => setConfidential((v) => !v)}
-                    className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                                {/* Confidentiality applies only when creating a new case. */}
+                {!existingCaseId && (
+                  <div
+                    className={`mt-4 flex items-start justify-between gap-4 border px-5 py-4 transition-colors ${
                       confidential
-                        ? "border-burgundy bg-burgundy/70"
-                        : "border-input bg-transparent"
+                        ? "border-burgundy/60 bg-burgundy/[0.06]"
+                        : "border-border bg-surface/40"
                     }`}
                   >
-                    <span
-                      className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
-                        confidential ? "left-[calc(100%-1.25rem)]" : "left-1"
-                      }`}
-                    />
+                    <div className="flex items-start gap-3">
+                      <Lock
+                        className={`mt-0.5 h-4 w-4 ${
+                          confidential ? "text-burgundy" : "text-brass-dim"
+                        }`}
+                      />
 
-                    <span className="sr-only">Mark matter confidential</span>
-                  </button>
-                </div>
+                      <div>
+                        <p className="text-sm text-parchment">Confidential matter</p>
+
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          Restricts access to this record according to its confidential
+                          classification.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={confidential}
+                      disabled={busy}
+                      onClick={() => setConfidential((v) => !v)}
+                      className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                        confidential
+                          ? "border-burgundy bg-burgundy/70"
+                          : "border-input bg-transparent"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
+                          confidential ? "left-[calc(100%-1.25rem)]" : "left-1"
+                        }`}
+                      />
+
+                      <span className="sr-only">Mark matter confidential</span>
+                    </button>
+                  </div>
+                )}
+
+                {existingCaseId && (
+                  <div className="mt-4 border border-border bg-surface/40 px-5 py-4">
+                    <p className="text-sm text-parchment">Adding to existing matter</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      This document will be attached to the selected case. The case's existing
+                      classification and access controls remain unchanged.
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <div className="mt-4 border border-burgundy/50 bg-burgundy/[0.06] px-4 py-3 text-sm text-burgundy">
@@ -819,8 +882,7 @@ function UploadCase() {
                         aria-hidden="true"
                       />
                     )}
-                    File case in the archive
-                  </button>
+                    {existingCaseId ? "Add file to case" : "File case in the archive"}                  </button>
 
                   <Link
                     to="/dashboard"
