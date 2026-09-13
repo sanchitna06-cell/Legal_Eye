@@ -413,6 +413,41 @@ export async function getDocumentAnalysis(
     inconsistencies: [],
   };
 }
+export interface IntelligenceResponse {
+  status: string;
+  answer: string;
+  facts: unknown[];
+  conflicts: unknown[];
+}
+
+export async function askCaseQuestion(
+  caseId: string,
+  question: string,
+): Promise<IntelligenceResponse> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/intelligence/ask`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        case_id: caseId,
+        question,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to contact the document intelligence service.",
+    );
+  }
+
+  return response.json();
+}
 /* ============================================================
    DOCUMENT PAGES + ANNOTATIONS
    ============================================================ */

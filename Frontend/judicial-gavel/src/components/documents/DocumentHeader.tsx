@@ -1,5 +1,5 @@
 import { Download, EllipsisVertical, FileText, Printer } from "lucide-react";
-import type { BackendDocument } from "@/lib/api";
+import { getDocument, type BackendDocument } from "@/lib/api";
 
 interface DocumentHeaderProps {
   document: BackendDocument;
@@ -29,6 +29,32 @@ function formatDate(iso: string): string {
  * right. Data comes from the existing authenticated document record.
  */
 export function DocumentHeader({ document }: DocumentHeaderProps) {
+    async function handleDownload() {
+    try {
+      const access = await getDocument(document.id);
+
+      const response = await fetch(access.url);
+
+      if (!response.ok) {
+        throw new Error("Failed to download document.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = window.document.createElement("a");
+      link.href = url;
+      link.download = document.file_name;
+
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Document download failed:", error);
+    }
+  }
   return (
     <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 border-b border-border px-5 py-5">
       <div className="flex min-w-0 items-start gap-4">
@@ -72,6 +98,7 @@ export function DocumentHeader({ document }: DocumentHeaderProps) {
           type="button"
           title="Download original"
           aria-label="Download original document"
+          onClick={handleDownload}
           className="focus-legal flex h-8 w-8 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
         >
           <Download className="h-4 w-4" />

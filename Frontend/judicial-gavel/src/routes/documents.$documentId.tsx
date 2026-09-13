@@ -343,6 +343,8 @@ function DocumentWorkspace() {
           assistantOpen={assistantOpen}
           onAssistantToggle={openAssistant}
           onJumpToSection={jumpToSection}
+          caseId={caseParam}
+          documentId={documentId}
         />
 
         {/* ============ DOCUMENT WORKSPACE ============ */}

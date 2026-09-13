@@ -13,8 +13,11 @@ import {
   Upload,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-/**
+import {
+  askCaseQuestion,
+  getDocumentStatus,
+  type DocumentProcessingStatus,
+} from "@/lib/api";/**
  * Document-analysis sidebar.
  *
  * This is NOT the dashboard sidebar: no pinned cases, no The Bar, no
@@ -34,6 +37,8 @@ const HIDE_COLLAPSED = "md:group-data-[collapsed=true]:hidden";
 interface SidebarNavProps {
   expanded: boolean;
   mobileOpen: boolean;
+  caseId?: string | undefined;
+  documentId?: string | undefined;
   onToggle: () => void;
   onMobileClose: () => void;
   /** "tools" shows the analysis tool list; "assistant" swaps in the AI workspace. */
@@ -65,114 +70,299 @@ const SUGGESTED_QUESTIONS = [
   "Explain this section",
   "What are the risks?",
 ];
-
-function AssistantPanel() {
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
+function AssistantPanel({
+  caseId,
+  documentId,
+}: {
+  caseId?: string | undefined;
+  documentId?: string | undefined;
+}) {
+  const [messages, setMessages] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([]);
   const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [processingStatus, setProcessingStatus] =
+  useState<DocumentProcessingStatus | null>(null);
 
+  const [processingMessage, setProcessingMessage] =
+  useState("Checking document processing status...");
+
+  useEffect(() => {
+  if (!documentId) {
+    setProcessingStatus(null);
+    setProcessingMessage("No document is associated with this workspace.");
+    return;
+  }
+
+  let cancelled = false;
+  let intervalId: number | undefined;
+
+  const checkStatus = async () => {
+    try {
+      const result = await getDocumentStatus(documentId);
+
+      if (cancelled) return;
+
+      setProcessingStatus(result.status);
+      setProcessingMessage(result.message);
+
+      if (
+        result.status === "COMPLETED" ||
+        result.status === "FAILED"
+      ) {
+        if (intervalId !== undefined) {
+          window.clearInterval(intervalId);
+        }
+      }
+    } catch {
+      if (cancelled) return;
+
+      setProcessingStatus(null);
+      setProcessingMessage(
+        "Unable to check document processing status.",
+      );
+    }
+  };
+
+  checkStatus();
+
+  intervalId = window.setInterval(checkStatus, 3000);
+
+  return () => {
+    cancelled = true;
+
+    if (intervalId !== undefined) {
+      window.clearInterval(intervalId);
+    }
+  };
+}, [documentId]);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
-  function ask(question: string) {
-    const text = question.trim();
-    if (!text) return;
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", text },
-      {
-        role: "assistant",
-        text: "Document intelligence is not connected to the analysis service yet. This panel will answer from the processed document once the backend endpoint is live.",
-      },
-    ]);
-    setDraft("");
+  async function ask(question: string) {
+  const text = question.trim();
+
+  if (!text || loading) return;
+
+  if (!caseId) {
+    setError("No case is associated with this document.");
+    return;
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-border px-4 py-4">
-        <p className={HIDE_COLLAPSED}>
-          <span className="text-[10px] font-bold tracking-[0.18em] text-brass uppercase">
-            AI Assistant
-          </span>
-        </p>
-        <p className={`mt-1 font-display text-lg leading-snug text-parchment ${HIDE_COLLAPSED}`}>
-          Document intelligence
-        </p>
-        <p className={`mt-1 text-[11px] leading-relaxed text-muted-foreground ${HIDE_COLLAPSED}`}>
-          Ask a question about this document. Answers cite pages from the file on record.
-        </p>
-      </div>
+  setError(null);
 
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.length === 0 ? (
-          <div className="space-y-4">
-            <p className={`label-legal ${HIDE_COLLAPSED}`}>Suggested questions</p>
-            {SUGGESTED_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => ask(q)}
-                className={`focus-legal group flex w-full items-center justify-between gap-2 border border-border bg-surface/50 px-3 py-2.5 text-left text-xs text-parchment/90 transition-colors hover:border-brass-dim hover:bg-surface ${HIDE_COLLAPSED}`}
-              >
-                {q}
-                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-brass-dim transition-colors group-hover:text-brass" />
-              </button>
-            ))}
-          </div>
-        ) : (
-          messages.map((m, i) => (
-            <div
-              key={i}
-              className={`border px-3 py-2.5 text-xs leading-relaxed ${
-                m.role === "user"
-                  ? "border-brass/40 bg-brass/[0.07] text-parchment"
-                  : "border-border bg-surface/60 text-muted-foreground"
-              }`}
-            >
-              <p
-                className={`label-legal mb-1 text-[9px] ${m.role === "user" ? "!text-brass-dim" : ""}`}
-              >
-                {m.role === "user" ? "You" : "Document Assistant"}
-              </p>
-              {m.text}
-            </div>
-          ))
-        )}
-      </div>
+  setMessages((prev) => [
+    ...prev,
+    {
+      role: "user",
+      text,
+    },
+  ]);
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          ask(draft);
-        }}
-        className={`border-t border-border p-3 ${HIDE_COLLAPSED}`}
-      >
-        <div className="flex items-stretch border border-input bg-background/60 focus-within:border-brass">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Ask something about this document..."
-            aria-label="Ask the document assistant"
-            className="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs text-parchment outline-none placeholder:text-muted-foreground/70"
-          />
-          <button
-            type="submit"
-            aria-label="Send question"
-            className="focus-legal flex w-10 items-center justify-center border-l border-input text-brass transition-colors hover:bg-brass hover:text-primary-foreground"
-          >
-            <Send className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+  setDraft("");
+  setLoading(true);
+
+  try {
+    const result = await askCaseQuestion(caseId, text);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: result.answer,
+      },
+    ]);
+  } catch (err) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Failed to contact the document intelligence service.";
+
+    setError(message);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: "I couldn't process that question. Please try again.",
+      },
+    ]);
+  } finally {
+    setLoading(false);
+  }
 }
 
+  return (
+  <div className="flex min-h-0 flex-1 flex-col">
+    <div className="border-b border-border px-4 py-4">
+      <p className={HIDE_COLLAPSED}>
+        <span className="text-[10px] font-bold tracking-[0.18em] text-brass uppercase">
+          AI Assistant
+        </span>
+      </p>
+
+      <p
+        className={`mt-1 font-display text-lg leading-snug text-parchment ${HIDE_COLLAPSED}`}
+      >
+        Document intelligence
+      </p>
+
+      <p
+        className={`mt-1 text-[11px] leading-relaxed text-muted-foreground ${HIDE_COLLAPSED}`}
+      >
+        Ask a question about this case. Answers are grounded in processed case
+        entities.
+      </p>
+    </div>
+
+    <div
+      ref={scrollRef}
+      className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+    >
+      {processingStatus !== "COMPLETED" && (
+        <div className="border border-brass/30 bg-brass/5 px-3 py-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-brass" />
+
+            <p className="label-legal text-[9px] text-brass">
+              DOCUMENT PROCESSING
+            </p>
+          </div>
+
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            {processingMessage}
+          </p>
+
+          {processingStatus === "PROCESSING" && (
+            <p className="mt-2 font-mono text-[9px] tracking-[0.12em] text-muted-foreground/70 uppercase">
+              AI analysis will become available when processing completes.
+            </p>
+          )}
+        </div>
+      )}
+
+      {processingStatus === "FAILED" && (
+        <div className="border border-red-900/40 bg-red-950/20 px-3 py-3">
+          <p className="label-legal text-[9px] text-red-300">
+            PROCESSING FAILED
+          </p>
+
+          <p className="mt-2 text-[11px] leading-relaxed text-red-200/80">
+            Document analysis could not be completed. The AI Assistant is
+            unavailable until processing succeeds.
+          </p>
+        </div>
+      )}
+
+      {messages.length === 0 ? (
+        <div className="space-y-4">
+          <p className={`label-legal ${HIDE_COLLAPSED}`}>
+            Suggested questions
+          </p>
+
+          {SUGGESTED_QUESTIONS.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => ask(q)}
+              disabled={
+                loading || processingStatus !== "COMPLETED"
+              }
+              className={`focus-legal group flex w-full items-center justify-between gap-2 border border-border bg-surface/50 px-3 py-2.5 text-left text-xs text-parchment/90 transition-colors hover:border-brass-dim hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40 ${HIDE_COLLAPSED}`}
+            >
+              {q}
+
+              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-brass-dim transition-colors group-hover:text-brass" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        messages.map((m, i) => (
+          <div
+            key={i}
+            className={`border px-3 py-2.5 text-xs leading-relaxed ${
+              m.role === "user"
+                ? "border-brass/40 bg-brass/[0.07] text-parchment"
+                : "border-border bg-surface/60 text-muted-foreground"
+            }`}
+          >
+            <p
+              className={`label-legal mb-1 text-[9px] ${
+                m.role === "user" ? "!text-brass-dim" : ""
+              }`}
+            >
+              {m.role === "user" ? "You" : "Document Assistant"}
+            </p>
+
+            {m.text}
+          </div>
+        ))
+      )}
+
+      {loading && (
+        <div className="border border-border bg-surface/60 px-3 py-2.5 text-xs text-muted-foreground">
+          <p className="label-legal mb-1 text-[9px]">
+            Document Assistant
+          </p>
+
+          <p className="animate-pulse">
+            Analyzing case context…
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="border border-red-900/40 bg-red-950/20 px-3 py-2 text-[11px] text-red-300">
+          {error}
+        </div>
+      )}
+    </div>
+
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        ask(draft);
+      }}
+      className={`border-t border-border p-3 ${HIDE_COLLAPSED}`}
+    >
+      <div className="flex items-stretch border border-input bg-background/60 focus-within:border-brass">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Ask something about this document..."
+          aria-label="Ask the document assistant"
+          disabled={
+            loading || processingStatus !== "COMPLETED"
+          }
+          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs text-parchment outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+
+        <button
+          type="submit"
+          aria-label="Send question"
+          disabled={
+            loading ||
+            processingStatus !== "COMPLETED" ||
+            !draft.trim()
+          }
+          className="focus-legal flex w-10 items-center justify-center border-l border-input text-brass transition-colors hover:bg-brass hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </form>
+  </div>
+);
+}
 export function DocumentSidebar({
   expanded,
   mobileOpen,
+  caseId,
+  documentId,
   onToggle,
   onMobileClose,
   assistantOpen,
@@ -263,7 +453,7 @@ export function DocumentSidebar({
         </div>
 
         {assistantOpen ? (
-          <AssistantPanel />
+          <AssistantPanel caseId={caseId} documentId={documentId}/>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
             <p
@@ -345,3 +535,4 @@ export function DocumentSidebar({
     </>
   );
 }
+
