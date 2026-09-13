@@ -73,8 +73,8 @@ async def create_case(
         classification=case.classification.upper(),
         department=None,
         created_by=current_user["user_id"],
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     db.add(new_case)

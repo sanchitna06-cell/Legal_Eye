@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,timezone
 
 from sqlalchemy import (
     String,
@@ -64,8 +64,8 @@ class Document(Base):
     )
 
     uploaded_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
 
