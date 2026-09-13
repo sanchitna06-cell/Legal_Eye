@@ -5,7 +5,6 @@ The entry point for the  Lens backend.
 Runs the FastAPI server and registers all routers, event bus, and startup tasks.
 """
 
-import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +18,7 @@ from app.core.events import (
 load_dotenv()
 
 # Import routers
-from app.routers import health, auth, cases, documents, blockchain, intelligence,admin,annotations,page_flags,calendar
+from app.routers import health, auth, cases, documents, blockchain, intelligence,admin,annotations,page_flags,calendar, entities
 from app.core.database import engine, AsyncSessionLocal
 from sqlalchemy import text
 from app.core.event_bus import event_bus
@@ -129,6 +128,7 @@ app.include_router(admin.router)
 app.include_router(annotations.router)
 app.include_router(page_flags.router)
 app.include_router(calendar.router)
+app.include_router(entities.router)
 
 # =========================================================
 # ROOT ENDPOINT

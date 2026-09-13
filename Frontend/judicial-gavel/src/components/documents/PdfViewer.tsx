@@ -54,7 +54,6 @@ interface PdfViewerProps {
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.5;
 
-const PAGE_GAP = 24;
 const VIEWPORT_PADDING = 24;
 
 type TextEditorState = {
@@ -346,9 +345,8 @@ export function PdfViewer({
   /* ---------------------------------------------------------------------- */
 
   const handleOpenTextEditor = useCallback((state: TextEditorState) => {
-    console.log("OPEN TEXT EDITOR", state);
     setTextEditor(state);
-  }, []);
+}, []);
 
   const handleCloseTextEditor = useCallback(() => {
     setTextEditor(null);
@@ -446,7 +444,9 @@ export function PdfViewer({
           let changed = false;
 
           for (const entry of entries) {
-            const pageNumber = Number((entry.target as HTMLElement).dataset.pageNumber);
+            const pageNumber = Number(
+            (entry.target as HTMLElement).dataset["pageNumber"]
+            );
 
             if (!Number.isFinite(pageNumber)) {
               continue;

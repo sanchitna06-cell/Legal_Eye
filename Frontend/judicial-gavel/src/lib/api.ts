@@ -292,29 +292,34 @@ export async function uploadDocument(caseId: string, file: File): Promise<Docume
 
   return response.json();
 }
-export async function getDocument(documentId: string): Promise<Blob> {
-  const token = getAccessToken();
+export interface DocumentAccessResponse {
+  document_id: string;
+  file_name: string;
+  mime_type: string;
+  expires_in: number;
+  url: string;
+}
 
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
+export async function getDocument(
+  documentId: string
+): Promise<DocumentAccessResponse> {
   const response = await authenticatedFetch(
     `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}`,
     {
       method: "GET",
-    },
+    }
   );
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
 
-    throw new Error(error?.detail ?? "Failed to load document.");
+    throw new Error(
+      error?.detail ?? "Failed to load document."
+    );
   }
 
-  return response.blob();
+  return response.json();
 }
-
 /* ============================================================
    DOCUMENT PROCESSING STATUS
    ============================================================
@@ -391,38 +396,23 @@ export interface DocumentAnalysis {
   inconsistencies: DocumentInconsistency[];
 }
 
-export async function getDocumentAnalysis(documentId: string): Promise<DocumentAnalysis> {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("Authentication required.");
-  }
-
-  const response = await authenticatedFetch(
-    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/analysis`,
-    {
-      method: "GET",
-    },
-  );
-
-  // No published analysis yet (404) — the workspace shell still renders.
-  if (response.status === 404) {
-    return { timeline: [], inconsistencies: [] };
-  }
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-
-    throw new Error(error?.detail ?? "Failed to load document analysis.");
-  }
-
-  return response.json();
-}
 
 export interface DocumentAnalysisSummary {
   inconsistencies: DocumentInconsistency[];
 }
 
+export async function getDocumentAnalysis(
+  documentId: string
+): Promise<DocumentAnalysis> {
+  // Analysis endpoints are not available in the current backend yet.
+  // Return an empty analysis so the workspace can render its structural shell.
+  void documentId;
+
+  return {
+    timeline: [],
+    inconsistencies: [],
+  };
+}
 /* ============================================================
    DOCUMENT PAGES + ANNOTATIONS
    ============================================================ */

@@ -59,16 +59,7 @@ export function TextAnnotationEditor({
 
   const fontSizeFraction = annotation?.geometry.fontSize ?? DEFAULT_TEXT_FONT_SIZE_FRACTION;
   const fontSizePx = fontSizeFraction * width;
-  console.log("TEXT EDITOR RENDER", {
-    page,
-    width,
-    height,
-    annotation,
-    anchor,
-    left,
-    top,
-    fontSizePx,
-  });
+
 
   useEffect(() => {
     const node = textAreaRef.current;

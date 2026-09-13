@@ -105,12 +105,31 @@ class ExtractedEntity(BaseModel):
     """One entity produced by the AI/NLP extraction layer."""
 
     entity_type: EntityType
-    value: str
+
+    value: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+    )
+
     confidence: float = Field(
         ge=0.0,
         le=1.0,
     )
-    page_number: int = Field(ge=1)
+
+    page_number: int = Field(
+        ge=1,
+    )
+
+    context_snippet: str | None = Field(
+        default=None,
+        max_length=5000,
+    )
+
+    normalized_value: str | None = Field(
+        default=None,
+        max_length=500,
+    )
 
 class EntityExtractedPayload(BaseModel):
     """

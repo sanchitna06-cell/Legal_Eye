@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Plus,
   RefreshCw,
   Users as UsersIcon,
   ShieldCheck,
@@ -11,7 +10,6 @@ import {
 import { AdminPage, AdminCard } from "@/components/admin/AdminPage";
 import { CreateUserPanel } from "@/components/admin/CreateUserPanel";
 import {
-  Badge,
   Button,
   Input,
   Select,

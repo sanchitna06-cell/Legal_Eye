@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronRight, ListChecks, TriangleAlert } from "lucide-react";
 import type { DocumentInconsistency, DocumentTimelineEvent } from "@/lib/api";
 

@@ -6,7 +6,6 @@ import {
   Database,
   Link2,
   RefreshCw,
-  Server,
   Workflow,
   XCircle,
 } from "lucide-react";

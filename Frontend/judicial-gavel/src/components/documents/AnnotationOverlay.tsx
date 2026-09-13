@@ -378,13 +378,7 @@ export function AnnotationOverlay({
         return;
       }
 
-      const point = toPageSpace(event);
-      console.log("ANNOTATION POINTER DOWN", {
-        tool,
-        point,
-        width,
-        height,
-      });
+      const point = toPageSpace(event);;
 
       if (tool === "eraser") {
         erasingRef.current = true;
@@ -402,12 +396,6 @@ export function AnnotationOverlay({
       if (tool === "text") {
         const hit = findTextAnnotationAt(shapes, point, TEXT_HIT_RADIUS, width, height);
 
-        console.log("TEXT EDIT HIT TEST", {
-          clickPoint: point,
-          textAnnotations: shapes.filter((shape) => shape.type === "text"),
-          hit,
-          hitRadius: TEXT_HIT_RADIUS,
-        });
 
         onOpenTextEditor?.({
           page,

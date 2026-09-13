@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, ArrowRight, Lock } from "lucide-react";
+import { Eye, EyeOff, ArrowRight} from "lucide-react";
 import { login } from "@/lib/api";
 import { setTokens, signIn } from "@/lib/user-store";
 

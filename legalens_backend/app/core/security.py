@@ -361,20 +361,3 @@ async def get_current_admin(
     return current_user
 
 
-async def get_current_supervisor(
-    current_user: Dict[str, Any] = Depends(
-        get_current_active_user
-    ),
-) -> Dict[str, Any]:
-    role = current_user.get("role")
-
-    if role not in {
-        "SUPERVISOR",
-        "ADMIN",
-    }:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Supervisor or Admin role required",
-        )
-
-    return current_user

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { getDocument as fetchDocumentBlob } from "@/lib/api";
+import { getDocument } from "@/lib/api";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -22,7 +22,6 @@ export function usePdfDocument(documentId: string): PdfDocumentState {
   useEffect(() => {
     let cancelled = false;
     let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | null = null;
-    let objectUrl: string | null = null;
 
     setLoading(true);
     setPdf(null);
@@ -30,17 +29,20 @@ export function usePdfDocument(documentId: string): PdfDocumentState {
 
     async function load() {
       try {
-        const blob = await fetchDocumentBlob(documentId);
+        const documentAccess = await getDocument(documentId);
+
         if (cancelled) return;
 
-        if (blob.size === 0) {
-          throw new Error("The server returned an empty PDF file.");
+        if (!documentAccess.url) {
+          throw new Error("The server did not return a document URL.");
         }
 
-        objectUrl = URL.createObjectURL(blob);
-        loadingTask = pdfjsLib.getDocument({ url: objectUrl });
+        loadingTask = pdfjsLib.getDocument({
+          url: documentAccess.url,
+        });
 
         const loadedDocument = await loadingTask.promise;
+
         if (cancelled) {
           await loadedDocument.destroy();
           return;
@@ -49,12 +51,16 @@ export function usePdfDocument(documentId: string): PdfDocumentState {
         setPdf(loadedDocument);
       } catch (err) {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message =
+            err instanceof Error ? err.message : String(err);
+
           console.error("[JURY HASH] PDF load failed:", err);
           setError(message);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -65,10 +71,6 @@ export function usePdfDocument(documentId: string): PdfDocumentState {
 
       if (loadingTask) {
         void loadingTask.destroy();
-      }
-
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
       }
     };
   }, [documentId]);

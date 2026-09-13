@@ -1633,25 +1633,6 @@ function CaseWorkspace({
    FILTER COMPONENTS
    ========================================================================== */
 
-function FilterGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-
-      <span className="mr-1 font-mono text-[9px] tracking-[0.14em] text-muted-foreground uppercase">
-        {label}
-      </span>
-
-      {children}
-
-    </div>
-  );
-}
 
 
 function FilterButton({
@@ -1692,38 +1673,6 @@ function FilterButton({
    ARCHIVE SUMMARY
    ========================================================================== */
 
-function ArchiveStat({
-  value,
-  label,
-  accent = false,
-}: {
-  value: number;
-  label: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="px-5 py-4">
-
-      <p
-        className={`font-display text-xl ${
-          accent
-            ? "text-burgundy"
-            : "text-parchment"
-        }`}
-      >
-        {String(value).padStart(
-          2,
-          "0",
-        )}
-      </p>
-
-      <p className="mt-1 font-mono text-[8px] tracking-[0.1em] text-muted-foreground uppercase">
-        {label}
-      </p>
-
-    </div>
-  );
-}
 
 
 /* ==========================================================================

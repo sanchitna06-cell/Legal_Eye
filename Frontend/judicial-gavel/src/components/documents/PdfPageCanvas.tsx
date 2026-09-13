@@ -446,8 +446,6 @@ export function PdfPageCanvas({
          *
          * PDF.js provides item.width in PDF user units.
          */
-        const itemWidth =
-          "width" in item && typeof item.width === "number" ? item.width * scale : 0;
 
         span.textContent = item.str;
 
