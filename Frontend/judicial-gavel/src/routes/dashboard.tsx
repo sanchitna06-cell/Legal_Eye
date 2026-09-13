@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 
@@ -394,12 +394,13 @@ function Dashboard() {
               Clear search
             </button>
           ) : (
-            <a
-              href="/upload"
+            <Link
+              to="/upload"
+              search={{ case: undefined }}
               className="focus-legal mt-5 inline-flex border border-brass/40 px-3 py-2 font-mono text-[10px] tracking-[0.14em] text-brass uppercase transition-colors hover:bg-brass/10"
             >
               Create new case
-            </a>
+            </Link>
           )}
         </div>
             )}
