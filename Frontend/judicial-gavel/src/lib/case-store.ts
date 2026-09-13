@@ -39,7 +39,20 @@ const listeners = new Set<
   () => void
 >();
 
+function formatCaseDate(iso: string): string {
+  const date = new Date(iso);
 
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+
+  return date.toLocaleDateString("en-GB", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 function emit() {
   listeners.forEach(
     (listener) => {
@@ -241,15 +254,9 @@ function mapBackendCase(
         ? "confidential"
         : "general",
 
-    filed:
-      new Date(
-        record.created_at,
-      ).toLocaleDateString(),
+    filed: formatCaseDate(record.created_at),
 
-    updated:
-      new Date(
-        record.created_at,
-      ).toLocaleDateString(),
+    updated: formatCaseDate(record.created_at),
 
     subject: "General",
 
@@ -271,9 +278,7 @@ function mapBackendCase(
 
     history: [
       {
-        date: new Date(
-          record.created_at,
-        ).toLocaleDateString(),
+        date: formatCaseDate(record.created_at),
 
         title:
           "Record created",

@@ -12,10 +12,13 @@ function formatSize(bytes: number): string {
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
+
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(undefined, {
-    month: "numeric",
-    day: "numeric",
+
+  return date.toLocaleDateString("en-GB", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
   });
 }
