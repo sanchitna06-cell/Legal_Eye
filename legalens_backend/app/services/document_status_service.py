@@ -154,11 +154,27 @@ def _map_to_public_status(
         )
 
     if doc_status in (DocumentStatus.PROCESSED, DocumentStatus.VERIFIED):
-        return DocumentStatusResponse(
-            status=PublicDocumentStatus.COMPLETED,
-            stage=PublicProcessingStage.COMPLETE,
-            message=_public_message(PublicProcessingStage.COMPLETE, PublicDocumentStatus.COMPLETED),
-        )
+        required_processing_types = {
+            ProcessingType.TEXT_EXTRACTION,
+            ProcessingType.ENTITY_EXTRACTION,
+            ProcessingType.INTEGRITY_ANCHOR,
+        }
+
+        completed_processing_types = {
+            job.processing_type
+            for job in jobs
+            if job.status is ProcessingJobStatus.COMPLETED
+        }
+
+        if required_processing_types.issubset(completed_processing_types):
+            return DocumentStatusResponse(
+                status=PublicDocumentStatus.COMPLETED,
+                stage=PublicProcessingStage.COMPLETE,
+                message=_public_message(
+                    PublicProcessingStage.COMPLETE,
+                    PublicDocumentStatus.COMPLETED,
+                ),
+            )
 
     # Non-terminal document state: let the processing jobs speak.
     failed = [job for job in jobs if job.status is ProcessingJobStatus.FAILED]
