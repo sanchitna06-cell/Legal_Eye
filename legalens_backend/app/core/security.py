@@ -178,8 +178,19 @@ def verify_token(token: str) -> Dict[str, Any]:
                 detail="Invalid token payload",
             )
 
-        return payload
+        if payload.get("is_active") is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+            )
 
+        if payload.get("must_change_password") is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+            )
+
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -262,42 +273,27 @@ async def get_current_user(
 
 async def get_current_active_user(
     current_user: Dict[str, Any] = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
+    """Validate an authenticated user's JWT claims locally."""
 
-    result = await db.execute(
-        select(User).where(
-            User.id == current_user["user_id"]
-        )
-    )
-
-    user = result.scalar_one_or_none()
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account not found",
-        )
-
-    if not user.is_active:
+    if not current_user.get("is_active", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
 
-    if user.must_change_password:
+    if current_user.get("must_change_password", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Password change required",
         )
 
     return {
-        "user_id": user.id,
-        "username": user.username,
-        "full_name": user.full_name,
-        "role": user.role.value,
+        "user_id": current_user["user_id"],
+        "username": current_user["sub"],
+        "full_name": current_user.get("full_name"),
+        "role": current_user["role"],
     }
-
 async def get_current_active_user_for_password_change(
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

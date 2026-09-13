@@ -125,7 +125,10 @@ async def login(
     token_data = {
         "sub": user.username,
         "user_id": user.id,
+        "full_name": user.full_name,
         "role": user.role.value,
+        "is_active": user.is_active,
+        "must_change_password": user.must_change_password,
     }
 
     access_token = create_access_token(token_data)
@@ -236,7 +239,10 @@ async def login_for_swagger(
     token_data = {
         "sub": user.username,
         "user_id": user.id,
+        "full_name": user.full_name,
         "role": user.role.value,
+        "is_active": user.is_active,
+        "must_change_password": user.must_change_password,
     }
 
     access_token = create_access_token(token_data)
@@ -309,7 +315,10 @@ async def refresh_access_token(
     token_data = {
         "sub": user.username,
         "user_id": user.id,
+        "full_name": user.full_name,
         "role": user.role.value,
+        "is_active": user.is_active,
+        "must_change_password": user.must_change_password,
     }
 
     new_access_token = create_access_token(

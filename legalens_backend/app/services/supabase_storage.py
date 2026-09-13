@@ -69,3 +69,25 @@ class SupabaseStorage:
         self.client.storage.from_(
             self.bucket_name
         ).remove([storage_key])
+    def create_signed_url(
+        self,
+        storage_key: str,
+        expires_in: int = 300,
+    ) -> str:
+        """Create a temporary signed URL for a private file."""
+
+        response = self.client.storage.from_(
+            self.bucket_name
+        ).create_signed_url(
+            storage_key,
+            expires_in,
+        )
+
+        signed_url = response.get("signedURL")
+
+        if not signed_url:
+            raise RuntimeError(
+                f"Failed to create signed URL for storage key: {storage_key}"
+            )
+
+        return signed_url

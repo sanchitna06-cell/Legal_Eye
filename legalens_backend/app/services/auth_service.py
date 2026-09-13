@@ -1,3 +1,4 @@
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -6,7 +7,6 @@ from app.core.security import verify_password, hash_password
 
 
 class AuthService:
-
     def __init__(self, db: AsyncSession):
         self.db = db
 
@@ -18,18 +18,22 @@ class AuthService:
         """Check if username/password is correct."""
 
         stmt = select(User).where(User.username == username)
-
         result = await self.db.execute(stmt)
 
+
         user = result.scalar_one_or_none()
+
 
         if not user:
             return None
 
-        if not verify_password(
+
+        valid = verify_password(
             password,
             user.hashed_password,
-        ):
+        )
+
+        if not valid:
             return None
 
         return user
@@ -40,7 +44,7 @@ class AuthService:
         current_password: str,
         new_password: str,
     ) -> bool:
-        """Verify the current password and replace it with a new one."""
+        """Verify the current password and replace it with the new one."""
 
         if not verify_password(
             current_password,

@@ -20,10 +20,11 @@ load_dotenv()
 
 # Import routers
 from app.routers import health, auth, cases, documents, blockchain, intelligence,admin,annotations,page_flags,calendar
-from app.core.database import engine, Base
+from app.core.database import engine, AsyncSessionLocal
+from sqlalchemy import text
 from app.core.event_bus import event_bus
 from app.subscribers import text_extractor, entity_extractor, blockchain_subscriber
-from app.models.security_event import SecurityEvent
+
 
 # =========================================================
 # LIFECYCLE MANAGER (Startup / Shutdown)
@@ -38,14 +39,20 @@ async def lifespan(app: FastAPI):
     """
     # --- STARTUP ---
     print("🚀  Lens backend starting up...")
-    
-    # 1. Create database tables (if they don't exist)
-    print("📊 Creating database tables...")
-    async with engine.begin() as conn:
-        # In production, use Alembic for migrations.
-        # For SIH, we create tables automatically.
-        await conn.run_sync(Base.metadata.create_all)
-    print("✅ Database tables ready.")
+    # --- DATABASE WARM-UP ---
+    print("🔌 Warming up database connection...")
+
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+            text("SELECT 1")
+        )
+
+        print("✅ Database connection ready.")
+
+    except Exception as exc:
+        print(f"❌ Database warm-up failed: {exc}")
+        raise exc
     
     # 2. Register all events and subscribers
     print("🔌 Registering event subscribers...")

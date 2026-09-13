@@ -17,3 +17,4 @@ venv/
 # Runtime blockchain state
 legalens_backend/app/storage/*.json
 Frontend/.freebuff/
+__pycache__/

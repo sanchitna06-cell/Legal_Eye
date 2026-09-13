@@ -11,6 +11,7 @@ from app.models.annotation_history import AnnotationHistory
 from app.models.page_flag import PageFlag
 from app.models.blockchain_block import BlockchainBlock
 from app.models.calendar_event import CalendarEvent
+from app.models.security_event import SecurityEvent
 
 __all__ = [
     "User",
@@ -25,5 +26,6 @@ __all__ = [
     "AnnotationHistory",
     "PageFlag",
     "BlockchainBlock",
-    "CalendarEvent"
+    "CalendarEvent",
+    "SecurityEvent"
 ]

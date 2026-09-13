@@ -1,8 +1,8 @@
 import asyncio
 import hashlib
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File,Response
-from urllib.parse import quote
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_lawyer
@@ -30,7 +30,6 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload/{case_id}")
 async def upload_document(
-    
     case_id: str,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_lawyer),
@@ -39,8 +38,11 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(
             status_code=400,
-            detail="Uploaded file must have a filename"
+            detail="Uploaded file must have a filename",
         )
+
+    file_name = file.filename
+
     """Upload a document to a case. Triggers blockchain and AI events."""
     
     # Check if case exists
@@ -96,7 +98,7 @@ async def upload_document(
     doc = Document(
         id=file_id,
         case_id=case_id,
-        file_name=file.filename,
+        file_name=file_name,
         storage_key=storage_key,
         file_size_bytes=len(content),
         mime_type=file.content_type or "application/pdf",
@@ -113,7 +115,7 @@ async def upload_document(
         case_id=case_id,
         document_id=file_id,
         details={
-        "file_name": file.filename,
+        "file_name": file_name,
         "file_size_bytes": len(content),
         "sha256_hash": sha256_hash,
     },
@@ -141,7 +143,7 @@ async def upload_document(
                 DocumentUploadedPayload(
                     document_id=file_id,
                     case_id=case_id,
-                    file_name=file.filename,
+                    file_name=file_name,
                     sha256_hash=sha256_hash,
                     uploaded_by=current_user["user_id"],
                 )
@@ -162,7 +164,7 @@ async def upload_document(
     return UploadResponse(
         document_id=file_id,
         case_id=case_id,
-        file_name=file.filename,
+        file_name=file_name,
         sha256_hash=sha256_hash,
         blockchain_block_id=None,
         status="UPLOADED",
@@ -302,24 +304,26 @@ async def get_document(
             detail="Document not found",
         )
 
-    # Read the original file from private storage
+        # Generate a short-lived signed URL for the authorized lawyer.
+    # The PDF remains in private Supabase Storage and is not
+    # downloaded through the FastAPI server.
     storage = SupabaseStorage()
 
     try:
-        file_bytes = storage.download_file(doc.storage_key)
+        signed_url = storage.create_signed_url(
+            doc.storage_key,
+            expires_in=300,
+        )
     except Exception:
         raise HTTPException(
             status_code=500,
-            detail="Could not read file from storage",
+            detail="Could not create document access URL",
         )
 
-    # Return the PDF directly to the authorized lawyer
-    return Response(
-        content=file_bytes,
-        media_type=doc.mime_type,
-        headers={
-            "Content-Disposition": (
-                f"inline; filename*=UTF-8''{quote(doc.file_name)}"
-            )
-        },
-    )
+    return {
+        "document_id": doc.id,
+        "file_name": doc.file_name,
+        "mime_type": doc.mime_type,
+        "expires_in": 300,
+        "url": signed_url,
+    }
