@@ -39,6 +39,15 @@ class Settings:
     N8N_PIPELINE_WEBHOOK_URL: str = os.getenv("N8N_PIPELINE_WEBHOOK_URL", "")
     if not N8N_PIPELINE_WEBHOOK_URL:
         print("⚠️  N8N_PIPELINE_WEBHOOK_URL is not configured — entity extraction triggers will be skipped.")
+    # n8n AI Agent webhook — used by /intelligence/ask
+    # Soft-optional during development; the endpoint itself returns
+    # 503 if the webhook is not configured.
+    N8N_AGENT_WEBHOOK_URL: str = os.getenv("N8N_AGENT_WEBHOOK_URL", "")
+    if not N8N_AGENT_WEBHOOK_URL:
+        print(
+            "⚠️  N8N_AGENT_WEBHOOK_URL is not configured — "
+            "/intelligence/ask will be unavailable."
+        )
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
