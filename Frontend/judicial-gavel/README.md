@@ -1,6 +1,6 @@
 # Judicial Gavel
 
-LEGAL EYE — HIGH-END UI/UX REDESIGN & FRONTEND TRANSFORMATION BRIEF
+JURY HASH — HIGH-END UI/UX REDESIGN & FRONTEND TRANSFORMATION BRIEF
 
 ROLE
 
@@ -8,7 +8,7 @@ Act as a senior product designer, cinematic motion designer, creative director, 
 
 You are not being asked to simply "make the UI prettier."
 
-Your task is to deeply inspect the existing Legal Eye project, understand its current architecture and visual language, and then transform it into a polished, memorable, premium legal-tech experience suitable for a serious GitHub portfolio project and startup prototype.
+Your task is to deeply inspect the existing JURY HASH project, understand its current architecture and visual language, and then transform it into a polished, memorable, premium legal-tech experience suitable for a serious GitHub portfolio project and startup prototype.
 
 Think like you are designing a product that could realistically be presented to:
 
@@ -44,9 +44,9 @@ The design must communicate that immediately.
 
 The project is called:
 
-LEGAL EYE
+JURY HASH
 
-Legal Eye is a web platform designed to maintain and organize records of legal matters, court cases, case histories, and related legal information.
+JURY HASH is a web platform designed to maintain and organize records of legal matters, court cases, case histories, and related legal information.
 
 The platform also incorporates an AI capability intended to help users understand legal cases by:
 
@@ -264,7 +264,7 @@ authority + modern usability
 
 Typography hierarchy should be carefully designed:
 
-Legal Eye brand
+JURY HASH brand
 
 headings
 
@@ -388,7 +388,7 @@ architectural elements
 
 warm overhead/window lighting
 
-But the scene must remain secondary to the gavel and Legal Eye branding.
+But the scene must remain secondary to the gavel and JURY HASH branding.
 
 It should NOT look like a stock photo pasted behind the animation.
 
@@ -496,13 +496,13 @@ Impact.
 
 More decisive transition.
 
-Then transition toward the Legal Eye identity.
+Then transition toward the JURY HASH identity.
 
 The timing should feel intentional and cinematic.
 
-12. LEGAL EYE BRAND REVEAL
+12. JURY HASH BRAND REVEAL
 
-The Legal Eye logo/wordmark should not simply "fade in."
+The JURY HASH logo/wordmark should not simply "fade in."
 
 Create a memorable brand reveal.
 
@@ -540,7 +540,7 @@ The transition into the actual application should feel like one continuous story
 
 The user should feel:
 
-"I have entered the Legal Eye system."
+"I have entered the JURY HASH system."
 
 Avoid abrupt scene changes.
 
@@ -584,13 +584,13 @@ abstract judicial symbolism
 
 atmospheric lighting
 
-Legal Eye branding
+JURY HASH branding
 
 RIGHT SIDE
 
 A refined authentication panel containing:
 
-Legal Eye branding
+JURY HASH branding
 
 welcome message
 
@@ -686,7 +686,7 @@ The user should notice them subconsciously.
 
 17. AI DESIGN LANGUAGE
 
-The AI functionality must feel integrated into Legal Eye.
+The AI functionality must feel integrated into JURY HASH.
 
 Do NOT make the AI section look like a separate ChatGPT clone.
 
@@ -1064,7 +1064,7 @@ remove weak design elements
 
 The goal is not to obey the existing UI blindly.
 
-The goal is to create the best possible version of Legal Eye while respecting its purpose and existing functionality.
+The goal is to create the best possible version of JURY HASH while respecting its purpose and existing functionality.
 
 28. IMPLEMENTATION PROCESS
 
@@ -1120,7 +1120,7 @@ courtroom atmosphere
 
 gavel animation
 
-Legal Eye brand reveal
+JURY HASH brand reveal
 
 login experience
 
@@ -1247,7 +1247,7 @@ SECOND STRIKE
 
 ↓
 
-LEGAL EYE REVEAL
+JURY HASH REVEAL
 
 ↓
 
@@ -1259,7 +1259,7 @@ PREMIUM LEGAL LOGIN
 
 ↓
 
-LEGAL EYE APPLICATION
+JURY HASH APPLICATION
 
 ↓
 
@@ -1295,7 +1295,7 @@ The gavel has physical weight.
 
 The impact feels satisfying.
 
-The Legal Eye reveal feels premium.
+The JURY HASH reveal feels premium.
 
 The login interface feels genuinely legal.
 
@@ -1323,7 +1323,7 @@ The final result looks like something designed by a professional product team ra
 
 34. YOUR MISSION
 
-Now take the uploaded Legal Eye project and cook something exceptional.
+Now take the uploaded JURY HASH project and cook something exceptional.
 
 Do not merely follow this document mechanically.
 
@@ -1339,7 +1339,7 @@ Then push the design significantly further.
 
 I want the final result to make me feel:
 
-"This is Legal Eye."
+"This is JURY HASH."
 
 Not:
 

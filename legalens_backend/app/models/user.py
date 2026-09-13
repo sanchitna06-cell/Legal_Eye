@@ -78,6 +78,7 @@ class User(Base):
     audit_logs = relationship(
         "AuditLog",
         back_populates="user",
+        passive_deletes=True,
     )
     annotations = relationship(
         "Annotation",

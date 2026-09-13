@@ -1,12 +1,6 @@
 import React from "react";
 
-/**
- * Shared page shell for all admin console pages.
- *
- * Keeps the kicker/title/description header and card wrapper consistent
- * across the dashboard and the sidebar destinations so every page reads as
- * part of the same console.
- */
+
 export function AdminPage({
   kicker,
   title,
@@ -21,21 +15,41 @@ export function AdminPage({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">{kicker}</p>
-          <h1 className="mt-1 font-display text-3xl leading-tight text-white">{title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-[#8ea3bb]">{description}</p>
+    <div className="admin-page">
+      <header className="admin-page__header">
+        <div className="admin-page__heading">
+          <p className="admin-page__kicker">
+            {kicker}
+          </p>
+
+          <h1 className="admin-page__title">
+            {title}
+          </h1>
+
+          <p className="admin-page__description">
+            {description}
+          </p>
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+
+        {actions ? (
+          <div className="admin-page__actions">
+            {actions}
+          </div>
+        ) : null}
+      </header>
+
+      <div className="admin-page__body">
+        {children}
       </div>
-      {children}
     </div>
   );
 }
 
-/** Standard card wrapper used by every admin page body. */
+
+/* ================================================================
+   STANDARD ADMIN CARD
+   ================================================================ */
+
 export function AdminCard({
   title,
   subtitle,
@@ -50,17 +64,30 @@ export function AdminCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg ${className}`}>
-      <div className="border-b border-[#1a2737] px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-white">{title}</h3>
-            {subtitle ? <p className="mt-0.5 text-[10px] text-[#8ea3bb]">{subtitle}</p> : null}
-          </div>
-          {action}
+    <section className={`admin-card ${className}`}>
+      <div className="admin-card__header">
+        <div className="admin-card__heading">
+          <h3 className="admin-card__title">
+            {title}
+          </h3>
+
+          {subtitle ? (
+            <p className="admin-card__subtitle">
+              {subtitle}
+            </p>
+          ) : null}
         </div>
+
+        {action ? (
+          <div className="admin-card__action">
+            {action}
+          </div>
+        ) : null}
       </div>
-      {children}
-    </div>
+
+      <div className="admin-card__body">
+        {children}
+      </div>
+    </section>
   );
 }

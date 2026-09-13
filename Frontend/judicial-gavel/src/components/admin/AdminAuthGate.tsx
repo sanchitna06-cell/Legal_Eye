@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, ArrowRight, Lock } from "lucide-react";
-import { checkAdminCredentials, signInAsAdmin, DEFAULT_ADMIN_USER } from "@/lib/admin-store";
+import { login } from "@/lib/api";
+import { setTokens, signIn } from "@/lib/user-store";
 
 export function AdminAuthGate() {
   const navigate = useNavigate();
@@ -15,21 +16,48 @@ export function AdminAuthGate() {
     setPending(true);
 
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const username = String(form.get("username") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
-    await new Promise((r) => setTimeout(r, 450));
+  try {
+  const response = await login(username, password);
 
-    if (!checkAdminCredentials(email, password)) {
-      setError("Invalid admin credentials.");
-      setPending(false);
-      return;
-    }
+if (response.user.role !== "ADMIN") {
+  setError("Access denied. Admin privileges are required.");
+  return;
+}
 
-    signInAsAdmin({ ...DEFAULT_ADMIN_USER, email: email || DEFAULT_ADMIN_USER.email });
-    navigate({ to: "/admin" });
+setTokens(
+  response.access_token,
+  response.refresh_token
+);
+
+signIn({
+  id: response.user.id,
+  name: response.user.full_name,
+  initials: response.user.full_name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase(),
+  email: response.user.username,
+  role: response.user.role,
+  phone: "",
+});
+
+navigate({ to: "/admin" });
+} catch (error) {
+  setError(
+    error instanceof Error
+      ? error.message
+      : "Invalid username or password."
+  );
+} finally {
+  setPending(false);
+}
+
   }
-
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1fr_1fr]">
       {/* Branding side */}
@@ -37,10 +65,10 @@ export function AdminAuthGate() {
         <div className="max-w-md">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1a3b5e] px-2 text-[#38bdf8] text-xs font-semibold">
-              LE
+              Jury Hash
             </div>
             <span className="font-display text-lg tracking-wide text-white">
-              Legal<span className="text-[#38bdf8]">Eye</span>
+              Jury<span className="text-[#38bdf8]">Hash</span>
             </span>
           </div>
           <div className="mt-14">
@@ -81,18 +109,16 @@ export function AdminAuthGate() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
+              <label htmlFor="username" className="block text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
                 Admin email
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
+                id="username"
+                name="username"
+                type="username"
                 required
                 autoComplete="username"
-                defaultValue="admin"
                 className="w-full border-b border-[#5f7891]/40 bg-transparent py-2 text-sm text-white placeholder:text-[#5f7891] focus:border-[#38bdf8] outline-none transition-colors"
-                placeholder="admin@legaleye.in"
               />
             </div>
 
@@ -115,10 +141,7 @@ export function AdminAuthGate() {
                 name="password"
                 type={showPassword ? "text" : "password"}
                 required
-                autoComplete="current-password"
-                defaultValue="admin"
                 className="w-full border-b border-[#5f7891]/40 bg-transparent py-2 text-sm text-white placeholder:text-[#5f7891] focus:border-[#38bdf8] outline-none transition-colors"
-                placeholder="••••••••"
               />
             </div>
 
@@ -141,4 +164,5 @@ export function AdminAuthGate() {
       </section>
     </main>
   );
-}
+  }
+

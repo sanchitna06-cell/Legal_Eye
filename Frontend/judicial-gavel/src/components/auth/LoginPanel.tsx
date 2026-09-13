@@ -2,13 +2,19 @@ import { useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ArrowRight,
+  LockKeyhole,
+  ShieldAlert,
+} from "lucide-react";
 
 import courtroom from "@/assets/courtroom.jpg";
 
 import { JuryHashMark } from "@/components/brand/JURYHashMark";
 
-import { login } from "@/lib/api";
+import { changePassword, login } from "@/lib/api";
 
 import { setTokens, signIn } from "@/lib/user-store";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -18,6 +24,12 @@ export function LoginPanel() {
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState(""); 
+  const [newPassword, setNewPassword] = useState(""); 
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,6 +90,11 @@ export function LoginPanel() {
         role: "Lawyer",
         phone: "",
       });
+      if (response.user.must_change_password) {
+        setPending(false);
+        setForcePasswordChange(true);
+        return;
+      }
 
       navigate({ to: "/dashboard" });
     } catch (error) {
@@ -86,6 +103,66 @@ export function LoginPanel() {
       setPending(false);
     }
   }
+  async function handleForcedPasswordChange(
+  event: React.FormEvent<HTMLFormElement>,
+) {
+  event.preventDefault();
+
+  if (changingPassword) return;
+
+  setPasswordError(null);
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    setPasswordError("All password fields are required.");
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    setPasswordError(
+      "Your new password must contain at least 8 characters.",
+    );
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setPasswordError("The new passwords do not match.");
+    return;
+  }
+
+  if (newPassword === currentPassword) {
+    setPasswordError(
+      "Your new password must be different from the temporary password.",
+    );
+    return;
+  }
+
+  try {
+    setChangingPassword(true);
+
+    await changePassword(currentPassword, newPassword);
+
+    /*
+     * The backend has now set:
+     * must_change_password = false
+     *
+     * The user can safely enter the application.
+     */
+    setForcePasswordChange(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    navigate({ to: "/dashboard" });
+  } catch (error) {
+    setPasswordError(
+      error instanceof Error
+        ? error.message
+        : "Failed to change password.",
+    );
+  } finally {
+    setChangingPassword(false);
+  }
+}
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.15fr_1fr]">
@@ -332,6 +409,142 @@ export function LoginPanel() {
           </p>
         </div>
       </section>
+
+      {forcePasswordChange && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forced-password-change-title"
+        >
+          <div className="w-full max-w-md border border-brass/40 bg-background p-6 shadow-2xl">
+            <div className="mb-6 flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-brass/40 bg-brass/10">
+                <LockKeyhole className="h-5 w-5 text-brass" />
+              </div>
+
+              <div>
+                <p className="label-legal">
+                  Security requirement
+                </p>
+
+                <h2
+                  id="forced-password-change-title"
+                  className="mt-1 font-display text-2xl"
+                >
+                  Change your password
+                </h2>
+
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Your account was created with a temporary password.
+                  You must choose a new password before you can access
+                  the archive.
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleForcedPasswordChange}
+              className="space-y-5"
+            >
+              <div className="space-y-2">
+                <label
+                  htmlFor="temporary-password"
+                  className="label-legal block"
+                >
+                  Temporary password
+                </label>
+
+                <input
+                  id="temporary-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) =>
+                    setCurrentPassword(event.target.value)
+                  }
+                  autoComplete="current-password"
+                  disabled={changingPassword}
+                  className="focus-legal w-full border-b border-input bg-transparent pb-2 text-sm text-foreground outline-none transition-colors hover:border-brass-dim focus:border-brass"
+                  placeholder="Your temporary password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="new-password"
+                  className="label-legal block"
+                >
+                  New password
+                </label>
+
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) =>
+                    setNewPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  disabled={changingPassword}
+                  className="focus-legal w-full border-b border-input bg-transparent pb-2 text-sm text-foreground outline-none transition-colors hover:border-brass-dim focus:border-brass"
+                  placeholder="At least 8 characters"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="confirm-password"
+                  className="label-legal block"
+                >
+                  Confirm new password
+                </label>
+
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  disabled={changingPassword}
+                  className="focus-legal w-full border-b border-input bg-transparent pb-2 text-sm text-foreground outline-none transition-colors hover:border-brass-dim focus:border-brass"
+                  placeholder="Repeat your new password"
+                />
+              </div>
+
+              {passwordError && (
+                <div
+                  role="alert"
+                  className="flex gap-2 border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs leading-relaxed text-destructive"
+                >
+                  <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={changingPassword}
+                className="focus-legal group flex w-full items-center justify-between border border-brass/60 bg-brass/10 px-5 py-3.5 text-sm font-medium tracking-wide text-parchment transition-all hover:bg-brass hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {changingPassword
+                  ? "Changing password…"
+                  : "Set new password"}
+
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </form>
+
+            <p className="mt-5 text-[10px] leading-relaxed text-muted-foreground">
+              This security requirement cannot be skipped. You must
+              change your temporary password before accessing the
+              archive.
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

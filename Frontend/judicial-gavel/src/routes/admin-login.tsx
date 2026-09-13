@@ -5,11 +5,11 @@ export const Route = createFileRoute("/admin-login")({
   component: AdminLoginPage,
   head: () => ({
     meta: [
-      { title: "Admin Sign-in — Legal Eye" },
+      { title: "Admin Sign-in — Jury Hash" },
       {
         name: "description",
         content:
-          "Restricted sign-in for Legal Eye system administrators.",
+          "Restricted sign-in for Jury Hash system administrators.",
       },
     ],
   }),

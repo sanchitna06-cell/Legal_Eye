@@ -9,7 +9,7 @@
 
 import { useSyncExternalStore } from "react";
 
-const SETTINGS_KEY = "legal-eye.admin.settings.v1";
+const SETTINGS_KEY = "Jury-Hash.admin.settings.v1";
 
 export interface AdminSettings {
   emailAlerts: boolean;

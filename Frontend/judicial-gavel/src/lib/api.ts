@@ -104,6 +104,7 @@ export interface LoginResponse {
     username: string;
     full_name: string;
     role: string;
+    must_change_password: boolean;
   };
 }
 
@@ -126,6 +127,32 @@ export async function login(username: string, password: string): Promise<LoginRe
   }
 
   return response.json();
+}
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/auth/change-password`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to change password.",
+    );
+  }
 }
 
 export interface BackendCase {
@@ -698,4 +725,308 @@ export async function deleteCalendarEvent(
       error?.detail ?? "Failed to delete calendar event.",
     );
   }
+}
+/* ============================================================
+   ADMIN API
+   ============================================================ */
+
+export interface AdminOverviewResponse {
+  users: {
+    total: number;
+    active: number;
+  };
+  cases: {
+    total: number;
+  };
+  documents: {
+    total: number;
+  };
+  document_integrity: {
+    total_records: number;
+  };
+  blockchain: {
+    total_blocks: number;
+  };
+  processing: {
+    total_jobs: number;
+  };
+  audit: {
+    total_logs: number;
+  };
+}
+
+export interface AdminAuditLog {
+  id: string;
+  user_id: string;
+  case_id: string | null;
+  document_id: string | null;
+  action: string;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+  request_id: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  full_name: string;
+  role: "ADMIN" | "LAWYER";
+  is_active: boolean;
+  must_change_password: boolean;
+  created_at: string;
+  last_login: string | null;
+}
+export interface CreateAdminUserInput {
+  username: string;
+  full_name: string;
+  temporary_password: string;
+  is_active: boolean;
+}
+
+export interface CreateAdminUserResponse {
+  message: string;
+  user: AdminUser;
+}
+
+export interface AdminDocumentIntegrity {
+  id: string;
+  case_file_id: string;
+  sha256_hash: string;
+  algorithm: string;
+  blockchain_block_id: string | null;
+  blockchain_hash: string | null;
+  anchored_at: string | null;
+  created_at: string;
+}
+
+export interface AdminBlockchainBlock {
+  id: string;
+  block_index: number;
+  created_at: string;
+  action: string;
+  document_id: string | null;
+  document_hash: string | null;
+  previous_hash: string;
+  hash: string;
+  user_id: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface AdminEventPipeline {
+  total_events: number;
+  total_handlers: number;
+  events: Record<string, string[]>;
+}
+
+export interface AdminSystemHealth {
+  status: "healthy" | "degraded" | "critical";
+  database: "healthy" | "degraded" | "critical";
+  blockchain: "healthy" | "degraded" | "critical";
+  event_pipeline: "healthy" | "degraded" | "critical";
+  processing: Record<string, number>;
+}
+
+export interface AdminSecurityControl {
+  name: string;
+  status: string;
+  description: string;
+}
+
+export interface AdminSecurityControls {
+  overall_status: string;
+  controls: AdminSecurityControl[];
+}
+export interface AdminSecurityEvent {
+  id: string;
+  event_type: string;
+  severity: "low" | "medium" | "high" | string;
+  user_id: string | null;
+  ip_address: string | null;
+  endpoint: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+export interface AdminSecurityEvent {
+  id: string;
+  event_type: string;
+  severity: "low" | "medium" | "high" | string;
+  user_id: string | null;
+  ip_address: string | null;
+  endpoint: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+async function adminGet<T>(
+  path: string,
+  errorMessage: string,
+): Promise<T> {
+  const response = await authenticatedFetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.detail ?? errorMessage);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function getAdminOverview(): Promise<AdminOverviewResponse> {
+  return adminGet<AdminOverviewResponse>(
+    "/admin/overview",
+    "Failed to load admin overview.",
+  );
+}
+
+export async function getAdminAuditLogs(): Promise<AdminAuditLog[]> {
+  const data = await adminGet<{ logs: AdminAuditLog[] }>(
+    "/admin/audit-logs",
+    "Failed to load audit logs.",
+  );
+
+  return data.logs;
+}
+
+
+export async function getAdminUsers(
+  skip = 0,
+  limit = 100,
+): Promise<AdminUser[]> {
+  const data = await adminGet<{ users: AdminUser[] }>(
+    `/admin/users?skip=${skip}&limit=${limit}`,
+    "Failed to load users.",
+  );
+
+  return data.users;
+}
+export async function createAdminUser(
+  data: CreateAdminUserInput,
+): Promise<CreateAdminUserResponse> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/admin/users`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to create user.",
+    );
+  }
+
+  return response.json();
+}
+export async function deleteAdminUser(userId: string): Promise<void> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to delete user.",
+    );
+  }
+}
+export async function deactivateAdminUser(userId: string): Promise<void> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}/deactivate`,
+    {
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to deactivate user.",
+    );
+  }
+}
+export async function activateAdminUser(userId: string): Promise<void> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}/activate`,
+    {
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to activate user.",
+    );
+  }
+}
+
+export async function getAdminDocumentIntegrity(
+  skip = 0,
+  limit = 100,
+): Promise<AdminDocumentIntegrity[]> {
+  const data = await adminGet<{ records: AdminDocumentIntegrity[] }>(
+    `/admin/document-integrity?skip=${skip}&limit=${limit}`,
+    "Failed to load document integrity records.",
+  );
+
+  return data.records;
+}
+
+export async function getAdminBlockchain(
+  skip = 0,
+  limit = 100,
+): Promise<AdminBlockchainBlock[]> {
+  const data = await adminGet<{ blocks: AdminBlockchainBlock[] }>(
+    `/admin/blockchain?skip=${skip}&limit=${limit}`,
+    "Failed to load blockchain records.",
+  );
+
+  return data.blocks;
+}
+
+export async function getAdminEventPipeline(): Promise<AdminEventPipeline> {
+  return adminGet<AdminEventPipeline>(
+    "/admin/event-pipeline",
+    "Failed to load event pipeline.",
+  );
+}
+
+export async function getAdminSystemHealth(): Promise<AdminSystemHealth> {
+  return adminGet<AdminSystemHealth>(
+    "/admin/system-health",
+    "Failed to load system health.",
+  );
+}
+
+export async function getAdminSecurityControls(): Promise<AdminSecurityControls> {
+  return adminGet<AdminSecurityControls>(
+    "/admin/security-controls",
+    "Failed to load security controls.",
+  );
+}
+export async function getAdminSecurityEvents(): Promise<AdminSecurityEvent[]> {
+  const data = await adminGet<{ events: AdminSecurityEvent[] }>(
+    "/admin/security-events",
+    "Failed to load security events.",
+  );
+
+  return data.events;
 }

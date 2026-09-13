@@ -1,7 +1,7 @@
 import React from "react";
 import { createFileRoute, ClientOnly, Outlet, useNavigate } from "@tanstack/react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { useAdmin } from "@/lib/admin-store";
+import { useUser } from "@/lib/user-store";
 
 /**
  * Layout route for every /admin/* page.
@@ -24,22 +24,26 @@ function AdminRouteShell() {
 }
 
 function AdminGate({ children }: { children: React.ReactNode }) {
-  const admin = useAdmin();
+  const user = useUser();
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (!admin) {
+    if (!user) {
       navigate({ to: "/admin-login", replace: true });
+      return;
     }
-  }, [admin, navigate]);
 
-  if (!admin) {
+    if (user.role !== "ADMIN") {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [user, navigate]);
+
+  if (!user || user.role !== "ADMIN") {
     return null;
   }
 
   return <>{children}</>;
 }
-
 export const Route = createFileRoute("/admin")({
   beforeLoad: () => {
     // See AdminRouteShell: the guard is client-side.
@@ -47,11 +51,11 @@ export const Route = createFileRoute("/admin")({
   component: AdminRouteShell,
   head: () => ({
     meta: [
-      { title: "Admin Console — Legal Eye" },
+      { title: "Admin Console — Jury Hash" },
       {
         name: "description",
         content:
-          "Legal Eye admin console: monitor system activity, manage users, and ensure the security and integrity of the platform.",
+          "Jury Hash admin console: monitor system activity, manage users, and ensure the security and integrity of the platform.",
       },
     ],
   }),

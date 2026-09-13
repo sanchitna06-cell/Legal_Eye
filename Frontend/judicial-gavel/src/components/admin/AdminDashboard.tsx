@@ -1,612 +1,801 @@
 import React from "react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-} from "recharts";
-import {
-  Users,
-  ShieldCheck,
-  FileText,
+  Activity,
   AlertTriangle,
-  CheckCircle,
-  Copy,
-  Plus,
+  FileCheck2,
+  FileText,
+  RefreshCw,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
-import {
-  METRICS,
-  ACTIVITY_24H,
-  ACTIVITY_COLORS,
-  RECENT_SECURITY_EVENTS,
-  SYSTEM_HEALTH,
-  USER_MANAGEMENT,
-  SAMPLE_DOCUMENT,
-  type MetricCard,
-  type SecurityEvent,
-  type HealthService,
-  type UserRow,
-} from "@/lib/admin-data";
-import { CreateUserPanel } from "@/components/admin/CreateUserPanel";
-import { Link } from "@tanstack/react-router";
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Tooltip,
-  TooltipProvider,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui";
 
-const linkGhostClass =
-  "inline-flex h-7 items-center rounded-md px-2 text-xs text-[#8ea3bb] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-[#38bdf8]";
+import {
+  getAdminOverview,
+  getAdminSecurityEvents,
+  getAdminSystemHealth,
+  getAdminUsers,
+  type AdminOverviewResponse,
+  type AdminSecurityEvent,
+  type AdminSystemHealth,
+  type AdminUser,
+} from "@/lib/api";
+
+import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui";
+
+
+const linkGhostClass = "admin-dashboard-link";
+
 
 export function AdminDashboard() {
+  const [overview, setOverview] =
+    React.useState<AdminOverviewResponse | null>(null);
+
+  const [systemHealth, setSystemHealth] =
+    React.useState<AdminSystemHealth | null>(null);
+
+  const [users, setUsers] =
+    React.useState<AdminUser[]>([]);
+
+  const [securityEvents, setSecurityEvents] =
+    React.useState<AdminSecurityEvent[]>([]);
+
+  const [loading, setLoading] =
+    React.useState(true);
+
+  const [error, setError] =
+    React.useState<string | null>(null);
+
+
+  const loadDashboard = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [
+        overviewData,
+        healthData,
+        securityEventsData,
+        usersData,
+      ] = await Promise.all([
+        getAdminOverview(),
+        getAdminSystemHealth(),
+        getAdminSecurityEvents(),
+        getAdminUsers(0, 5),
+      ]);
+
+      setOverview(overviewData);
+      setSystemHealth(healthData);
+      setSecurityEvents(securityEventsData);
+      setUsers(usersData);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load admin dashboard.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+
+  React.useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+
+  const highSeverityEvents =
+    securityEvents.filter(
+      (event) => event.severity === "high",
+    ).length;
+
+  const mediumSeverityEvents =
+    securityEvents.filter(
+      (event) => event.severity === "medium",
+    ).length;
+
+  const recentSecurityEvents =
+    securityEvents.length;
+
+
   return (
-    <TooltipProvider>
+    <div>
+      {/* ============================================================
+          HEADER
+          ============================================================ */}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">LEGAL EYE · ADMIN CONSOLE</p>
-          <h1 className="mt-1 font-display text-3xl leading-tight text-white">Admin Dashboard</h1>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8ea3bb]">
+            JURY HASH · ADMIN CONSOLE
+          </p>
+
+          <h1 className="mt-1 font-display text-3xl leading-tight text-white">
+            Admin Dashboard
+          </h1>
+
           <p className="mt-1 max-w-2xl text-sm text-[#8ea3bb]">
-            Monitor system activity, manage users, and ensure the security and integrity of Legal Eye.
+            Monitor system activity, security posture, and the
+            integrity of Jury Hash.
           </p>
         </div>
-        <div className="rounded-lg border border-[#1a2737] bg-[#0a1320] p-4 max-w-xs text-left">
-          <p className="text-xs text-[#8ea3bb] italic">“Secure systems build trust in justice.”</p>
-          <p className="mt-2 text-[10px] text-[#5f7891]">
-            — Digital India
-            <br />
-              Safer Citizens
-              <br />
-              Stronger Institutions
+
+        <div className="flex items-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void loadDashboard()}
+            disabled={loading}
+            className="admin-dashboard-refresh"
+          >
+            <RefreshCw
+              className={`mr-2 h-3.5 w-3.5 ${
+                loading ? "animate-spin" : ""
+              }`}
+            />
+
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+
+      {/* ============================================================
+          ERROR
+          ============================================================ */}
+
+      {error && (
+        <div className="admin-alert admin-alert--danger mb-6 flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+
+          <div>
+            <p className="text-sm font-medium">
+              Failed to load dashboard
+            </p>
+
+            <p className="mt-1 text-xs">
+              {error}
             </p>
           </div>
         </div>
+      )}
 
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {METRICS.map((metric) => (
-            <div key={metric.id} className="rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
-              <div className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${metric.iconBoxColor}`}>
-                  <metric.icon className="h-5 w-5 text-white/80" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-semibold text-white">{metric.value}</p>
-                  <p className="mt-1 text-xs text-emerald-400">{metric.delta}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-[#8ea3bb]">{metric.label}</p>
-                </div>
+
+      {/* ============================================================
+          ATTENTION REQUIRED
+          ============================================================ */}
+
+      {!loading && (
+        <div className="admin-attention">
+          <div className="admin-attention__header">
+            <div className="admin-attention__title">
+              <AlertTriangle className="admin-attention__icon" />
+
+              <div>
+                <p className="admin-attention__heading">
+                  Attention Required
+                </p>
+
+                <p className="admin-attention__description">
+                  Security events that may require administrator review.
+                </p>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex flex-col lg:col-span-2 overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">System Activity (Last 24 Hours)</h3>
-              <div className="flex items-center gap-3 text-[10px]">
-                <span className="flex items-center gap-1.5 text-[#38bdf8]">
-                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.api }} />
-                  API Requests
-                </span>
-                <span className="flex items-center gap-1.5 text-[#a78bfa]">
-                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.audit }} />
-                  Audit Events
-                </span>
-                <span className="flex items-center gap-1.5 text-[#f87171]">
-                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS.security }} />
-                  Security Events
-                </span>
-              </div>
-            </div>
-            <div className="min-h-[220px] w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={ACTIVITY_24H} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="apiGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={ACTIVITY_COLORS.api} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={ACTIVITY_COLORS.api} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="auditGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={ACTIVITY_COLORS.audit} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={ACTIVITY_COLORS.audit} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="securityGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={ACTIVITY_COLORS.security} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={ACTIVITY_COLORS.security} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="2 4" stroke="#1a2737" opacity={0.5} />
-                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: "#8ea3bb", fontSize: 10 }} dy={4} />
-                  <YAxis domain={[0, 80]} axisLine={false} tickLine={false} tick={{ fill: "#5f7891", fontSize: 10 }} dx={-4} width={26} />
-                  <RechartsTooltip
-                    contentStyle={{ background: "#0a1320", border: "1px solid #1a2737", color: "#fff", fontSize: 11 }}
-                    labelStyle={{ color: "#8ea3bb" }}
-                  />
-                  <Area type="monotone" dataKey="api" stroke={ACTIVITY_COLORS.api} strokeWidth={2} fill="url(#apiGrad)" dot={false} />
-                  <Area type="monotone" dataKey="audit" stroke={ACTIVITY_COLORS.audit} strokeWidth={2} fill="url(#auditGrad)" dot={false} />
-                  <Area type="monotone" dataKey="security" stroke={ACTIVITY_COLORS.security} strokeWidth={2} fill="url(#securityGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <Link
+              to="/admin/security-events"
+              className="admin-attention__link"
+            >
+              Review Events →
+            </Link>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
-            <div className="border-b border-[#1a2737] px-4 py-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Recent Security Events</h3>
-                <Link to="/admin/security-events" className={linkGhostClass}>
+          <div className="admin-attention__stats">
+            <div className="admin-attention-stat admin-attention-stat--danger">
+              <span className="admin-attention-stat__value">
+                {highSeverityEvents}
+              </span>
+
+              <span className="admin-attention-stat__label">
+                High Severity
+              </span>
+            </div>
+
+            <div className="admin-attention-stat admin-attention-stat--warning">
+              <span className="admin-attention-stat__value">
+                {mediumSeverityEvents}
+              </span>
+
+              <span className="admin-attention-stat__label">
+                Medium Severity
+              </span>
+            </div>
+
+            <div className="admin-attention-stat admin-attention-stat--neutral">
+              <span className="admin-attention-stat__value">
+                {recentSecurityEvents}
+              </span>
+
+              <span className="admin-attention-stat__label">
+                Recent Events
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ============================================================
+          OVERVIEW METRICS
+          ============================================================ */}
+
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminMetric
+          label="Active Users"
+          value={overview?.users.active}
+          icon={Users}
+          tone="green"
+          loading={loading}
+        />
+
+        <AdminMetric
+          label="Total Cases"
+          value={overview?.cases.total}
+          icon={FileText}
+          tone="cyan"
+          loading={loading}
+        />
+
+        <AdminMetric
+          label="Evidence Files"
+          value={overview?.documents.total}
+          icon={FileCheck2}
+          tone="purple"
+          loading={loading}
+        />
+
+        <AdminMetric
+          label="Audit Entries"
+          value={overview?.audit.total_logs}
+          icon={Activity}
+          tone="amber"
+          loading={loading}
+        />
+      </div>
+
+
+      {/* ============================================================
+          SYSTEM HEALTH + PROCESSING
+          ============================================================ */}
+
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+        {/* System Health */}
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-dashboard-panel__header">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  System Health
+                </h3>
+
+                <p className="mt-1 text-[10px] text-[#8ea3bb]">
+                  Live component status reported by the backend.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <HealthIndicator
+                  status={systemHealth?.status}
+                  loading={loading}
+                />
+
+                <Link
+                  to="/admin/system-health"
+                  className={linkGhostClass}
+                >
                   View All
                 </Link>
               </div>
             </div>
-            <div className="p-2 space-y-2">
-              {RECENT_SECURITY_EVENTS.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
+          </div>
+
+          <div className="admin-dashboard-panel__body">
+            <HealthStatusRow
+              label="Database"
+              status={systemHealth?.database}
+              loading={loading}
+            />
+
+            <HealthStatusRow
+              label="Blockchain"
+              status={systemHealth?.blockchain}
+              loading={loading}
+            />
+
+            <HealthStatusRow
+              label="Event Pipeline"
+              status={systemHealth?.event_pipeline}
+              loading={loading}
+            />
+          </div>
+        </div>
+
+
+        {/* Processing */}
+
+        <div className="admin-dashboard-panel">
+          <div className="admin-dashboard-panel__header">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Processing
+                </h3>
+
+                <p className="mt-1 text-[10px] text-[#8ea3bb]">
+                  File-processing jobs recorded by the backend.
+                </p>
+              </div>
+
+              <Link
+                to="/admin/system-health"
+                className={linkGhostClass}
+              >
+                View All
+              </Link>
             </div>
           </div>
 
-        </div>
+          <div className="admin-dashboard-panel__body">
+            {loading ? (
+              <LoadingRow />
+            ) : systemHealth?.processing &&
+              Object.keys(systemHealth.processing).length > 0 ? (
+              Object.entries(systemHealth.processing).map(
+                ([status, count]) => (
+                  <div
+                    key={status}
+                    className="admin-processing-row"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`admin-processing-dot admin-processing-dot--${status.toLowerCase()}`}
+                      />
 
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
-            <div className="border-b border-[#1a2737] px-4 py-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">System Health</h3>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                    <span className="flex h-2 w-2 rounded-full bg-emerald-400" /> All Operational
-                  </span>
-                  <Link to="/admin/system-health" className={linkGhostClass}>
-                    View All
-                  </Link>
-                </div>
+                      <span className="text-sm text-white">
+                        {formatProcessingStatus(status)}
+                      </span>
+                    </div>
+
+                    <span className="admin-processing-row__count">
+                      {count.toLocaleString()}
+                    </span>
+                  </div>
+                ),
+              )
+            ) : (
+              <p className="px-2 py-3 text-xs text-[#8ea3bb]">
+                No processing jobs recorded.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+      {/* ============================================================
+          INTEGRITY / BLOCKCHAIN SUMMARY
+          ============================================================ */}
+
+      <div className="mb-8">
+        <div className="admin-dashboard-panel">
+          <div className="admin-dashboard-panel__header">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Integrity &amp; Blockchain
+                </h3>
+
+                <p className="mt-1 text-[10px] text-[#8ea3bb]">
+                  Evidence integrity records and tamper-evident chain status.
+                </p>
               </div>
-            </div>
-            <div className="flex flex-1 flex-col justify-between gap-2 p-2">
-              {SYSTEM_HEALTH.map((service) => (
-                <HealthRow key={service.name} service={service} />
-              ))}
+
+              <ShieldCheck className="h-5 w-5 text-[#38bdf8]" />
             </div>
           </div>
 
-          <CreateUserPanel />
-          <DocumentIntegrityPanel />
+          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
+            <SummaryCard
+              label="Integrity Records"
+              value={overview?.document_integrity.total_records}
+              loading={loading}
+            />
+
+            <SummaryCard
+              label="Blockchain Blocks"
+              value={overview?.blockchain.total_blocks}
+              loading={loading}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2 px-4 pb-4">
+            <Link
+              to="/admin/document-integrity"
+              className="admin-dashboard-link admin-dashboard-link--primary"
+            >
+              View Integrity Records
+            </Link>
+
+            <Link
+              to="/admin/event-pipeline"
+              className="admin-dashboard-link"
+            >
+              View Event Pipeline
+            </Link>
+          </div>
         </div>
+      </div>
 
-        <div>
-          <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
-            <div className="border-b border-[#1a2737] px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-white">User Management</h3>
-                  <p className="mt-0.5 text-[10px] text-[#8ea3bb]">
-                    Create and manage lawyer accounts. Administrators cannot access case data.
-                  </p>
-                </div>
-                <Link
-                  to="/admin/users"
-                  className="inline-flex h-8 items-center rounded-md bg-[#38bdf8] px-3 text-sm font-medium text-[#0b131e] transition-colors outline-none hover:bg-[#5cc0f5] focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" /> New User
-                </Link>
+
+      {/* ============================================================
+          RECENT USERS
+          ============================================================ */}
+
+      <div>
+        <div className="admin-dashboard-panel">
+          <div className="admin-dashboard-panel__header">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Recent Users
+                </h3>
+
+                <p className="mt-0.5 text-[10px] text-[#8ea3bb]">
+                  Recent accounts returned by the backend.
+                </p>
               </div>
-            </div>
 
-            <div className="border-b border-[#1a2737] px-4 py-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[180px]">
-                  <Users className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5f7891]" />
-                  <Input
-                    type="search"
-                    placeholder="Search users..."
-                    className="pl-8 bg-[#0a1320] border-[#1a2737] text-sm text-white placeholder:text-[#5f7891] focus-visible:ring-[#38bdf8]"
-                  />
-                </div>
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-[130px] bg-[#0a1320] border-[#1a2737] text-sm text-white focus-visible:ring-[#38bdf8]">
-                    <SelectValue placeholder="All Roles" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-                    <SelectItem value="all" className="text-white">All Roles</SelectItem>
-                    <SelectItem value="ADMIN" className="text-white">Admin</SelectItem>
-                    <SelectItem value="LAWYER" className="text-white">Lawyer</SelectItem>
-                    <SelectItem value="ANALYST" className="text-white">Analyst</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-[130px] bg-[#0a1320] border-[#1a2737] text-sm text-white focus-visible:ring-[#38bdf8]">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-                    <SelectItem value="all" className="text-white">All Status</SelectItem>
-                    <SelectItem value="active" className="text-white">Active</SelectItem>
-                    <SelectItem value="pending" className="text-white">Pending</SelectItem>
-                    <SelectItem value="inactive" className="text-white">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Link
+                to="/admin/users"
+                className="admin-dashboard-link admin-dashboard-link--primary"
+              >
+                Manage Users →
+              </Link>
             </div>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#1a2737] bg-[#0a1320]">
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                      <input type="checkbox" className="h-3.5 w-3.5 rounded border-[#1a2737]" />
-                    </th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Username</th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Full Name</th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Role</th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Status</th>
-                    <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Last Login</th>
-                    <th className="px-3 py-3 text-right text-[10px] uppercase tracking-widest text-[#8ea3bb]">Actions</th>
+
+          {/* Table */}
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="admin-table-head">
+                  <th className="admin-table-heading">
+                    Username
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Full Name
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Role
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Status
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Last Login
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="admin-table-empty"
+                    >
+                      Loading users...
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {USER_MANAGEMENT.map((row) => (
-                    <UserRowComponent key={row.id} row={row} selected={false} onSelect={() => {}} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ) : users.length > 0 ? (
+                  users.map((user) => (
+                    <UserRow
+                      key={user.id}
+                      user={user}
+                    />
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="admin-table-empty"
+                    >
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            <div className="flex items-center justify-between border-t border-[#1a2737] px-4 py-3">
-              <p className="text-[10px] text-[#8ea3bb]">Showing 1–5 of {USER_MANAGEMENT.length} users</p>
-              <Pagination />
-            </div>
+
+          {/* Footer */}
+
+          <div className="flex items-center justify-between border-t border-[#1a2737] px-4 py-3">
+            <p className="text-[10px] text-[#8ea3bb]">
+              Showing {users.length} recent users
+            </p>
+
+            <Link
+              to="/admin/users"
+              className={linkGhostClass}
+            >
+              Full User Management →
+            </Link>
           </div>
         </div>
-      </TooltipProvider>
-  );
-}
-
-function EventRow({ event }: { event: SecurityEvent }) {
-  const Icon = event.type === "denied" || event.type === "blocked" ? AlertTriangle : CheckCircle;
-  const badgeVariant = event.type === "success" ? "default" : event.type === "blocked" ? "destructive" : "secondary";
-  return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-[#1a2737] bg-[#0a1320] px-3 py-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 shrink-0 text-white/80" />
-          <span className="text-sm text-white">{event.title}</span>
-        </div>
-        <Badge variant={badgeVariant} className="cursor-default text-[10px] uppercase tracking-wider">
-          {event.badge}
-        </Badge>
       </div>
-      <p className="text-xs text-[#8ea3bb]">{event.detail}</p>
-      <p className="text-[10px] text-[#5f7891] tabular-nums">{event.time}</p>
     </div>
   );
 }
 
-function HealthRow({ service }: { service: HealthService }) {
+
+/* ================================================================
+   METRIC CARD
+   ================================================================ */
+
+function AdminMetric({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  loading,
+}: {
+  label: string;
+  value: number | undefined;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "cyan" | "green" | "purple" | "amber";
+  loading: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-[#1a2737] bg-[#0a1320] px-3 py-2.5">
-      <div className="flex items-center gap-2">
-        <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: service.healthy ? "#34d399" : "#f87171" }} />
-        <span className="text-sm text-white">{service.name}</span>
+    <div
+      className={`admin-dashboard-metric admin-dashboard-metric--${tone}`}
+    >
+      <div className="admin-dashboard-metric__icon">
+        <Icon className="admin-dashboard-metric__icon-svg" />
       </div>
-      <span className="text-xs text-[#8ea3bb] tabular-nums">{service.latency}</span>
+
+      <div className="admin-dashboard-metric__content">
+        <p className="admin-dashboard-metric__value">
+          {loading
+            ? "—"
+            : (value ?? 0).toLocaleString()}
+        </p>
+
+        <p className="admin-dashboard-metric__label">
+          {label}
+        </p>
+      </div>
     </div>
   );
 }
 
-function UserRowComponent({ row, selected, onSelect }: { row: UserRow; selected: boolean; onSelect: () => void }) {
-  const statusColor = row.status === "active" ? "text-emerald-400" : row.status === "pending" ? "text-amber-400" : "text-red-400";
-  const statusBg = row.status === "active" ? "#34d399" : row.status === "pending" ? "#fbbf24" : "#f87171";
-  const roleVariant = row.role === "ADMIN" ? "default" : row.role === "LAWYER" ? "secondary" : "outline";
+
+/* ================================================================
+   HEALTH INDICATOR
+   ================================================================ */
+
+function HealthIndicator({
+  status,
+  loading,
+}: {
+  status: AdminSystemHealth["status"] | undefined;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <span className="admin-dashboard-health admin-dashboard-health--loading">
+        <span className="admin-dashboard-health__dot" />
+        Checking
+      </span>
+    );
+  }
+
+  if (status === "healthy") {
+    return (
+      <span className="admin-dashboard-health admin-dashboard-health--healthy">
+        <span className="admin-dashboard-health__dot" />
+        All Operational
+      </span>
+    );
+  }
+
+  if (status === "degraded") {
+    return (
+      <span className="admin-dashboard-health admin-dashboard-health--degraded">
+        <span className="admin-dashboard-health__dot" />
+        Degraded
+      </span>
+    );
+  }
+
   return (
-    <tr className="border-b border-[#1a2737] last:border-0">
-      <td className="p-3">
-        <Checkbox checked={selected} onCheckedChange={onSelect} className="h-4 w-4" />
+    <span className="admin-dashboard-health admin-dashboard-health--critical">
+      <span className="admin-dashboard-health__dot" />
+      Critical
+    </span>
+  );
+}
+
+
+/* ================================================================
+   HEALTH ROW
+   ================================================================ */
+
+function HealthStatusRow({
+  label,
+  status,
+  loading,
+}: {
+  label: string;
+  status:
+    | "healthy"
+    | "degraded"
+    | "critical"
+    | undefined;
+  loading: boolean;
+}) {
+  const state =
+    status === "healthy"
+      ? "healthy"
+      : status === "degraded"
+        ? "degraded"
+        : status === "critical"
+          ? "critical"
+          : "loading";
+
+  return (
+    <div
+      className={`admin-dashboard-health-row admin-dashboard-health-row--${state}`}
+    >
+      <div className="admin-dashboard-health-row__label">
+        <span className="admin-dashboard-health-row__dot" />
+        <span>{label}</span>
+      </div>
+
+      <span className="admin-dashboard-health-row__status">
+        {loading
+          ? "Checking"
+          : status ?? "Unknown"}
+      </span>
+    </div>
+  );
+}
+
+
+/* ================================================================
+   PROCESSING STATUS
+   ================================================================ */
+
+function formatProcessingStatus(status: string) {
+  return status
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+
+/* ================================================================
+   SUMMARY CARD
+   ================================================================ */
+
+function SummaryCard({
+  label,
+  value,
+  loading,
+}: {
+  label: string;
+  value: number | undefined;
+  loading: boolean;
+}) {
+  return (
+    <div className="admin-panel admin-dashboard-summary">
+      <p className="admin-dashboard-summary__value">
+        {loading
+          ? "—"
+          : (value ?? 0).toLocaleString()}
+      </p>
+
+      <p className="admin-dashboard-summary__label">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+
+/* ================================================================
+   USER ROW
+   ================================================================ */
+
+function UserRow({
+  user,
+}: {
+  user: AdminUser;
+}) {
+  return (
+    <tr className="admin-table-row">
+      <td className="admin-table-cell admin-table-cell--username">
+        {user.username}
       </td>
-      <td className="px-3 py-3 text-sm font-mono text-white">{row.username}</td>
-      <td className="px-3 py-3 text-sm text-white">{row.fullName}</td>
-      <td className="px-3 py-3">
-        <Badge variant={roleVariant} className="cursor-default text-[10px] uppercase tracking-wider">
-          {row.role}
-        </Badge>
+
+      <td className="admin-table-cell">
+        {user.full_name}
       </td>
-      <td className="px-3 py-3">
-        <span className={`inline-flex items-center gap-1.5 text-xs ${statusColor}`}>
-          <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: statusBg }} />
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+
+      <td className="admin-table-cell">
+        <span
+          className={`admin-role-badge admin-role-badge--${
+            user.role === "ADMIN"
+              ? "admin"
+              : "lawyer"
+          }`}
+        >
+          {user.role}
         </span>
       </td>
-      <td className="px-3 py-3 text-xs text-[#8ea3bb] tabular-nums">{row.lastLogin}</td>
-      <td className="px-3 py-3 text-right text-xs text-[#8ea3bb]">
-        <button type="button" className="underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8] rounded">
-          ...
-        </button>
+
+      <td className="admin-table-cell">
+        <span
+          className={`admin-user-status ${
+            user.is_active
+              ? "admin-user-status--active"
+              : "admin-user-status--inactive"
+          }`}
+        >
+          <span className="admin-user-status__dot" />
+
+          {user.is_active
+            ? "Active"
+            : "Inactive"}
+        </span>
+      </td>
+
+      <td className="admin-table-cell admin-table-cell--muted">
+        {user.last_login
+          ? new Date(
+              user.last_login,
+            ).toLocaleString()
+          : "Never"}
       </td>
     </tr>
   );
 }
 
-function CopyableHash({ value }: { value: string }) {
-  const [copied, setCopied] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
 
-  function copy() {
-    if (!ref.current) return;
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }).catch(() => {});
-  }
+/* ================================================================
+   LOADING ROW
+   ================================================================ */
 
+function LoadingRow() {
   return (
-    <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-      <span ref={ref} className="flex min-w-0 flex-1 items-center gap-2 text-xs font-mono text-white break-all">
-        {value}
-      </span>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={copy}
-              className="shrink-0 rounded-sm p-1 text-[#8ea3bb] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
-              aria-label="Copy hash"
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{copied ? "Copied" : "Copy hash"}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-}
+    <div className="admin-processing-row">
+      <div className="flex items-center gap-2">
+        <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#38bdf8]" />
 
-function DocumentIntegrityPanel() {
-  const doc = SAMPLE_DOCUMENT;
-  const [selectedTab, setSelectedTab] = React.useState<"integrity" | "block">("integrity");
-  const [copiedSha, setCopiedSha] = React.useState(false);
-  const [copiedBlock, setCopiedBlock] = React.useState(false);
-  const [verifyMessage, setVerifyMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [auditExpanded, setAuditExpanded] = React.useState(false);
-
-  async function copySha() {
-    if (!doc.sha256) return;
-    try {
-      await navigator.clipboard.writeText(doc.sha256);
-      setCopiedSha(true);
-      setTimeout(() => setCopiedSha(false), 1500);
-    } catch {
-      /* clipboard unavailable in prototype */
-    }
-  }
-
-  async function copyBlockHash() {
-    if (!doc.blockHash) return;
-    try {
-      await navigator.clipboard.writeText(doc.blockHash);
-      setCopiedBlock(true);
-      setTimeout(() => setCopiedBlock(false), 1500);
-    } catch {
-      /* clipboard unavailable in prototype */
-    }
-  }
-
-  function handleVerifyIntegrity() {
-    setVerifyMessage({ type: "success", text: "Integrity verified against block " + doc.blockNumber });
-    setTimeout(() => setVerifyMessage(null), 4000);
-  }
-
-  function handleViewAuditLog() {
-    setAuditExpanded((prev) => !prev);
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
-      <div className="border-b border-[#1a2737] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Document Integrity</h3>
-          <Link to="/admin/document-integrity" className="inline-flex h-8 items-center rounded-md px-2 text-xs text-[#8ea3bb] transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-[#38bdf8]">
-            View All
-          </Link>
-        </div>
+        <span className="text-sm text-[#8ea3bb]">
+          Loading processing status...
+        </span>
       </div>
-
-      <div className="p-4">
-        <div className="flex items-start gap-3 rounded-lg border border-[#1a2737] bg-[#0a1320] p-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#2a1f3d] text-white/80">
-            <FileText className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-white break-all">{doc.fileName}</p>
-              <Badge variant="default" className="shrink-0 text-[10px] uppercase tracking-wider text-emerald-100 border-emerald-500/40 bg-emerald-500/15 font-medium">
-                Verified
-              </Badge>
-            </div>
-            <p className="mt-1 text-xs text-[#8ea3bb]">Case: {doc.caseRef}</p>
-            <p className="text-[10px] text-[#5f7891]">Uploaded: {doc.uploaded}</p>
-          </div>
-        </div>
-
-        <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as "integrity" | "block")} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2 border border-[#1a2737]">
-            <TabsTrigger value="integrity" className="text-xs">Integrity Details</TabsTrigger>
-            <TabsTrigger value="block" className="text-xs">Block Information</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="integrity" className="mt-4 space-y-2">
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">SHA-256 Hash</span>
-              <div className="flex items-center gap-2">
-                <span className="flex min-w-0 flex-1 items-center gap-2 text-xs font-mono text-white break-all">
-                  {doc.sha256}
-                </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={copySha}
-                        className="shrink-0 rounded-sm p-1 text-[#8ea3bb] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
-                        aria-label="Copy SHA-256 hash"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{copiedSha ? "Copied" : "Copy hash"}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Block Hash</span>
-              <div className="flex items-center gap-2">
-                <span className="flex min-w-0 flex-1 items-center gap-2 text-xs font-mono text-white break-all">
-                  {doc.blockHash}
-                </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={copyBlockHash}
-                        className="shrink-0 rounded-sm p-1 text-[#8ea3bb] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38bdf8]"
-                        aria-label="Copy block hash"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{copiedBlock ? "Copied" : "Copy block hash"}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Blockchain Block</span>
-              <span className="text-xs font-mono text-white">{doc.blockNumber}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Status</span>
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                <ShieldCheck className="h-3.5 w-3.5" /> Verified
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Modification</span>
-              <span className="text-xs text-[#ff5a5a]">{doc.modification}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Deletion</span>
-              <span className="text-xs text-[#ff5a5a]">{doc.deletion}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-              <span className="text-xs text-[#8ea3bb]">Annotations</span>
-              <span className="text-xs text-white">{doc.annotations}</span>
-            </div>
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button variant="outline" size="sm" className="border-[#38bdf8]/40 text-[#38bdf8] hover:bg-[#38bdf8]/10" onClick={handleVerifyIntegrity}>
-                <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Verify Integrity
-              </Button>
-              <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white" onClick={handleViewAuditLog}>
-                <svg className="mr-1 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path d="M4 4h14v6H8l-2 5v9h12v-7h2v7h6v-9l-2-5h-4V4z" />
-                </svg>
-                View Audit Log
-              </Button>
-            </div>
-
-            {verifyMessage && (
-              <div className={`mt-2 rounded-md border px-3 py-2 text-xs ${verifyMessage.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-red-500/40 bg-red-500/10 text-red-300"}`}>
-                {verifyMessage.text}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="block" className="mt-4 text-xs text-[#8ea3bb]">
-            {auditExpanded ? (
-              <div className="rounded-md border border-[#1a2737] bg-[#0a1320] p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white">Audit Log — {doc.fileName}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAuditExpanded(false)}
-                    className="text-[#8ea3bb] hover:text-white"
-                  >
-                    Hide
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-                  <span className="text-xs text-[#8ea3bb]">Action</span>
-                  <span className="text-xs text-white">Integrity Check</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-                  <span className="text-xs text-[#8ea3bb]">Result</span>
-                  <span className="text-xs text-emerald-400">Passed</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-                  <span className="text-xs text-[#8ea3bb]">Block Reference</span>
-                  <span className="text-xs font-mono text-white">{doc.blockNumber}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-                  <span className="text-xs text-[#8ea3bb]">Verified By</span>
-                  <span className="text-xs font-mono text-white">{doc.verifiedBy}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2">
-                  <span className="text-xs text-[#8ea3bb]">Timestamp</span>
-                  <span className="text-xs font-mono text-white">{doc.timestamp}</span>
-                </div>
-              </div>
-            ) : (
-              <p className="rounded-md border border-[#1a2737] bg-[#0a1320] p-3">
-                Block details are intentionally summarized for the prototype. A production system would surface full
-                block metadata from the blockchain service.
-              </p>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
-
-function Pagination() {
-  return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white disabled:opacity-40" disabled>
-        &lt;
-      </Button>
-      <Button variant="secondary" size="sm" className="border-[#1a2737] text-white">
-        1
-      </Button>
-      <Button variant="outline" size="sm" className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10">
-        2
-      </Button>
-      <Button variant="outline" size="sm" className="border-[#1a2737] text-white hover:bg-[#38bdf8]/10">
-        3
-      </Button>
-      <Button variant="outline" size="sm" className="border-[#1a2737] text-[#8ea3bb] hover:text-white">
-        &gt;
-      </Button>
     </div>
   );
 }

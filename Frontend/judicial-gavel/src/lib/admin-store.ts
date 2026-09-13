@@ -12,19 +12,17 @@
 import { useSyncExternalStore } from "react";
 
 const ADMIN_SESSION_KEY = "legal-eye.admin.session.v1";
-const ADMIN_EMAIL = "ADMIN";
+const ADMIN_USERNAME = "ADMIN";
 const ADMIN_PASSWORD = "admin";
 
 // Back-compat alias used by the standalone /admin-login screen.
-export const ALT_ADMIN_EMAIL = "admin@legaleye.in";
-export const ALT_ADMIN_PASSWORD = "admin";
 let adminCache: AdminUser | null | undefined; // undefined = not yet read
 const adminListeners = new Set<() => void>();
 
 export interface AdminUser {
   name: string;
   initials: string;
-  email: string;
+  username: string;
 }
 
 function readAdminSession(): AdminUser | null {
@@ -65,12 +63,15 @@ export function useAdmin(): AdminUser | null {
   return useSyncExternalStore(subscribeAdmin, readAdminSession, () => null);
 }
 
-export function checkAdminCredentials(email: string, password: string): boolean {
-  const normalized = email.trim().toLowerCase();
-  const emailMatch =
-    normalized === ADMIN_EMAIL.toLowerCase() ||
-    normalized === ALT_ADMIN_EMAIL.toLowerCase();
-  return emailMatch && password === ADMIN_PASSWORD;
+export function checkAdminCredentials(
+  username: string,
+  password: string,
+): boolean {
+  return (
+    username.trim().toLowerCase() ===
+      ADMIN_USERNAME.toLowerCase() &&
+    password === ADMIN_PASSWORD
+  );
 }
 
 export function signInAsAdmin(user: AdminUser) {
@@ -84,5 +85,5 @@ export function signOutAdmin() {
 export const DEFAULT_ADMIN_USER: AdminUser = {
   name: "System Administrator",
   initials: "AD",
-  email: "admin@legaleye.in",
+  username: "ADMIN",
 };

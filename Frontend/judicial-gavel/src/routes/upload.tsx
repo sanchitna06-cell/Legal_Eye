@@ -1,12 +1,20 @@
-import { createFileRoute, Link, redirect, useSearch } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useSearch,
+} from "@tanstack/react-router";
+
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   type DragEvent,
+  type FormEvent,
   type KeyboardEvent,
 } from "react";
+
 import {
   Check,
   FileText,
@@ -17,36 +25,79 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+
 import { format } from "date-fns";
+
 import { AppHeader } from "@/components/layout/AppHeader";
 import { SidebarDrawer } from "@/components/dashboard/SidebarDrawer";
-import { useCaseActions, toCaseRecord } from "@/lib/case-store";
-import { getSession } from "@/lib/user-store";
-import { getDocumentStatus, uploadDocument, type DocumentProcessingStage } from "@/lib/api";
 
-export const Route = createFileRoute("/upload")({
+import {
+  getDocumentStatus,
+  uploadDocument,
+  type DocumentProcessingStage,
+} from "@/lib/api";
+
+import {
+  useCaseActions,
+  toCaseRecord,
+} from "@/lib/case-store";
+
+import { getSession } from "@/lib/user-store";
+
+
+/* ========================================================================== */
+/* ROUTE                                                                      */
+/* ========================================================================== */
+
+export const Route = createFileRoute(
+  "/upload",
+)({
   beforeLoad: () => {
-    if (!getSession()) throw redirect({ to: "/" });
+    if (!getSession()) {
+      throw redirect({
+        to: "/",
+      });
+    }
   },
-  validateSearch: (search: Record<string, unknown>) => {
-    const caseId = search["case"];
+
+  validateSearch: (
+    search: Record<string, unknown>,
+  ) => {
+    const caseId =
+      search["case"];
 
     return {
-      case: typeof caseId === "string" && caseId.trim() ? caseId : undefined,
+      case:
+        typeof caseId ===
+          "string" &&
+        caseId.trim()
+          ? caseId
+          : undefined,
     };
   },
+
   head: () => ({
     meta: [
-      { title: "Upload Case File — JURY HASH" },
+      {
+        title:
+          "Upload Case File — JURY HASH",
+      },
       {
         name: "description",
         content:
-          "Add a legal case file to the JURY HASH archive — select the document, confirm the matter and file it under your case records.",
+          "Securely preserve an original legal document in JURY HASH and create or update its case record.",
       },
     ],
   }),
-  component: UploadCase,
+
+  component:
+    UploadCase,
 });
+
+
+/* ========================================================================== */
+/* TYPES                                                                      */
+/* ========================================================================== */
 
 interface ChosenFile {
   file: File;
@@ -54,184 +105,473 @@ interface ChosenFile {
   size: number;
 }
 
-/**
- * One filing attempt.
- *
- * `documentId` is null until the backend has accepted the upload.
- * Once a case has been created it is pinned here so that retries
- * reuse the SAME case and can never create duplicates.
- */
+
 interface FilingOperation {
   caseId: string;
   documentId: string | null;
   file: ChosenFile;
 }
 
-/**
- * Upload state machine.
- *
- * IDLE → SUBMITTING → PROCESSING → COMPLETED
- *                    ↘ FAILED (retry or start over)
- *
- * Pre-submit validation errors stay in IDLE and surface as the
- * inline form error; every post-submission failure lands in
- * FAILED so retry can never create a second case.
- */
-type UploadPhase = "IDLE" | "SUBMITTING" | "PROCESSING" | "COMPLETED" | "FAILED";
 
-function humanSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+type UploadPhase =
+  | "IDLE"
+  | "SUBMITTING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED";
 
-const ACCEPT = ".pdf";
 
-/* ============================================================
-   Document status polling
-   ============================================================ */
+type StepVisual =
+  | "pending"
+  | "active"
+  | "completed"
+  | "failed";
 
-const POLL_INTERVAL_MS = 1500;
 
-/** Consecutive status failures tolerated before giving up. */
-const MAX_POLL_ERRORS = 5;
+/* ========================================================================== */
+/* CONSTANTS                                                                  */
+/* ========================================================================== */
 
-/* ============================================================
-   Processing stepper (public stages from the status contract)
-   ============================================================ */
+const ACCEPT =
+  ".pdf";
 
-const STAGE_ORDER: DocumentProcessingStage[] = ["DOCUMENT_ANALYSIS", "CASE_RECORD", "INTEGRITY"];
+
+const POLL_INTERVAL_MS =
+  1500;
+
+
+const MAX_POLL_ERRORS =
+  5;
+
+
+const STAGE_ORDER:
+  DocumentProcessingStage[] =
+  [
+    "DOCUMENT_ANALYSIS",
+    "CASE_RECORD",
+    "INTEGRITY",
+  ];
+
 
 const STEPS: Array<{
   stage: DocumentProcessingStage;
+  number: string;
   label: string;
   description: string;
 }> = [
   {
-    stage: "DOCUMENT_ANALYSIS",
-    label: "Analyzing document",
-    description: "Reading pages, extracting text, running OCR where needed.",
+    stage:
+      "DOCUMENT_ANALYSIS",
+    number: "01",
+    label:
+      "Analyze document",
+    description:
+      "Read pages, extract text and identify document structure.",
   },
   {
-    stage: "CASE_RECORD",
-    label: "Preparing case record",
-    description: "Identifying parties, dates and details for the case file.",
+    stage:
+      "CASE_RECORD",
+    number: "02",
+    label:
+      "Prepare case record",
+    description:
+      "Extract parties, dates and case details for the matter.",
   },
   {
-    stage: "INTEGRITY",
-    label: "Securing document integrity",
-    description: "Anchoring the original document into the JURY HASH chain.",
+    stage:
+      "INTEGRITY",
+    number: "03",
+    label:
+      "Preserve integrity",
+    description:
+      "Hash and anchor the original document in the JURY HASH chain.",
   },
 ];
 
-type StepVisual = "pending" | "active" | "completed" | "failed";
+
+/* ========================================================================== */
+/* HELPERS                                                                    */
+/* ========================================================================== */
+
+function humanSize(
+  bytes: number,
+) {
+  if (
+    bytes <
+    1024 * 1024
+  ) {
+    return `${Math.max(
+      1,
+      Math.round(
+        bytes / 1024,
+      ),
+    )} KB`;
+  }
+
+  return `${(
+    bytes /
+    (1024 * 1024)
+  ).toFixed(1)} MB`;
+}
+
+
+function stageNumber(
+  stage:
+    | DocumentProcessingStage
+    | null,
+) {
+  if (!stage) {
+    return "—";
+  }
+
+  const index =
+    STAGE_ORDER.indexOf(
+      stage,
+    );
+
+  return index >= 0
+    ? String(
+        index + 1,
+      ).padStart(2, "0")
+    : "—";
+}
+
+
+/* ========================================================================== */
+/* MAIN COMPONENT                                                             */
+/* ========================================================================== */
 
 function UploadCase() {
-  const { addCase } = useCaseActions();
-  const { case: existingCaseId } = useSearch({ from: "/upload" });
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [file, setFile] = useState<ChosenFile | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [confidential, setConfidential] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    addCase,
+  } =
+    useCaseActions();
 
-  // Upload state machine — the ONLY source of what the page shows.
-  const [phase, setPhase] = useState<UploadPhase>("IDLE");
-  const [stage, setStage] = useState<DocumentProcessingStage | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [operation, setOperation] = useState<FilingOperation | null>(null);
+  const {
+    case: existingCaseId,
+  } = useSearch({
+    from: "/upload",
+  });
 
-  // Synchronous guards: prevent double submissions before React
-  // state commits, and keep exactly one polling loop alive.
-  const inFlightRef = useRef(false);
-  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollActiveRef = useRef(false);
-  const pollErrorsRef = useRef(0);
 
-  const busy = phase === "SUBMITTING" || phase === "PROCESSING";
+  /* ------------------------------------------------------------------------ */
+  /* Layout                                                                   */
+  /* ------------------------------------------------------------------------ */
 
-  const stopPolling = useCallback(() => {
-    pollActiveRef.current = false;
+  const [
+    sidebarExpanded,
+    setSidebarExpanded,
+  ] = useState(true);
 
-    if (pollTimerRef.current !== null) {
-      clearTimeout(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-  }, []);
+  const [
+    mobileDrawerOpen,
+    setMobileDrawerOpen,
+  ] = useState(false);
 
-  useEffect(() => stopPolling, [stopPolling]);
 
-  /**
-   * Poll the backend status endpoint until the document reaches a
-   * terminal state. Exactly one loop exists: every call first stops
-   * any previous loop. Timers are cleared on unmount.
-   */
-  const startStatusPolling = useCallback(
-    (documentId: string) => {
-      stopPolling();
-      pollActiveRef.current = true;
-      pollErrorsRef.current = 0;
+  /* ------------------------------------------------------------------------ */
+  /* File                                                                      */
+  /* ------------------------------------------------------------------------ */
 
-      const poll = async () => {
-        if (!pollActiveRef.current) return;
+  const [
+    file,
+    setFile,
+  ] =
+    useState<ChosenFile | null>(
+      null,
+    );
 
-        try {
-          const status = await getDocumentStatus(documentId);
+  const [
+    dragActive,
+    setDragActive,
+  ] = useState(false);
 
-          if (!pollActiveRef.current) return;
+  const [
+    confidential,
+    setConfidential,
+  ] = useState(false);
 
-          pollErrorsRef.current = 0;
-          setStatusMessage(status.message);
 
-          if (status.status === "COMPLETED") {
-            stopPolling();
-            inFlightRef.current = false;
-            setPhase("COMPLETED");
-            return;
-          }
+  /* ------------------------------------------------------------------------ */
+  /* Upload state machine                                                      */
+  /* ------------------------------------------------------------------------ */
 
-          if (status.status === "FAILED") {
-            stopPolling();
-            inFlightRef.current = false;
-            setStage(status.stage);
-            setError(status.message);
-            setPhase("FAILED");
-            return;
-          }
-
-          // QUEUED / PROCESSING: advance the visible stage only from
-          // real backend data — never from timers or guesses.
-          setStage(status.stage);
-        } catch {
-          // Transient network errors: keep polling quietly, but give
-          // up after repeated failures instead of hanging forever.
-          if (!pollActiveRef.current) return;
-
-          pollErrorsRef.current += 1;
-
-          if (pollErrorsRef.current >= MAX_POLL_ERRORS) {
-            stopPolling();
-            inFlightRef.current = false;
-            setStage(null);
-            setError("Lost contact with the archive while processing. Please retry.");
-            setPhase("FAILED");
-            return;
-          }
-        }
-
-        if (pollActiveRef.current) {
-          pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
-        }
-      };
-
-      void poll();
-    },
-    [stopPolling],
+  const [
+    phase,
+    setPhase,
+  ] = useState<UploadPhase>(
+    "IDLE",
   );
 
-  function pickFile(next: File | undefined) {
-    if (!next) return;
-    if (busy) return;
+  const [
+    stage,
+    setStage,
+  ] =
+    useState<DocumentProcessingStage | null>(
+      null,
+    );
+
+  const [
+    statusMessage,
+    setStatusMessage,
+  ] =
+    useState<string | null>(
+      null,
+    );
+
+  const [
+    error,
+    setError,
+  ] =
+    useState<string | null>(
+      null,
+    );
+
+  const [
+    operation,
+    setOperation,
+  ] =
+    useState<FilingOperation | null>(
+      null,
+    );
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Refs                                                                      */
+  /* ------------------------------------------------------------------------ */
+
+  const inFlightRef =
+    useRef(false);
+
+  const pollTimerRef =
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
+
+  const pollActiveRef =
+    useRef(false);
+
+  const pollErrorsRef =
+    useRef(0);
+
+
+  const busy =
+    phase ===
+      "SUBMITTING" ||
+    phase ===
+      "PROCESSING";
+
+
+  /* ========================================================================
+     POLLING
+     ======================================================================== */
+
+  const stopPolling =
+    useCallback(
+      () => {
+        pollActiveRef.current =
+          false;
+
+        if (
+          pollTimerRef.current !==
+          null
+        ) {
+          clearTimeout(
+            pollTimerRef.current,
+          );
+
+          pollTimerRef.current =
+            null;
+        }
+      },
+      [],
+    );
+
+
+  useEffect(() => {
+    return stopPolling;
+  }, [stopPolling]);
+
+
+  const startStatusPolling =
+    useCallback(
+      (
+        documentId: string,
+      ) => {
+        stopPolling();
+
+        pollActiveRef.current =
+          true;
+
+        pollErrorsRef.current =
+          0;
+
+
+        const poll =
+          async () => {
+            if (
+              !pollActiveRef.current
+            ) {
+              return;
+            }
+
+
+            try {
+              const status =
+                await getDocumentStatus(
+                  documentId,
+                );
+
+
+              if (
+                !pollActiveRef.current
+              ) {
+                return;
+              }
+
+
+              pollErrorsRef.current =
+                0;
+
+              setStatusMessage(
+                status.message,
+              );
+
+
+              if (
+                status.status ===
+                "COMPLETED"
+              ) {
+                stopPolling();
+
+                inFlightRef.current =
+                  false;
+
+                setStage(
+                  "INTEGRITY",
+                );
+
+                setPhase(
+                  "COMPLETED",
+                );
+
+                return;
+              }
+
+
+              if (
+                status.status ===
+                "FAILED"
+              ) {
+                stopPolling();
+
+                inFlightRef.current =
+                  false;
+
+                setStage(
+                  status.stage,
+                );
+
+                setError(
+                  status.message,
+                );
+
+                setPhase(
+                  "FAILED",
+                );
+
+                return;
+              }
+
+
+              setStage(
+                status.stage,
+              );
+            } catch {
+              if (
+                !pollActiveRef.current
+              ) {
+                return;
+              }
+
+
+              pollErrorsRef.current +=
+                1;
+
+
+              if (
+                pollErrorsRef.current >=
+                MAX_POLL_ERRORS
+              ) {
+                stopPolling();
+
+                inFlightRef.current =
+                  false;
+
+                setStage(null);
+
+                setError(
+                  "Lost contact with the archive while processing. Please retry.",
+                );
+
+                setPhase(
+                  "FAILED",
+                );
+
+                return;
+              }
+            }
+
+
+            if (
+              pollActiveRef.current
+            ) {
+              pollTimerRef.current =
+                setTimeout(
+                  poll,
+                  POLL_INTERVAL_MS,
+                );
+            }
+          };
+
+
+        void poll();
+      },
+      [stopPolling],
+    );
+
+
+  /* ========================================================================
+     FILE HANDLING
+     ======================================================================== */
+
+  function pickFile(
+    next:
+      | File
+      | undefined,
+  ) {
+    if (!next) {
+      return;
+    }
+
+    if (busy) {
+      return;
+    }
+
+    if (
+      next.type !==
+        "application/pdf" &&
+      !next.name
+        .toLowerCase()
+        .endsWith(".pdf")
+    ) {
+      setError(
+        "Only PDF documents can be added to the case archive.",
+      );
+
+      return;
+    }
+
 
     setFile({
       file: next,
@@ -241,206 +581,299 @@ function UploadCase() {
 
     setError(null);
   }
-  function onDrop(event: DragEvent<HTMLDivElement>) {
+
+
+  function onDrop(
+    event: DragEvent<HTMLDivElement>,
+  ) {
     event.preventDefault();
 
-    if (busy) return;
-
-    setDragActive(false);
-    pickFile(event.dataTransfer.files?.[0]);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (busy) return;
-
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      document.getElementById("case-file-input")?.click();
-    }
-  }
-
-    async function submitForm(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    // Duplicate submission guard: one filing at a time.
-    if (busy || inFlightRef.current) return;
-
-    if (!file) {
-      setError("Select a PDF before filing the matter.");
+    if (busy) {
       return;
     }
 
-    inFlightRef.current = true;
-    setError(null);
-    setStatusMessage(null);
-    setStage(null);
-    setPhase("SUBMITTING");
+    setDragActive(false);
 
-    const chosenFile = file;
+    pickFile(
+      event.dataTransfer.files?.[0],
+    );
+  }
 
-    let targetCaseId = existingCaseId ?? null;
 
-    try {
-      /*
-       * Two supported workflows:
-       *
-       * 1. /upload
-       *    → create a new case, then upload the document into it.
-       *
-       * 2. /upload?case=<id>
-       *    → use the existing case and upload the document into it.
-       */
-      if (!targetCaseId) {
-        const provisionalTitle = chosenFile.name
+  function handleDropzoneKeyDown(
+    event: KeyboardEvent<HTMLDivElement>,
+  ) {
+    if (busy) {
+      return;
+    }
+
+    if (
+      event.key ===
+        "Enter" ||
+      event.key ===
+        " "
+    ) {
+      event.preventDefault();
+
+      document
+        .getElementById(
+          "case-file-input",
+        )
+        ?.click();
+    }
+  }
+
+
+  /* ========================================================================
+     SUBMIT
+     ======================================================================== */
+
+  async function submitForm(
+  event: FormEvent<HTMLFormElement>,
+) {
+  event.preventDefault();
+
+  if (
+    busy ||
+    inFlightRef.current
+  ) {
+    return;
+  }
+
+  if (!file) {
+    setError(
+      "Select a PDF before filing the matter.",
+    );
+    return;
+  }
+
+  inFlightRef.current = true;
+
+  setError(null);
+  setStatusMessage(null);
+  setStage(null);
+  setPhase("SUBMITTING");
+
+  const chosenFile = file;
+
+  let targetCaseId =
+    existingCaseId ?? null;
+
+  try {
+    if (!targetCaseId) {
+      const provisionalTitle =
+        chosenFile.name
           .replace(/\.[^.]+$/, "")
           .replace(/[_-]+/g, " ")
           .trim();
 
-        const record = toCaseRecord({
-          id: "",
-          title: provisionalTitle || "Untitled case",
-          court: "",
-          bench: "To be assigned",
-          status: "Active",
-          classification: confidential ? "confidential" : "general",
-          filed: format(new Date(), "dd MMM yyyy"),
-          subject: "",
-          petitioner: "",
-          respondent: "",
-          summary: "Case metadata pending document analysis.",
-          fileName: chosenFile.name,
-        });
-
-        const createdCase = await addCase(record);
-        targetCaseId = createdCase.id;
-      }
-
-      /*
-       * Pin the target case immediately.
-       *
-       * For a new case this prevents retries from creating duplicates.
-       * For an existing case this keeps the new document attached to
-       * the same case throughout the operation.
-       */
-      setOperation({
-        caseId: targetCaseId,
-        documentId: null,
-        file: chosenFile,
+      const record = toCaseRecord({
+        id: "",
+        title:
+          provisionalTitle ||
+          "Untitled case",
+        court: "",
+        bench: "To be assigned",
+        status: "Active",
+        classification:
+          confidential
+            ? "confidential"
+            : "general",
+        filed: format(
+          new Date(),
+          "dd MMM yyyy",
+        ),
+        subject: "",
+        petitioner: "",
+        respondent: "",
+        summary:
+          "Case metadata pending document analysis.",
+        fileName:
+          chosenFile.name,
       });
 
-      const uploadResponse = await uploadDocument(
+      const createdCase =
+        await addCase(record);
+
+      targetCaseId =
+        createdCase.id;
+    }
+
+    setOperation({
+      caseId: targetCaseId,
+      documentId: null,
+      file: chosenFile,
+    });
+
+    const uploadResponse =
+      await uploadDocument(
         targetCaseId,
         chosenFile.file,
       );
 
-      setOperation({
-        caseId: targetCaseId,
-        documentId: uploadResponse.document_id,
-        file: chosenFile,
-      });
+    setOperation({
+      caseId: targetCaseId,
+      documentId:
+        uploadResponse.document_id,
+      file: chosenFile,
+    });
 
-      setPhase("PROCESSING");
-      startStatusPolling(uploadResponse.document_id);
-    } catch (submitError) {
-      console.error("Failed to create case or upload document:", submitError);
+    setPhase("PROCESSING");
 
-      const message =
-        submitError instanceof Error && submitError.message
-          ? submitError.message
-          : "Failed to create case or upload document.";
+    startStatusPolling(
+      uploadResponse.document_id,
+    );
+  } catch (submitError) {
+    console.error(
+      "Failed to create case or upload document:",
+      submitError,
+    );
 
-      setStatusMessage(null);
-      setStage(null);
-      setError(message);
+    const message =
+      submitError instanceof Error &&
+      submitError.message
+        ? submitError.message
+        : "Failed to create case or upload document.";
 
-      if (targetCaseId) {
-        // The target case exists — never create or select a second case.
-        inFlightRef.current = false;
-        setPhase("FAILED");
-      } else {
-        // Nothing was created.
-        setOperation(null);
-        setPhase("IDLE");
-        inFlightRef.current = false;
-      }
-    }
-  }
-
-  /**
-   * Resume a failed filing without ever creating a second case.
-   *
-   * The backend arbitrates what actually happened:
-   * - document still queued/processing → resume observing it;
-   * - document already COMPLETED       → show success;
-   * - terminally FAILED, or never uploaded → (re-)upload the same
-   *   file into the SAME case as a new attempt.
-   */
-  async function retryFiling() {
-    const current = operation;
-
-    if (!current || phase !== "FAILED" || inFlightRef.current) return;
-
-    inFlightRef.current = true;
-    setError(null);
     setStatusMessage(null);
     setStage(null);
+    setError(message);
 
-    if (current.documentId) {
-      try {
-        const status = await getDocumentStatus(current.documentId);
+    inFlightRef.current =
+      false;
 
-        if (status.status === "COMPLETED") {
-          inFlightRef.current = false;
-          setPhase("COMPLETED");
-          return;
-        }
+    setPhase("FAILED");
+  }
+}
 
-        if (status.status !== "FAILED") {
-          // The earlier failure signal was spurious — keep observing.
-          setPhase("PROCESSING");
-          startStatusPolling(current.documentId);
-          return;
-        }
+  /* ========================================================================
+     RETRY
+     ======================================================================== */
 
-        // Confirmed terminal failure: fall through and re-file the
-        // document into the SAME case.
-      } catch {
-        // Cannot confirm backend state — keep observing instead of
-        // risking a duplicate filing.
-        setPhase("PROCESSING");
-        startStatusPolling(current.documentId);
+  async function retryFiling() {
+  const current =
+    operation;
+
+  if (
+    !current ||
+    phase !== "FAILED" ||
+    inFlightRef.current
+  ) {
+    return;
+  }
+
+  inFlightRef.current = true;
+
+  setError(null);
+  setStatusMessage(null);
+  setStage(null);
+
+  if (current.documentId) {
+    try {
+      const status =
+        await getDocumentStatus(
+          current.documentId,
+        );
+
+      if (
+        status.status ===
+        "COMPLETED"
+      ) {
+        inFlightRef.current =
+          false;
+
+        setStage(
+          "INTEGRITY",
+        );
+
+        setPhase(
+          "COMPLETED",
+        );
+
         return;
       }
-    }
 
-    setPhase("SUBMITTING");
+      if (
+        status.status !==
+        "FAILED"
+      ) {
+        setPhase(
+          "PROCESSING",
+        );
 
-    try {
-      const uploadResponse = await uploadDocument(current.caseId, current.file.file);
+        startStatusPolling(
+          current.documentId,
+        );
 
-      setOperation({
-        caseId: current.caseId,
-        documentId: uploadResponse.document_id,
-        file: current.file,
-      });
-      setPhase("PROCESSING");
-      startStatusPolling(uploadResponse.document_id);
-    } catch (retryError) {
-      console.error("Failed to upload document:", retryError);
-
-      setError(
-        retryError instanceof Error && retryError.message
-          ? retryError.message
-          : "Failed to upload document.",
+        return;
+      }
+    } catch {
+      setPhase(
+        "PROCESSING",
       );
-      setPhase("FAILED");
-      inFlightRef.current = false;
+
+      startStatusPolling(
+        current.documentId,
+      );
+
+      return;
     }
   }
+
+  setPhase("SUBMITTING");
+
+  try {
+    const uploadResponse =
+      await uploadDocument(
+        current.caseId,
+        current.file.file,
+      );
+
+    setOperation({
+      caseId:
+        current.caseId,
+      documentId:
+        uploadResponse.document_id,
+      file:
+        current.file,
+    });
+
+    setPhase("PROCESSING");
+
+    startStatusPolling(
+      uploadResponse.document_id,
+    );
+  } catch (retryError) {
+    console.error(
+      "Failed to upload document:",
+      retryError,
+    );
+
+    const message =
+      retryError instanceof Error &&
+      retryError.message
+        ? retryError.message
+        : "Failed to upload document.";
+
+    setError(message);
+
+    setPhase("FAILED");
+
+    inFlightRef.current =
+      false;
+  }
+}
+
+
+  /* ========================================================================
+     RESET
+     ======================================================================== */
 
   function reset() {
     stopPolling();
-    inFlightRef.current = false;
+
+    inFlightRef.current =
+      false;
 
     setFile(null);
     setConfidential(false);
@@ -448,454 +881,1184 @@ function UploadCase() {
     setStage(null);
     setStatusMessage(null);
     setError(null);
-    setPhase("IDLE");
+    setPhase(
+      "IDLE",
+    );
   }
 
-  function stepVisual(stepStage: DocumentProcessingStage): StepVisual {
-    if (phase === "FAILED") {
-      return stage === stepStage ? "failed" : "pending";
+
+  /* ========================================================================
+     STEP STATE
+     ======================================================================== */
+
+  function stepVisual(
+    stepStage:
+      DocumentProcessingStage,
+  ): StepVisual {
+    if (
+      phase ===
+      "FAILED"
+    ) {
+      return stage ===
+        stepStage
+        ? "failed"
+        : "pending";
     }
 
-    if (stage === null || phase === "SUBMITTING") return "pending";
-    if (stage === "COMPLETE") return "completed";
 
-    const stepIndex = STAGE_ORDER.indexOf(stepStage);
-    const currentIndex = STAGE_ORDER.indexOf(stage);
+    if (
+      phase ===
+        "COMPLETED" &&
+      stepStage ===
+        "INTEGRITY"
+    ) {
+      return "completed";
+    }
 
-    if (currentIndex < 0) return "pending";
-    if (stepIndex < currentIndex) return "completed";
-    if (stepIndex === currentIndex) return "active";
+
+    if (
+      stage ===
+        null ||
+      phase ===
+        "SUBMITTING"
+    ) {
+      return "pending";
+    }
+
+
+    if (
+      stage ===
+      "COMPLETE"
+    ) {
+      return "completed";
+    }
+
+
+    const stepIndex =
+      STAGE_ORDER.indexOf(
+        stepStage,
+      );
+
+    const currentIndex =
+      STAGE_ORDER.indexOf(
+        stage,
+      );
+
+
+    if (
+      currentIndex <
+      0
+    ) {
+      return "pending";
+    }
+
+
+    if (
+      stepIndex <
+      currentIndex
+    ) {
+      return "completed";
+    }
+
+
+    if (
+      stepIndex ===
+      currentIndex
+    ) {
+      return "active";
+    }
+
 
     return "pending";
   }
 
+
+  /* ========================================================================
+     RENDER
+     ======================================================================== */
+
   return (
     <div className="min-h-screen bg-background">
+
       <SidebarDrawer
-      expanded={sidebarExpanded}
-      mobileOpen={mobileDrawerOpen}
-      onToggle={() => setSidebarExpanded((v) => !v)}
-      onMobileClose={() => setMobileDrawerOpen(false)}
-      onSelectCategory={() => {}}
-      activeCategory={null}
-    />
-      <AppHeader 
-      onMenu={() => setMobileDrawerOpen(true)}
-      menuOpen={mobileDrawerOpen}
+        expanded={
+          sidebarExpanded
+        }
+        mobileOpen={
+          mobileDrawerOpen
+        }
+        onToggle={() =>
+          setSidebarExpanded(
+            (value) =>
+              !value,
+          )
+        }
+        onMobileClose={() =>
+          setMobileDrawerOpen(
+            false,
+          )
+        }
+        onSelectCategory={() => {}}
+        activeCategory={
+          null
+        }
       />
-    <div
-      className={`transition-[padding-left] duration-300 ease-out ${
-        sidebarExpanded ? "md:pl-80" : "md:pl-16"
-      }`}
-    ></div>
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
-        <div className="pt-10 sm:pt-14">
-          <p className="label-legal">Record Intake</p>
 
-          <div className="mt-4 flex items-baseline justify-between gap-4">
-            <h1 className="font-display text-[clamp(1.9rem,4vw,2.6rem)] leading-none tracking-[-0.01em] text-parchment">
-              Upload Case File
-            </h1>
+      <AppHeader
+        onMenu={() =>
+          setMobileDrawerOpen(
+            true,
+          )
+        }
+        menuOpen={
+          mobileDrawerOpen
+        }
+      />
 
-            <span className="font-mono text-[11px] tracking-[0.14em] text-brass-dim">
-              Intake · 01
-            </span>
-          </div>
 
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Upload the original legal document you want to preserve in JURY HASH. Case information
-            will be extracted and organized from the document during processing.
-          </p>
+      {/* ================================================================
+          SIDEBAR OFFSET
+          ================================================================ */}
 
-          <div className="mt-6 h-px w-full rule-brass" />
-        </div>
+      <div
+        className={`transition-[padding-left] duration-300 ease-out ${
+          sidebarExpanded
+            ? "md:pl-80"
+            : "md:pl-16"
+        }`}
+      >
 
-        {phase === "COMPLETED" && operation ? (
-          /* ============================================================
-             SUCCESS — only after the backend confirms completion
-             ============================================================ */
-          <section
-            aria-label="File secured"
-            className="chamber-panel grain mt-10 p-8 text-center sm:p-12"
-          >
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-success/50 text-success">
-              <Check className="h-6 w-6" />
-            </span>
+        <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
 
-            <h2 className="mt-6 font-display text-2xl text-parchment">File secured</h2>
+          {/* ============================================================
+              PAGE HEADER
+              ============================================================ */}
 
-            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-              The original document has been added to the JURY HASH archive.
-            </p>
+          <header className="pt-10 sm:pt-14">
 
-            <p className="mx-auto mt-4 max-w-md truncate font-mono text-xs tracking-[0.14em] text-brass">
-              {operation.file.name}
-            </p>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 
-            <p className="mx-auto mt-1 text-xs text-muted-foreground/80">
-              {humanSize(operation.file.size)}
-            </p>
+              <div>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                to="/records"
-                search={{ case: operation.caseId }}
-                className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
-              >
-                Open case
-              </Link>
+                <p className="label-legal">
+                  RECORD INTAKE
+                </p>
 
-              <button
-                type="button"
-                onClick={reset}
-                className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
-              >
-                <FileUp className="h-4 w-4" />
-                File another
-              </button>
-            </div>
-          </section>
-        ) : phase === "FAILED" && operation ? (
-          /* ============================================================
-             FAILURE — clear, restrained, retryable
-             ============================================================ */
-          <section
-            aria-label="Document processing failed"
-            className="chamber-panel grain mt-10 p-8 text-center sm:p-12"
-          >
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-burgundy/50 text-burgundy">
-              <ShieldAlert className="h-6 w-6" />
-            </span>
 
-            <h2 className="mt-6 font-display text-2xl text-parchment">
-              Document processing failed
-            </h2>
+                <h1 className="mt-3 font-display text-[clamp(2.1rem,4vw,3.2rem)] leading-[0.95] tracking-[-0.015em] text-parchment">
+                  {existingCaseId
+                    ? "Add Evidence"
+                    : "Upload Case File"}
+                </h1>
 
-            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-burgundy" role="alert">
-              {error ?? "The document could not be processed. Please try again."}
-            </p>
 
-            <p className="mx-auto mt-4 max-w-md truncate font-mono text-xs tracking-[0.14em] text-brass">
-              {operation.file.name}
-            </p>
+                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  {existingCaseId
+                    ? "Attach an original PDF to an existing matter. The document will be processed without changing the case's current access controls."
+                    : "Begin a new matter by submitting the original legal document. JURY HASH will preserve the file and derive the initial case record during processing."}
+                </p>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={retryFiling}
-                className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
-              >
-                Retry
-              </button>
-
-              <button
-                type="button"
-                onClick={reset}
-                className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
-              >
-                <FileUp className="h-4 w-4" />
-                Start a new filing
-              </button>
-            </div>
-          </section>
-        ) : phase === "SUBMITTING" || phase === "PROCESSING" ? (
-          /* ============================================================
-             PROCESSING — real backend stages via the status endpoint
-             ============================================================ */
-          <section
-            aria-live="polite"
-            aria-busy="true"
-            aria-label="Case file processing"
-            className="chamber-panel grain mt-10 p-8 sm:p-12"
-          >
-            <p className="label-legal">
-              {phase === "SUBMITTING" ? "Filing case file" : "Preserving case file"}
-            </p>
-
-            <h2 className="mt-3 font-display text-[clamp(1.5rem,3vw,2rem)] leading-tight text-parchment">
-              Preserving case file
-            </h2>
-
-            {operation && (
-              <div className="mt-6 flex items-center gap-3 border border-border bg-surface/60 px-4 py-3">
-                <FileText className="h-5 w-5 shrink-0 text-brass" aria-hidden="true" />
-
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-parchment">{operation.file.name}</p>
-
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {humanSize(operation.file.size)} · document received
-                  </p>
-                </div>
               </div>
-            )}
 
-            <ol className="mt-8 space-y-2">
-              {STEPS.map((step) => {
-                const visual = stepVisual(step.stage);
 
-                return (
-                  <li
-                    key={step.stage}
-                    aria-current={visual === "active" ? "step" : undefined}
-                    className={`flex items-start gap-4 border-l-2 px-4 py-3 transition-colors ${
-                      visual === "active" ? "border-brass bg-surface/70" : "border-transparent"
+              <div className="shrink-0 pb-1">
+
+                <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] text-brass-dim uppercase">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-brass"
+                    aria-hidden="true"
+                  />
+
+                  Intake{" "}
+                  <span className="text-brass">
+                    ·
+                  </span>{" "}
+                  01
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div className="mt-7 h-px w-full rule-brass" />
+
+          </header>
+
+
+          {/* ============================================================
+              PROCESS MAP
+              ============================================================ */}
+
+          <section
+            aria-label="Document intake process"
+            className="mt-6"
+          >
+
+            <div className="grid gap-px border border-border bg-border sm:grid-cols-3">
+
+              {[
+                {
+                  number:
+                    "01",
+                  label:
+                    "Select",
+                  description:
+                    "Choose the original PDF.",
+                },
+                {
+                  number:
+                    "02",
+                  label:
+                    "Review",
+                  description:
+                    "Confirm file and matter scope.",
+                },
+                {
+                  number:
+                    "03",
+                  label:
+                    "Preserve",
+                  description:
+                    "Process, hash and anchor.",
+                },
+              ].map(
+                (
+                  item,
+                  index,
+                ) => (
+                  <div
+                    key={
+                      item.number
+                    }
+                    className={`bg-surface/35 px-4 py-3 ${
+                      phase !==
+                        "IDLE" &&
+                      index === 2
+                        ? "bg-brass/[0.05]"
+                        : ""
                     }`}
                   >
-                    {visual === "active" ? (
-                      <span
-                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brass/60 text-brass"
-                        aria-hidden="true"
-                      >
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
-                      </span>
-                    ) : visual === "completed" ? (
-                      <span
-                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-success/40 text-success"
-                        aria-hidden="true"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                    ) : visual === "failed" ? (
-                      <span
-                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-burgundy/60 text-burgundy"
-                        aria-hidden="true"
-                      >
-                        <ShieldAlert className="h-3.5 w-3.5" />
-                      </span>
-                    ) : (
-                      <span
-                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground/50"
-                        aria-hidden="true"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      </span>
-                    )}
 
-                    <div>
-                      <p
-                        className={`text-sm ${
-                          visual === "active"
-                            ? "text-parchment"
-                            : visual === "failed"
-                              ? "text-burgundy"
-                              : "text-muted-foreground"
-                        }`}
-                      >
-                        {step.label}
-                      </p>
+                    <div className="flex items-center gap-3">
 
-                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/70">
-                        {step.description}
-                      </p>
+                      <span className="font-mono text-[10px] font-bold tracking-[0.12em] text-brass">
+                        {
+                          item.number
+                        }
+                      </span>
+
+                      <span className="font-mono text-[10px] font-bold tracking-[0.12em] text-parchment uppercase">
+                        {
+                          item.label
+                        }
+                      </span>
+
                     </div>
-                  </li>
-                );
-              })}
-            </ol>
 
-            <div className="mt-8 flex items-center gap-2.5 border-t border-border pt-6">
-              <span
-                className="h-2 w-2 animate-pulse rounded-full bg-brass motion-reduce:animate-none"
-                aria-hidden="true"
-              />
 
-              <p role="status" className="text-sm text-muted-foreground">
-                {statusMessage ??
-                  (phase === "SUBMITTING" ? "Submitting case file…" : "Processing document…")}
-              </p>
+                    <p className="mt-1 pl-7 text-[11px] text-muted-foreground">
+                      {
+                        item.description
+                      }
+                    </p>
+
+                  </div>
+                ),
+              )}
+
             </div>
+
           </section>
-        ) : (
-          <form onSubmit={submitForm}>
-            {/* Dropzone */}
-            <section aria-label="Case file drop area" className="mt-10">
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label="Choose a case file — drag and drop or press Enter to browse"
-                aria-disabled={busy}
-                onClick={() => {
-                  if (busy) return;
-                  document.getElementById("case-file-input")?.click();
-                }}
-                onKeyDown={handleKeyDown}
-                onDragOver={(e) => {
-                  e.preventDefault();
 
-                  if (busy) return;
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={onDrop}
-                className={`focus-legal chamber-panel grain relative flex cursor-pointer flex-col items-center justify-center border px-6 py-14 text-center transition-all duration-300 sm:py-16 ${
-                  dragActive
-                    ? "border-brass bg-brass/[0.05] shadow-[0_0_0_1px_color-mix(in_oklab,var(--brass)_45%,transparent)]"
-                    : "border-dashed"
-                } ${busy ? "pointer-events-none opacity-60" : ""}`}
-              >
-                <input
-                  id="case-file-input"
-                  type="file"
-                  accept={ACCEPT}
-                  className="sr-only"
-                  disabled={busy}
-                  onChange={(e) => pickFile(e.target.files?.[0])}
-                />
 
-                <span className="flex h-14 w-14 items-center justify-center border border-brass/50 text-brass">
-                  <FileUp className="h-6 w-6" />
+          {/* ============================================================
+              SUCCESS
+              ============================================================ */}
+
+          {phase ===
+            "COMPLETED" &&
+          operation ? (
+            <section
+              aria-label="File secured"
+              className="chamber-panel grain mt-8 border border-border p-7 sm:p-10"
+            >
+
+              <div className="mx-auto max-w-2xl text-center">
+
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-success/50 text-success">
+                  <Check className="h-7 w-7" />
                 </span>
 
-                <p className="mt-6 font-display text-lg text-parchment">
-                  {dragActive ? "Release to attach the file" : "Drag & drop the case file here"}
+
+                <p className="label-legal mt-6 text-success">
+                  PRESERVATION COMPLETE
                 </p>
 
-                <p className="mt-2 text-sm text-muted-foreground">or</p>
 
-                <span className="mt-3 inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground">
-                  Browse files
-                </span>
+                <h2 className="mt-3 font-display text-3xl text-parchment">
+                  File secured
+                </h2>
 
-                <p className="mt-6 text-[11px] tracking-wide text-muted-foreground/80">
-                  PDF — original evidence document
+
+                <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
+                  The backend has completed
+                  document processing and
+                  recorded the original file
+                  in the JURY HASH integrity
+                  chain.
                 </p>
-              </div>
 
-              <div className="mt-4 flex items-start gap-2.5 px-1 text-[11px] leading-relaxed text-muted-foreground/80">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brass-dim" />
 
-                <p>
-                  Secure intake: the original PDF is uploaded to protected storage. Case information
-                  will be derived from the document during processing.
-                </p>
-              </div>
-            </section>
+                <div className="mx-auto mt-6 max-w-xl border border-border bg-surface/60 px-4 py-4 text-left">
 
-            {/* Selected file */}
-            {file && (
-              <section aria-label="Review uploaded file" className="mt-10">
-                <div className="flex items-center justify-between border border-border bg-surface/60 px-5 py-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <FileText className="h-5 w-5 shrink-0 text-brass" />
+                  <div className="flex items-start gap-3">
+
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-parchment">{file.name}</p>
 
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {humanSize(file.size)} · ready to upload
+                      <p className="truncate text-sm text-parchment">
+                        {
+                          operation
+                            .file
+                            .name
+                        }
                       </p>
+
+                      <p className="mt-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground">
+                        {humanSize(
+                          operation
+                            .file
+                            .size,
+                        )}{" "}
+                        · PDF{" "}
+                        · PRESERVED
+                      </p>
+
                     </div>
+
                   </div>
+
+                </div>
+
+
+                <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+
+                  <Link
+                    to="/records"
+                    search={{
+                      case:
+                        operation.caseId,
+                    }}
+                    className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
+                  >
+                    Open case
+                  </Link>
+
 
                   <button
                     type="button"
-                    onClick={() => {
-                      if (busy) return;
-                      setFile(null);
-                      setError(null);
-                    }}
-                    disabled={busy}
-                    aria-label="Remove selected file"
-                    className="focus-legal flex h-8 w-8 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:border-burgundy hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-foreground"
+                    onClick={
+                      reset
+                    }
+                    className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
                   >
-                    <X className="h-4 w-4" />
+                    <FileUp className="h-4 w-4" />
+
+                    File another
                   </button>
+
                 </div>
 
-                                {/* Confidentiality applies only when creating a new case. */}
-                {!existingCaseId && (
-                  <div
-                    className={`mt-4 flex items-start justify-between gap-4 border px-5 py-4 transition-colors ${
-                      confidential
-                        ? "border-burgundy/60 bg-burgundy/[0.06]"
-                        : "border-border bg-surface/40"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Lock
-                        className={`mt-0.5 h-4 w-4 ${
-                          confidential ? "text-burgundy" : "text-brass-dim"
-                        }`}
-                      />
+              </div>
 
-                      <div>
-                        <p className="text-sm text-parchment">Confidential matter</p>
+            </section>
 
-                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                          Restricts access to this record according to its confidential
-                          classification.
-                        </p>
-                      </div>
+
+          /* ============================================================
+             FAILURE
+             ============================================================ */
+
+          ) : phase ===
+            "FAILED" &&
+            operation ? (
+            <section
+              aria-label="Document processing failed"
+              className="chamber-panel grain mt-8 border border-burgundy/50 p-7 sm:p-10"
+            >
+
+              <div className="mx-auto max-w-2xl text-center">
+
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-burgundy/50 text-burgundy">
+                  <ShieldAlert className="h-7 w-7" />
+                </span>
+
+
+                <p className="label-legal mt-6 text-burgundy">
+                  PRESERVATION INTERRUPTED
+                </p>
+
+
+                <h2 className="mt-3 font-display text-3xl text-parchment">
+                  Document processing failed
+                </h2>
+
+
+                <p
+                  className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-burgundy"
+                  role="alert"
+                >
+                  {error ??
+                    "The document could not be processed. Please try again."}
+                </p>
+
+
+                <div className="mx-auto mt-6 max-w-xl border border-border bg-surface/60 px-4 py-4 text-left">
+
+                  <div className="flex items-start gap-3">
+
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
+
+                    <div className="min-w-0">
+
+                      <p className="truncate text-sm text-parchment">
+                        {
+                          operation
+                            .file
+                            .name
+                        }
+                      </p>
+
+                      <p className="mt-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground">
+                        {humanSize(
+                          operation
+                            .file
+                            .size,
+                        )}{" "}
+                        · SAME MATTER
+                      </p>
+
                     </div>
 
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={confidential}
-                      disabled={busy}
-                      onClick={() => setConfidential((v) => !v)}
-                      className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                        confidential
-                          ? "border-burgundy bg-burgundy/70"
-                          : "border-input bg-transparent"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
-                          confidential ? "left-[calc(100%-1.25rem)]" : "left-1"
-                        }`}
-                      />
-
-                      <span className="sr-only">Mark matter confidential</span>
-                    </button>
                   </div>
-                )}
 
-                {existingCaseId && (
-                  <div className="mt-4 border border-border bg-surface/40 px-5 py-4">
-                    <p className="text-sm text-parchment">Adding to existing matter</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      This document will be attached to the selected case. The case's existing
-                      classification and access controls remain unchanged.
-                    </p>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="mt-4 border border-burgundy/50 bg-burgundy/[0.06] px-4 py-3 text-sm text-burgundy">
-                    {error}
-                  </div>
-                )}
-
-                <div className="mt-6 flex items-center gap-4">
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    aria-busy={busy}
-                    className="focus-legal inline-flex items-center gap-2 border border-primary/60 bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-colors hover:bg-secondary-brown disabled:cursor-progress disabled:opacity-70 disabled:hover:bg-primary"
-                  >
-                    {busy && (
-                      <LoaderCircle
-                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                        aria-hidden="true"
-                      />
-                    )}
-                    {existingCaseId ? "Add file to case" : "File case in the archive"}                  </button>
-
-                  <Link
-                    to="/dashboard"
-                    className="focus-legal text-sm text-muted-foreground transition-colors hover:text-parchment"
-                  >
-                    Cancel and return to dashboard
-                  </Link>
                 </div>
+
+
+                <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+
+                  <button
+                    type="button"
+                    onClick={
+                      retryFiling
+                    }
+                    className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
+                  >
+                    Retry filing
+                  </button>
+
+
+                  <button
+                    type="button"
+                    onClick={
+                      reset
+                    }
+                    className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
+                  >
+                    <FileUp className="h-4 w-4" />
+
+                    Start over
+                  </button>
+
+                </div>
+
+              </div>
+
+            </section>
+
+
+          /* ============================================================
+             PROCESSING
+             ============================================================ */
+
+          ) : phase ===
+              "SUBMITTING" ||
+            phase ===
+              "PROCESSING" ? (
+            <section
+              aria-live="polite"
+              aria-busy="true"
+              aria-label="Case file processing"
+              className="chamber-panel grain mt-8 border border-border p-6 sm:p-8"
+            >
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+                <div>
+
+                  <p className="label-legal">
+                    {phase ===
+                    "SUBMITTING"
+                      ? "SUBMITTING"
+                      : "PRESERVATION IN PROGRESS"}
+                  </p>
+
+
+                  <h2 className="mt-2 font-display text-2xl text-parchment sm:text-3xl">
+                    Preserving case file
+                  </h2>
+
+                </div>
+
+
+                <div className="font-mono text-[10px] tracking-[0.14em] text-brass-dim uppercase">
+                  Stage{" "}
+                  <span className="text-brass">
+                    {stageNumber(
+                      stage,
+                    )}
+                  </span>{" "}
+                  / 03
+                </div>
+
+              </div>
+
+
+              {operation && (
+                <div className="mt-6 flex items-start gap-3 border border-border bg-surface/60 px-4 py-3.5">
+
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="truncate text-sm text-parchment">
+                      {
+                        operation
+                          .file
+                          .name
+                      }
+                    </p>
+
+                    <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
+                      {humanSize(
+                        operation
+                          .file
+                          .size,
+                      )}{" "}
+                      · ORIGINAL FILE
+                    </p>
+
+                  </div>
+
+                  <span className="shrink-0 font-mono text-[9px] tracking-[0.12em] text-brass uppercase">
+                    Received
+                  </span>
+
+                </div>
+              )}
+
+
+              <ol className="mt-8">
+
+                {STEPS.map(
+                  (
+                    step,
+                    index,
+                  ) => {
+                    const visual =
+                      stepVisual(
+                        step.stage,
+                      );
+
+                    return (
+                      <li
+                        key={
+                          step.stage
+                        }
+                        className={`relative flex gap-4 px-1 py-4 ${
+                          index <
+                          STEPS.length -
+                            1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
+                      >
+
+                        <div className="relative flex w-9 shrink-0 justify-center">
+
+                          {index <
+                            STEPS.length -
+                              1 && (
+                            <span
+                              className={`absolute left-1/2 top-10 h-full w-px -translate-x-1/2 ${
+                                visual ===
+                                  "completed"
+                                  ? "bg-success/35"
+                                  : "bg-border"
+                              }`}
+                              aria-hidden="true"
+                            />
+                          )}
+
+
+                          <span
+                            className={`relative z-10 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border font-mono text-[10px] font-bold ${
+                              visual ===
+                              "active"
+                                ? "border-brass bg-brass/10 text-brass"
+                                : visual ===
+                                    "completed"
+                                  ? "border-success/50 bg-success/[0.06] text-success"
+                                  : visual ===
+                                      "failed"
+                                    ? "border-burgundy/60 bg-burgundy/[0.06] text-burgundy"
+                                    : "border-border bg-background text-muted-foreground/50"
+                            }`}
+                          >
+
+                            {visual ===
+                            "active" ? (
+                              <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                            ) : visual ===
+                              "completed" ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : visual ===
+                              "failed" ? (
+                              <ShieldAlert className="h-3.5 w-3.5" />
+                            ) : (
+                              step.number
+                            )}
+
+                          </span>
+
+                        </div>
+
+
+                        <div className="min-w-0 flex-1 pt-0.5">
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+
+                            <p
+                              className={`text-sm font-medium ${
+                                visual ===
+                                "active"
+                                  ? "text-parchment"
+                                  : visual ===
+                                      "failed"
+                                    ? "text-burgundy"
+                                    : visual ===
+                                        "completed"
+                                      ? "text-success"
+                                      : "text-muted-foreground"
+                              }`}
+                            >
+                              {
+                                step.label
+                              }
+                            </p>
+
+
+                            {visual ===
+                              "active" && (
+                              <span className="font-mono text-[9px] tracking-[0.12em] text-brass uppercase">
+                                Processing
+                              </span>
+                            )}
+
+                            {visual ===
+                              "completed" && (
+                              <span className="font-mono text-[9px] tracking-[0.12em] text-success uppercase">
+                                Complete
+                              </span>
+                            )}
+
+                          </div>
+
+
+                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground/75">
+                            {
+                              step.description
+                            }
+                          </p>
+
+                        </div>
+
+                      </li>
+                    );
+                  },
+                )}
+
+              </ol>
+
+
+              <div className="mt-6 flex items-start gap-3 border-t border-border pt-5">
+
+                <span
+                  className="mt-1 h-2 w-2 shrink-0 animate-pulse rounded-full bg-brass motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+
+                <div>
+
+                  <p
+                    role="status"
+                    className="text-sm text-parchment"
+                  >
+                    {statusMessage ??
+                      (phase ===
+                      "SUBMITTING"
+                        ? "Submitting case file…"
+                        : "Processing document…")}
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
+                    This page will update
+                    automatically as the
+                    backend completes each
+                    stage.
+                  </p>
+
+                </div>
+
+              </div>
+
+            </section>
+
+
+          /* ============================================================
+             IDLE / INPUT
+             ============================================================ */
+
+          ) : (
+            <form
+              onSubmit={
+                submitForm
+              }
+            >
+
+              {/* ========================================================
+                  DROPZONE
+                  ======================================================== */}
+
+              <section
+                aria-label="Case file selection"
+                className="mt-8"
+              >
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Choose a PDF case file"
+                  aria-disabled={busy}
+                  onClick={() => {
+                    if (
+                      busy
+                    ) {
+                      return;
+                    }
+
+                    document
+                      .getElementById(
+                        "case-file-input",
+                      )
+                      ?.click();
+                  }}
+                  onKeyDown={
+                    handleDropzoneKeyDown
+                  }
+                  onDragOver={(
+                    event,
+                  ) => {
+                    event.preventDefault();
+
+                    if (
+                      !busy
+                    ) {
+                      setDragActive(
+                        true,
+                      );
+                    }
+                  }}
+                  onDragLeave={() =>
+                    setDragActive(
+                      false,
+                    )
+                  }
+                  onDrop={
+                    onDrop
+                  }
+                  className={`group focus-legal chamber-panel grain relative flex min-h-[360px] cursor-pointer flex-col items-center justify-center border px-6 py-12 text-center transition-all duration-300 sm:min-h-[390px] ${
+                    dragActive
+                      ? "border-brass bg-brass/[0.06] shadow-[0_0_0_1px_color-mix(in_oklab,var(--brass)_45%,transparent)]"
+                      : "border-dashed border-border hover:border-brass-dim hover:bg-surface/[0.03]"
+                  } ${
+                    busy
+                      ? "pointer-events-none opacity-60"
+                      : ""
+                  }`}
+                >
+
+                  <input
+                    id="case-file-input"
+                    type="file"
+                    accept={
+                      ACCEPT
+                    }
+                    className="sr-only"
+                    disabled={
+                      busy
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      pickFile(
+                        event
+                          .target
+                          .files?.[0],
+                      )
+                    }
+                  />
+
+
+                  <span className={`flex h-16 w-16 items-center justify-center border transition-all duration-300 ${
+                    dragActive
+                      ? "border-brass bg-brass/10 text-brass"
+                      : "border-brass/40 text-brass group-hover:border-brass group-hover:bg-brass/[0.05]"
+                  }`}>
+                    <FileUp className="h-7 w-7" />
+                  </span>
+
+
+                  <p className="mt-6 font-display text-2xl text-parchment">
+                    {dragActive
+                      ? "Release to attach"
+                      : "Drop your PDF here"}
+                  </p>
+
+
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    or
+                  </p>
+
+
+                  <span className="mt-3 inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors group-hover:bg-brass group-hover:text-primary-foreground">
+                    Browse files
+                  </span>
+
+
+                  <div className="mt-7 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-mono text-[9px] tracking-[0.12em] text-muted-foreground/70 uppercase">
+
+                    <span>
+                      PDF only
+                    </span>
+
+                    <span
+                      className="h-1 w-1 rounded-full bg-border"
+                      aria-hidden="true"
+                    />
+
+                    <span>
+                      Original document
+                    </span>
+
+                    <span
+                      className="h-1 w-1 rounded-full bg-border"
+                      aria-hidden="true"
+                    />
+
+                    <span>
+                      Protected intake
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div className="mt-4 flex items-start gap-2.5 px-1">
+
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
+
+                  <p className="max-w-3xl text-[11px] leading-relaxed text-muted-foreground/80">
+                    The original PDF is
+                    submitted to protected
+                    storage. Case information
+                    is derived from the
+                    document during backend
+                    processing.
+                  </p>
+
+                </div>
+
               </section>
-            )}
-          </form>
-        )}
-      </main>
+
+
+              {/* ========================================================
+                  FILE REVIEW
+                  ======================================================== */}
+
+              {file && (
+                <section
+                  aria-label="Review selected file"
+                  className="mt-8"
+                >
+
+                  <div className="border border-border bg-surface/35">
+
+                    <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+                      <div className="flex min-w-0 items-start gap-3">
+
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-brass/35 bg-brass/[0.04] text-brass">
+                          <FileText className="h-5 w-5" />
+                        </div>
+
+
+                        <div className="min-w-0">
+
+                          <p className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                            Selected document
+                          </p>
+
+                          <p className="mt-1 truncate text-sm text-parchment">
+                            {
+                              file.name
+                            }
+                          </p>
+
+                          <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
+                            {humanSize(
+                              file.size,
+                            )}{" "}
+                            · PDF{" "}
+                            · READY
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            busy
+                          ) {
+                            return;
+                          }
+
+                          setFile(
+                            null,
+                          );
+
+                          setError(
+                            null,
+                          );
+                        }}
+                        disabled={
+                          busy
+                        }
+                        className="focus-legal inline-flex w-fit items-center gap-1.5 text-[10px] font-mono tracking-[0.12em] text-muted-foreground uppercase transition-colors hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <X className="h-3.5 w-3.5" />
+
+                        Remove
+                      </button>
+
+                    </div>
+
+
+                    {/* Matter scope */}
+
+                    <div className="p-5">
+
+                      {existingCaseId ? (
+                        <div className="flex items-start gap-3 border border-border bg-background/40 px-4 py-4">
+
+                          <FileText className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
+
+                          <div>
+
+                            <p className="text-sm text-parchment">
+                              Adding to existing matter
+                            </p>
+
+                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                              This document will
+                              be attached to the
+                              selected case. Existing
+                              classification and
+                              access controls remain
+                              unchanged.
+                            </p>
+
+                          </div>
+
+                        </div>
+                      ) : (
+                        <div className="border border-border bg-background/40">
+
+                          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div className="flex items-start gap-3">
+
+                              <Lock
+                                className={`mt-0.5 h-4 w-4 shrink-0 ${
+                                  confidential
+                                    ? "text-burgundy"
+                                    : "text-brass-dim"
+                                }`}
+                              />
+
+                              <div>
+
+                                <p className="text-sm text-parchment">
+                                  Confidential matter
+                                </p>
+
+                                <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
+                                  Restricts access
+                                  to this case
+                                  according to its
+                                  confidential
+                                  classification.
+                                </p>
+
+                              </div>
+
+                            </div>
+
+
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={
+                                confidential
+                              }
+                              disabled={
+                                busy
+                              }
+                              onClick={() =>
+                                setConfidential(
+                                  (
+                                    value,
+                                  ) =>
+                                    !value,
+                                )
+                              }
+                              className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors ${
+                                confidential
+                                  ? "border-burgundy bg-burgundy/70"
+                                  : "border-input bg-transparent"
+                              }`}
+                            >
+
+                              <span
+                                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
+                                  confidential
+                                    ? "left-[calc(100%-1.25rem)]"
+                                    : "left-1"
+                                }`}
+                              />
+
+                              <span className="sr-only">
+                                Mark matter confidential
+                              </span>
+
+                            </button>
+
+                          </div>
+
+                        </div>
+                      )}
+
+
+                      {error && (
+                        <div
+                          className="mt-4 border border-burgundy/50 bg-burgundy/[0.06] px-4 py-3 text-sm leading-relaxed text-burgundy"
+                          role="alert"
+                        >
+                          {
+                            error
+                          }
+                        </div>
+                      )}
+
+
+                      {/* Submit */}
+
+                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+
+                        <button
+                          type="submit"
+                          disabled={
+                            busy
+                          }
+                          aria-busy={
+                            busy
+                          }
+                          className="focus-legal inline-flex items-center justify-center gap-2 border border-primary/70 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-secondary-brown disabled:cursor-progress disabled:opacity-70 disabled:hover:translate-y-0"
+                        >
+
+                          {busy && (
+                            <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                          )}
+
+                          {existingCaseId
+                            ? "Add file to case"
+                            : "Create case & preserve file"}
+
+                        </button>
+
+
+                        <Link
+                          to="/dashboard"
+                          className="focus-legal px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-parchment"
+                        >
+                          Cancel and return to dashboard
+                        </Link>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </section>
+              )}
+
+
+              {!file && (
+                <div className="mt-6 border-t border-border pt-5">
+
+                  <div className="flex items-start gap-3 text-[11px] leading-relaxed text-muted-foreground/70">
+
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
+
+                    <p>
+                      By continuing, the
+                      submitted document will
+                      enter the JURY HASH
+                      preservation workflow.
+                      Do not upload material
+                      that should not be added
+                      to the matter.
+                    </p>
+
+                  </div>
+
+                </div>
+              )}
+
+            </form>
+          )}
+
+        </main>
+      </div>
+
     </div>
   );
 }

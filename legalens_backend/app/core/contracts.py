@@ -31,8 +31,12 @@ class EntityType(str, Enum):
     PHONE = "PHONE"
     EMAIL = "EMAIL"
     DATE = "DATE"
-    EVIDENCE = "EVIDENCE"
+    AADHAAR = "AADHAAR"
+    BANK_ACCOUNT = "BANK_ACCOUNT"
+    IP_ADDRESS = "IP_ADDRESS"
     IDENTIFIER = "IDENTIFIER"
+    EVIDENCE = "EVIDENCE"
+    OTHER = "OTHER"
 
 
 class ConflictType(str, Enum):

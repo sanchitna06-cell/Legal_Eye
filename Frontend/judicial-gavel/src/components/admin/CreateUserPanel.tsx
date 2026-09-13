@@ -1,55 +1,101 @@
 import React from "react";
 import { Plus } from "lucide-react";
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { useAdminUsers, generateTemporaryPassword } from "@/lib/admin-users";
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
+import { createAdminUser } from "@/lib/api";
 
 export function CreateUserPanel({ onCreated }: { onCreated?: () => void }) {
   const [fullName, setFullName] = React.useState("");
   const [username, setUsername] = React.useState("");
   const [temporaryPassword, setTemporaryPassword] = React.useState("");
-  const [role, setRole] = React.useState<"LAWYER" | "ANALYST">("LAWYER");
+  const [role] = React.useState<"LAWYER">("LAWYER");
   const [status, setStatus] = React.useState(true);
-  const [createResult, setCreateResult] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
-  const usersHook = useAdminUsers();
+  const [creating, setCreating] = React.useState(false);
+  const [createResult, setCreateResult] =
+    React.useState<{
+      type: "success" | "error";
+      text: string;
+    } | null>(null);
+
 
   function handleGenerate() {
-    const generated = generateTemporaryPassword();
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+
+    const generated = Array.from(bytes, (byte) =>
+      byte.toString(36),
+    )
+      .join("")
+      .slice(0, 12);
+
     setTemporaryPassword(generated);
     setCreateResult(null);
   }
 
-  function handleCreateUser() {
-    setCreateResult(null);
-    if (!fullName.trim() || !username.trim() || !temporaryPassword.trim()) {
-      setCreateResult({ type: "error", text: "Please fill in all fields before creating the user." });
-      return;
-    }
+  async function handleCreateUser() {
+  setCreateResult(null);
 
-    const existing = usersHook.findByUsername(username.trim());
-    if (existing && existing.id !== "u-admin") {
-      setCreateResult({ type: "error", text: `A user with username "${username.trim()}" already exists.` });
-      return;
-    }
+  if (
+    !fullName.trim() ||
+    !username.trim() ||
+    !temporaryPassword.trim()
+  ) {
+    setCreateResult({
+      type: "error",
+      text: "Please fill in all fields before creating the user.",
+    });
+    return;
+  }
 
-    const created = usersHook.add({
-      fullName: fullName.trim(),
+  if (temporaryPassword.trim().length < 8) {
+    setCreateResult({
+      type: "error",
+      text: "Temporary password must be at least 8 characters.",
+    });
+    return;
+  }
+
+  try {
+    setCreating(true);
+
+    const created = await createAdminUser({
+      full_name: fullName.trim(),
       username: username.trim(),
-      role,
-      status: status ? "active" : "pending",
-      lastLogin: "-",
+      temporary_password: temporaryPassword.trim(),
+      is_active: status,
     });
 
     setCreateResult({
       type: "success",
-      text: `User "${created.username}" created successfully.`,
+      text: `User "${created.user.username}" created successfully.`,
     });
+
     setFullName("");
     setUsername("");
     setTemporaryPassword("");
-    setTimeout(() => setCreateResult(null), 6000);
-    onCreated?.();
-  }
 
+    onCreated?.();
+
+    setTimeout(() => setCreateResult(null), 6000);
+  } catch (error) {
+    setCreateResult({
+      type: "error",
+      text:
+        error instanceof Error
+          ? error.message
+          : "Failed to create user.",
+    });
+  } finally {
+    setCreating(false);
+  }
+}
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-[#1a2737] bg-[#0b131e] shadow-lg">
       <div className="border-b border-[#1a2737] px-4 py-3">
@@ -109,16 +155,24 @@ export function CreateUserPanel({ onCreated }: { onCreated?: () => void }) {
 
         <div className="space-y-2">
           <label className="text-[10px] tracking-widest uppercase text-[#8ea3bb]">Role</label>
-          <Select value={role} onValueChange={(v) => setRole(v as "LAWYER" | "ANALYST")}>
+          <Select value={role} disabled>
             <SelectTrigger className="bg-[#0a1320] border-[#1a2737] text-white focus-visible:ring-[#38bdf8]">
-              <SelectValue />
+            <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
-              <SelectItem value="LAWYER" className="text-white focus:bg-[#38bdf8]/10">LAWYER</SelectItem>
-              <SelectItem value="ANALYST" className="text-white focus:bg-[#38bdf8]/10">ANALYST</SelectItem>
+
+              <SelectContent className="bg-[#0a1320] border border-[#1a2737]">
+              <SelectItem
+                value="LAWYER"
+                className="text-white focus:bg-[#38bdf8]/10"
+              >
+                LAWYER
+              </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-[10px] text-[#5f7891]">Note: New users are created with LAWYER role. Administrator access is restricted.</p>
+          <p className="text-[10px] text-[#5f7891]">
+            New accounts created here are assigned the LAWYER role.
+            Administrator access is restricted.
+          </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md border border-[#1a2737] bg-[#0a1320] px-3 py-2.5">
@@ -148,8 +202,14 @@ export function CreateUserPanel({ onCreated }: { onCreated?: () => void }) {
           >
             Cancel
           </Button>
-          <Button type="button" className="flex-1 bg-[#38bdf8] text-[#0b131e] hover:bg-[#5cc0f5]" onClick={handleCreateUser}>
-            <Plus className="mr-1 h-3.5 w-3.5" /> Create User
+          <Button
+            type="button"
+            disabled={creating}
+            className="flex-1 bg-[#38bdf8] text-[#0b131e] hover:bg-[#5cc0f5] disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleCreateUser}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            {creating ? "Creating…" : "Create User"}
           </Button>
         </div>
       </div>

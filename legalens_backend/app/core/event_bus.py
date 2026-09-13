@@ -122,6 +122,20 @@ class EventBus:
 
         for handler in handlers:
             await handler(data)
+    def get_status(self) -> dict[str, list[str]]:
+        """
+        Return a sanitized snapshot of the registered event pipeline.
+
+        Only handler names are exposed. Internal callable objects
+        remain encapsulated.
+        """
+        return {
+            event_name: [
+                f"{handler.__module__}.{handler.__qualname__}"
+                for handler in handlers
+            ]
+            for event_name, handlers in self._subscribers.items()
+        }
 
 
 event_bus = EventBus()

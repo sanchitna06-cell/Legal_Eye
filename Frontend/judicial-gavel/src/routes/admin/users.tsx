@@ -1,9 +1,24 @@
-import { useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MoreHorizontal, Trash2, Plus, Users as UsersIcon, ShieldCheck, Clock } from "lucide-react";
+import {
+  Plus,
+  RefreshCw,
+  Users as UsersIcon,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+
 import { AdminPage, AdminCard } from "@/components/admin/AdminPage";
 import { CreateUserPanel } from "@/components/admin/CreateUserPanel";
 import {
+  Badge,
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -12,130 +27,190 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
-  Button,
-  Checkbox,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui";
-import { useAdminUsers, type AdminUserRecord } from "@/lib/admin-users";
-import { roleVariantFor, statusBgFor, statusColorFor, type UserRow } from "@/lib/admin-data";
+import {
+  getAdminUsers,
+  deleteAdminUser,
+  deactivateAdminUser,
+  activateAdminUser,
+  type AdminUser,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/admin/users")({
   component: UsersPage,
   head: () => ({
     meta: [
-      { title: "User Management — Legal Eye Admin" },
+      { title: "User Management — JURY HASH Admin" },
       {
         name: "description",
-        content: "Create, review and manage Legal Eye lawyer and analyst accounts.",
+        content:
+          "Create, review and manage JURY HASH administrator and lawyer accounts.",
       },
     ],
   }),
 });
 
-function toRow(user: AdminUserRecord): UserRow {
-  return {
-    id: user.id,
-    username: user.username,
-    fullName: user.fullName,
-    role: user.role,
-    status: user.status,
-    lastLogin: user.lastLogin,
-  };
-}
-
 function UsersPage() {
-  const usersHook = useAdminUsers();
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("all");
   const [status, setStatus] = useState("all");
-  const [pendingDelete, setPendingDelete] = useState<AdminUserRecord | null>(null);
-  const [deleteResult, setDeleteResult] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [usersVersion, setUsersVersion] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    type: "delete" | "deactivate" | "activate";
+    user: AdminUser;
+  } | null>(null);
 
-  const users = usersHook.all();
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function loadUsers() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await getAdminUsers(0, 500);
+      setUsers(response);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load users.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function handleConfirmAction() {
+  if (!pendingAction || actionLoading) return;
+
+  const { type, user } = pendingAction;
+
+  try {
+    setActionLoading(true);
+    setActionError(null);
+
+  if (type === "delete") {
+    await deleteAdminUser(user.id);
+  } else if (type === "deactivate") {
+    await deactivateAdminUser(user.id);
+  } else {
+    await activateAdminUser(user.id);
+  }
+
+    setPendingAction(null);
+    await loadUsers();
+  } catch (error) {
+    setActionError(
+      error instanceof Error
+        ? error.message
+        : `Failed to ${type} user.`,
+    );
+  } finally {
+    setActionLoading(false);
+  }
+}
+
+  useEffect(() => {
+    void loadUsers();
+  }, []);
+
   const counts = useMemo(
     () => ({
       total: users.length,
-      active: users.filter((u) => u.status === "active").length,
-      pending: users.filter((u) => u.status === "pending").length,
+      active: users.filter((user) => user.is_active).length,
+      administrators: users.filter((user) => user.role === "ADMIN").length,
     }),
     [users],
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return users.filter((u) => {
-      if (q && !`${u.username} ${u.fullName}`.toLowerCase().includes(q)) return false;
-      if (role !== "all" && u.role !== role) return false;
-      if (status !== "all" && u.status !== status) return false;
+
+    return users.filter((user) => {
+      if (
+        q &&
+        !`${user.username} ${user.full_name} ${user.id}`
+          .toLowerCase()
+          .includes(q)
+      ) {
+        return false;
+      }
+
+      if (role !== "all" && user.role !== role) {
+        return false;
+      }
+
+      if (status === "active" && !user.is_active) {
+        return false;
+      }
+
+      if (status === "inactive" && user.is_active) {
+        return false;
+      }
+
       return true;
     });
   }, [users, query, role, status]);
 
-  function handleConfirmDelete() {
-    if (!pendingDelete) return;
-    const target = pendingDelete;
-    setPendingDelete(null);
-
-    if (target.role === "ADMIN") {
-      setDeleteResult({ type: "error", text: `"${target.username}" is an administrator — admin accounts cannot be deleted.` });
-      setTimeout(() => setDeleteResult(null), 6000);
-      return;
-    }
-
-    const removed = usersHook.remove(target.id);
-    if (removed) {
-      usersHook.refresh();
-      setDeleteResult({ type: "success", text: `User "${target.username}" was deleted.` });
-    } else {
-      setDeleteResult({ type: "error", text: `Could not delete "${target.username}" — no longer found.` });
-    }
-    setTimeout(() => setDeleteResult(null), 6000);
-  }
-
   return (
     <AdminPage
-      kicker="LEGAL EYE · ADMIN CONSOLE"
+      kicker="JURY HASH · ADMIN CONSOLE"
       title="User Management"
-      description="Create and manage lawyer accounts, review pending activations, and control console access. Administrators cannot access case data."
+      description="Create and review administrator and lawyer accounts and monitor console access."
       actions={
-        <Button variant="default" size="sm" className="bg-[#38bdf8] text-[#0b131e] hover:bg-[#5cc0f5]">
-          <Plus className="mr-1 h-3.5 w-3.5" /> New User
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void loadUsers()}
+          disabled={loading}
+          className="border-[#1a2737] text-[#8ea3bb] hover:text-white"
+        >
+          <RefreshCw
+            className={`mr-1 h-3.5 w-3.5 ${
+              loading ? "animate-spin" : ""
+            }`}
+          />
+          Refresh
         </Button>
       }
     >
-      {deleteResult && (
-        <div
-          className={`mb-4 rounded-md border px-3 py-2 text-xs ${
-            deleteResult.type === "success"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500/40 bg-red-500/10 text-red-300"
-          }`}
-          role="status"
-        >
-          {deleteResult.text}
+      {error && (
+        <div className="admin-alert admin-alert--danger">
+          {error}
         </div>
       )}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <SummaryTile icon={UsersIcon} label="Total Accounts" value={String(counts.total)} tone="text-[#38bdf8]" />
-        <SummaryTile icon={ShieldCheck} label="Active" value={String(counts.active)} tone="text-emerald-400" />
-        <SummaryTile icon={Clock} label="Pending Activation" value={String(counts.pending)} tone="text-amber-400" />
+        <SummaryTile
+          icon={UsersIcon}
+          label="Total Accounts"
+          value={loading ? "—" : String(counts.total)}
+          tone="cyan"
+        />
+
+        <SummaryTile
+          icon={ShieldCheck}
+          label="Active Accounts"
+          value={loading ? "—" : String(counts.active)}
+          tone="green"
+        />
+
+        <SummaryTile
+          icon={ShieldCheck}
+          label="Administrators"
+          value={loading ? "—" : String(counts.administrators)}
+          tone="amber"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <AdminCard className="lg:col-span-2" title="Accounts">
+        <AdminCard
+          className="admin-card--large"
+          title="Accounts"
+          subtitle="Current accounts returned by the backend"
+        >
           <UserFilterBar
             query={query}
             onQuery={setQuery}
@@ -144,40 +219,78 @@ function UsersPage() {
             status={status}
             onStatus={setStatus}
           />
+
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[850px]">
               <thead>
-                <tr className="border-b border-[#1a2737] bg-[#0a1320]">
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">
-                    <Checkbox className="h-4 w-4" />
+                <tr className="admin-table-head">
+                  <th className="admin-table-heading">
+                    Username
                   </th>
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Username</th>
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Full Name</th>
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Role</th>
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Status</th>
-                  <th className="px-3 py-3 text-left text-[10px] uppercase tracking-widest text-[#8ea3bb]">Last Login</th>
-                  <th className="px-3 py-3 text-right text-[10px] uppercase tracking-widest text-[#8ea3bb]">Actions</th>
+
+                  <th className="admin-table-heading">
+                    Full Name
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Role
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Status
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Password
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Last Login
+                  </th>
+
+                  <th className="admin-table-heading">
+                    Created
+                  </th>
+                  <th className="admin-table-heading admin-table-heading--right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
-                {filtered.map((user) => (
-                  <UserRow
+                {loading ? (
+                  <>
+                    <LoadingRow />
+                    <LoadingRow />
+                    <LoadingRow />
+                    <LoadingRow />
+                  </>
+                ) : (
+                  filtered.map((user) => (
+                  <UserTableRow
                     key={user.id}
-                    row={toRow(user)}
-                    canDelete={user.role !== "ADMIN"}
-                    onDelete={() => setPendingDelete(user)}
+                    user={user}
+                    onAction={setPendingAction}
                   />
-                ))}
-                {filtered.length === 0 && (
+                  ))
+                )}
+
+                {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-sm text-[#8ea3bb]">
-                      No accounts match the current filters.
+                    <td
+                      colSpan={8}
+                       className="admin-table-empty"
+                    >
+                      {query || role !== "all" || status !== "all"
+                        ? "No accounts match the current filters."
+                        : "No accounts were returned by the backend."}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
           <div className="border-t border-[#1a2737] px-4 py-3">
             <p className="text-[10px] text-[#8ea3bb]">
               Showing {filtered.length} of {counts.total} accounts
@@ -185,41 +298,100 @@ function UsersPage() {
           </div>
         </AdminCard>
 
-        <CreateUserPanel
-          onCreated={() => {
-            usersHook.refresh();
-            setUsersVersion((v) => v + 1); // re-render so the table picks up the new account
-          }}
-        />
-      </div>
+<CreateUserPanel
+  onCreated={() => {
+    void loadUsers();
+  }}
+/>
+</div>
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent className="border-[#1a2737] bg-[#0b131e]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete user "{pendingDelete?.username}"?</AlertDialogTitle>
-            <AlertDialogDescription className="text-[#8ea3bb]">
-              This permanently removes <span className="font-mono text-white">{pendingDelete?.username}</span>
-              {pendingDelete?.fullName ? ` (${pendingDelete.fullName})` : ""} from Legal Eye. The account loses
-              sign-in access immediately and cannot be restored from the console.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#1a2737] bg-transparent text-[#8ea3bb] hover:bg-[#122236] hover:text-white">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-500/90 text-white hover:bg-red-500"
-              onClick={(e) => {
-                e.preventDefault();
-                handleConfirmDelete();
-              }}
-            >
-              <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete user
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </AdminPage>
+<AlertDialog
+  open={pendingAction !== null}
+  onOpenChange={(open) => {
+    if (!open && !actionLoading) {
+      setPendingAction(null);
+      setActionError(null);
+    }
+  }}
+>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+    <AlertDialogTitle>
+      {pendingAction?.type === "delete"
+        ? "Delete user?"
+        : pendingAction?.type === "deactivate"
+        ? "Deactivate user?"
+        : "Activate user?"}
+    </AlertDialogTitle>
+
+      <AlertDialogDescription>
+        {pendingAction?.type === "delete" ? (
+        <>
+          This will permanently delete{" "}
+          <span className="font-medium text-foreground">
+            {pendingAction.user.username}
+          </span>
+          . This action cannot be undone.
+        </>
+      ) : pendingAction?.type === "deactivate" ? (
+        <>
+          This will disable{" "}
+          <span className="font-medium text-foreground">
+            {pendingAction.user.username}
+          </span>
+          's access while preserving their legal and audit history.
+        </>
+      ) : (
+        <>
+          This will restore sign-in access for{" "}
+          <span className="font-medium text-foreground">
+            {pendingAction?.user.username}
+          </span>
+          .
+        </>
+      )}
+    </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    {actionError && (
+      <div
+        role="alert"
+        className="border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+      >
+        {actionError}
+      </div>
+    )}
+
+    <AlertDialogFooter>
+      <AlertDialogCancel disabled={actionLoading}>
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        disabled={actionLoading}
+        onClick={(event) => {
+          event.preventDefault();
+          void handleConfirmAction();
+        }}
+        className={`admin-dialog-action ${
+          pendingAction?.type === "delete"
+        ? "admin-dialog-action--danger"
+        : pendingAction?.type === "deactivate"
+        ? "admin-dialog-action--warning"
+        : "admin-dialog-action--success"
+      }`}
+      >
+        {actionLoading
+          ? "Processing…"
+          : pendingAction?.type === "delete"
+            ? "Delete User"
+            : pendingAction?.type === "deactivate"
+              ? "Deactivate User"
+              : "Activate User"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog></AdminPage>
   );
 }
 
@@ -232,21 +404,26 @@ function SummaryTile({
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
-  tone: string;
+  tone: "cyan" | "green" | "amber";
 }) {
   return (
-    <div className="rounded-xl border border-[#1a2737] bg-[#0b131e] p-4 shadow-lg">
-      <div className="flex items-center gap-3">
-        <Icon className={`h-5 w-5 ${tone}`} />
-        <div>
-          <p className="text-2xl font-semibold text-white">{value}</p>
-          <p className="text-[10px] uppercase tracking-widest text-[#8ea3bb]">{label}</p>
-        </div>
+    <div className="admin-metric">
+      <div className="admin-metric__icon">
+        <Icon className={`admin-metric__icon-svg admin-metric__icon-svg--${tone}`} />
+      </div>
+
+      <div className="admin-metric__content">
+        <p className="admin-metric__value">
+          {value}
+        </p>
+
+        <p className="admin-metric__label">
+          {label}
+        </p>
       </div>
     </div>
   );
 }
-
 function UserFilterBar({
   query,
   onQuery,
@@ -256,105 +433,200 @@ function UserFilterBar({
   onStatus,
 }: {
   query: string;
-  onQuery: (v: string) => void;
+  onQuery: (value: string) => void;
   role: string;
-  onRole: (v: string) => void;
+  onRole: (value: string) => void;
   status: string;
-  onStatus: (v: string) => void;
+  onStatus: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-[#1a2737] px-4 py-3">
-      <div className="relative min-w-[180px] flex-1">
-        <UsersIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5f7891]" />
+    <div className="admin-user-filters">
+      <div className="admin-user-filters__search">
+        <UsersIcon className="admin-user-filters__search-icon" />
+
         <Input
           type="search"
           placeholder="Search users..."
           value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          className="border-[#1a2737] bg-[#0a1320] pl-8 text-sm text-white placeholder:text-[#5f7891] focus-visible:ring-[#38bdf8]"
+          onChange={(event) => onQuery(event.target.value)}
+          className="admin-input admin-user-filters__input"
         />
       </div>
+
       <Select value={role} onValueChange={onRole}>
-        <SelectTrigger className="w-[130px] border-[#1a2737] bg-[#0a1320] text-sm text-white focus-visible:ring-[#38bdf8]">
+        <SelectTrigger className="admin-select">
           <SelectValue placeholder="All Roles" />
         </SelectTrigger>
-        <SelectContent className="border border-[#1a2737] bg-[#0a1320]">
-          <SelectItem value="all" className="text-white">All Roles</SelectItem>
-          <SelectItem value="ADMIN" className="text-white">Admin</SelectItem>
-          <SelectItem value="LAWYER" className="text-white">Lawyer</SelectItem>
-          <SelectItem value="ANALYST" className="text-white">Analyst</SelectItem>
+
+        <SelectContent className="admin-select__content">
+          <SelectItem value="all">
+            All Roles
+          </SelectItem>
+
+          <SelectItem value="ADMIN">
+            Admin
+          </SelectItem>
+
+          <SelectItem value="LAWYER">
+            Lawyer
+          </SelectItem>
         </SelectContent>
       </Select>
+
       <Select value={status} onValueChange={onStatus}>
-        <SelectTrigger className="w-[130px] border-[#1a2737] bg-[#0a1320] text-sm text-white focus-visible:ring-[#38bdf8]">
+        <SelectTrigger className="admin-select">
           <SelectValue placeholder="All Status" />
         </SelectTrigger>
-        <SelectContent className="border border-[#1a2737] bg-[#0a1320]">
-          <SelectItem value="all" className="text-white">All Status</SelectItem>
-          <SelectItem value="active" className="text-white">Active</SelectItem>
-          <SelectItem value="pending" className="text-white">Pending</SelectItem>
-          <SelectItem value="inactive" className="text-white">Inactive</SelectItem>
+
+        <SelectContent className="admin-select__content">
+          <SelectItem value="all">
+            All Status
+          </SelectItem>
+
+          <SelectItem value="active">
+            Active
+          </SelectItem>
+
+          <SelectItem value="inactive">
+            Inactive
+          </SelectItem>
         </SelectContent>
       </Select>
     </div>
   );
 }
 
-function UserRow({
-  row,
-  canDelete,
-  onDelete,
+function UserTableRow({
+  user,
+  onAction,
 }: {
-  row: UserRow;
-  canDelete: boolean;
-  onDelete: () => void;
+  user: AdminUser;
+  onAction: (action: {
+    type: "delete" | "deactivate" | "activate";
+    user: AdminUser;
+  }) => void;
 }) {
   return (
-    <tr className="border-b border-[#1a2737] last:border-0">
-      <td className="p-3">
-        <Checkbox className="h-4 w-4" />
+    <tr className="admin-table-row">
+      <td className="admin-table-cell admin-table-cell--username">
+        {user.username}
       </td>
-      <td className="px-3 py-3 font-mono text-sm text-white">{row.username}</td>
-      <td className="px-3 py-3 text-sm text-white">{row.fullName}</td>
-      <td className="px-3 py-3">
-        <Badge variant={roleVariantFor(row.role)} className="cursor-default text-[10px] uppercase tracking-wider">
-          {row.role}
-        </Badge>
+
+      <td className="admin-table-cell">
+        {user.full_name}
       </td>
-      <td className="px-3 py-3">
-        <span className={`inline-flex items-center gap-1.5 text-xs capitalize ${statusColorFor(row.status)}`}>
-          <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: statusBgFor(row.status) }} />
-          {row.status}
+
+      <td className="admin-table-cell">
+        <span
+          className={`admin-role-badge admin-role-badge--${
+            user.role === "ADMIN" ? "admin" : "lawyer"
+          }`}
+        >
+          {user.role}
         </span>
       </td>
-      <td className="px-3 py-3 text-xs tabular-nums text-[#8ea3bb]">{row.lastLogin}</td>
-      <td className="px-3 py-3 text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={`Actions for ${row.username}`}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-[#8ea3bb] transition-colors outline-none hover:border-[#1a2737] hover:bg-[#122236] hover:text-white focus-visible:ring-2 focus-visible:ring-[#38bdf8] disabled:pointer-events-none disabled:opacity-40 data-[state=open]:border-[#1a2737] data-[state=open]:bg-[#122236] data-[state=open]:text-white"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="border-[#1a2737] bg-[#0a1320] text-white">
-            <DropdownMenuItem disabled className="text-[#5f7891]">
-              View profile
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="text-[#5f7891]">
-              Reset password
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#1a2737]" />
-            <DropdownMenuItem
-              disabled={!canDelete}
-              className="text-red-300 focus:bg-red-500/15 focus:text-red-200 data-[disabled]:opacity-40"
-              onSelect={() => onDelete()}
+
+      <td className="admin-table-cell">
+        <span
+          className={`admin-user-status ${
+            user.is_active
+              ? "admin-user-status--active"
+              : "admin-user-status--inactive"
+          }`}
+        >
+          <span className="admin-user-status__dot" />
+          {user.is_active ? "Active" : "Inactive"}
+        </span>
+      </td>
+
+      <td className="admin-table-cell">
+        {user.must_change_password ? (
+          <span className="admin-password-status admin-password-status--required">
+            Change required
+          </span>
+        ) : (
+          <span className="admin-password-status admin-password-status--set">
+            Set
+          </span>
+        )}
+      </td>
+
+      <td className="admin-table-cell admin-table-cell--muted">
+        {formatDate(user.last_login)}
+      </td>
+
+      <td className="admin-table-cell admin-table-cell--muted">
+        {formatDate(user.created_at)}
+      </td>
+
+      <td className="admin-table-cell admin-table-cell--actions">
+        {user.role === "LAWYER" && (
+          <div className="admin-user-actions">
+            {user.is_active ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onAction({
+                    type: "deactivate",
+                    user,
+                  })
+                }
+                className="admin-action admin-action--warning"
+              >
+                Deactivate
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  onAction({
+                    type: "activate",
+                    user,
+                  })
+                }
+                className="admin-action admin-action--success"
+              >
+                Activate
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                onAction({
+                  type: "delete",
+                  user,
+                })
+              }
+              className="admin-action admin-action--danger"
             >
-              <Trash2 className="mr-1 h-3.5 w-3.5" />
-              Delete user
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          </div>
+        )}
       </td>
     </tr>
   );
+}
+function LoadingRow() {
+  return (
+    <tr className="admin-table-row">
+      <td colSpan={8} className="admin-table-empty">
+        Loading users…
+      </td>
+    </tr>
+  );
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
 }

@@ -8,7 +8,7 @@
  * layout re-applies it on mount so a hard refresh on any route also restores
  * it (paired with the no-flash inline script in __root.tsx).
  *
- * Default: DARK — the existing Legal Eye interface is primarily dark, so
+ * Default: DARK — the existing JURY HASH interface is primarily dark, so
  * first-time visitors keep the established visual baseline.
  */
 

@@ -23,6 +23,7 @@ from app.routers import health, auth, cases, documents, blockchain, intelligence
 from app.core.database import engine, Base
 from app.core.event_bus import event_bus
 from app.subscribers import text_extractor, entity_extractor, blockchain_subscriber
+from app.models.security_event import SecurityEvent
 
 # =========================================================
 # LIFECYCLE MANAGER (Startup / Shutdown)

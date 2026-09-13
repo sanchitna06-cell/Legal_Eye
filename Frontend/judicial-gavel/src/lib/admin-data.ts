@@ -1,5 +1,5 @@
 /**
- * Admin sample data and widget helpers for Legal Eye admin console.
+ * Admin sample data and widget helpers for JURY HASH admin console.
  *
  * This is frontend-only prototype data. The dashboard UI is wired to render
  * from these shapes so the feature is self-contained, and a few actions here

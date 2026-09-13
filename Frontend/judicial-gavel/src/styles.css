@@ -8,7 +8,7 @@
  * JURY HASH — DESIGN SYSTEM
  * ============================================================
  *
- * The official Legal Eye palette — primary brown, secondary brown,
+ * The official JURY HASH palette — primary brown, secondary brown,
  * accent beige, light beige, charcoal and warm greys — drives every
  * token. Light mode is the warm parchment build; dark mode keeps the
  * brown/beige/black identity (never blue/purple).
@@ -2244,5 +2244,7855 @@ html:not(.dark) .login-cinematic {
     transition-duration: 0.001ms !important;
 
     scroll-behavior: auto !important;
+  }
+}
+/* ============================================================
+   Jury Hash — ADMIN CONSOLE
+   ============================================================
+
+   Dedicated technical / security-console visual system.
+
+   The Admin Console intentionally has its own semantic CSS
+   namespace. These classes should be used by admin components
+   instead of styling implementation-specific Tailwind classes
+   from the outside.
+   ============================================================ */
+
+.admin-console {
+  --admin-bg: #070c13;
+
+  --admin-surface: #0a111b;
+  --admin-surface-raised: #0d1723;
+  --admin-surface-hover: #101f30;
+  --admin-surface-active: #10263b;
+
+  --admin-border: #18283a;
+  --admin-border-strong: #253b51;
+
+  --admin-text: #eef6ff;
+  --admin-text-secondary: #a6b9ce;
+  --admin-text-muted: #71879b;
+  --admin-text-faint: #4d6276;
+
+  --admin-cyan: #38bdf8;
+  --admin-cyan-bright: #67d3ff;
+  --admin-cyan-soft: rgba(56, 189, 248, 0.09);
+
+  --admin-green: #00d7a0;
+  --admin-green-soft: rgba(0, 215, 160, 0.1);
+
+  --admin-amber: #f2b84b;
+  --admin-amber-soft: rgba(242, 184, 75, 0.1);
+
+  --admin-red: #ef6b73;
+  --admin-red-soft: rgba(239, 107, 115, 0.1);
+
+  --admin-radius-sm: 0.3rem;
+  --admin-radius-md: 0.5rem;
+  --admin-radius-lg: 0.7rem;
+
+  --admin-shadow-panel:
+    0 18px 45px -28px rgba(0, 0, 0, 0.85);
+
+  --admin-shadow-cyan:
+    0 0 24px rgba(56, 189, 248, 0.055);
+
+  position: relative;
+
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 82% 6%,
+      rgba(56, 189, 248, 0.035),
+      transparent 30rem
+    ),
+    radial-gradient(
+      circle at 16% 82%,
+      rgba(0, 215, 160, 0.018),
+      transparent 28rem
+    ),
+    var(--admin-bg);
+
+  color: var(--admin-text);
+
+  color-scheme: dark;
+
+  font-family:
+    Inter,
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+
+/* ============================================================
+   BACKGROUND ATMOSPHERE
+   ============================================================ */
+
+.admin-console::before {
+  content: "";
+
+  position: fixed;
+  inset: 0;
+
+  z-index: 0;
+  pointer-events: none;
+
+  opacity: 0.11;
+
+  background-image:
+    linear-gradient(
+      rgba(56, 189, 248, 0.026) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(56, 189, 248, 0.026) 1px,
+      transparent 1px
+    );
+
+  background-size: 36px 36px;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      black 0%,
+      rgba(0, 0, 0, 0.55) 65%,
+      transparent 100%
+    );
+}
+
+.admin-console > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+.admin-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+
+  z-index: 40;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 15rem;
+
+  background:
+    linear-gradient(
+      180deg,
+      #070c13 0%,
+      #080f18 58%,
+      #060a11 100%
+    );
+
+  border-right: 1px solid var(--admin-border);
+
+  box-shadow:
+    16px 0 40px -34px rgba(0, 0, 0, 0.9);
+}
+
+.admin-sidebar::after {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  right: -1px;
+  bottom: 0;
+
+  width: 1px;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(56, 189, 248, 0.14),
+      transparent
+    );
+}
+
+
+/* ============================================================
+   SIDEBAR BRAND
+   ============================================================ */
+
+.admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  height: 4rem;
+
+  flex-shrink: 0;
+
+  padding:
+    0 1.25rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-sidebar__logo {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid rgba(56, 189, 248, 0.32);
+
+  border-radius: 0.35rem;
+
+  background:
+    linear-gradient(
+      145deg,
+      #12324b,
+      #0c2437
+    );
+
+  color: var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  box-shadow:
+    0 0 16px rgba(56, 189, 248, 0.035);
+}
+
+.admin-sidebar__logo::after {
+  content: "";
+
+  position: absolute;
+  inset: 3px;
+
+  border:
+    1px solid rgba(56, 189, 248, 0.08);
+
+  border-radius: 0.2rem;
+}
+
+.admin-sidebar__brand-copy {
+  min-width: 0;
+}
+
+.admin-sidebar__brand-name {
+  color: var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 0.95rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.admin-sidebar__brand-name span {
+  color: var(--admin-cyan);
+}
+
+.admin-sidebar__tagline {
+  margin-top: 0.25rem;
+
+  overflow: hidden;
+
+  color: var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.47rem;
+  line-height: 1;
+
+  letter-spacing: 0.16em;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+
+/* ============================================================
+   SIDEBAR NAV
+   ============================================================ */
+
+.admin-sidebar__nav {
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding:
+    1.5rem 0.75rem;
+}
+
+.admin-sidebar__section + .admin-sidebar__section {
+  margin-top: 1.75rem;
+}
+
+.admin-sidebar__section-label {
+  margin:
+    0 0 0.5rem;
+
+  padding:
+    0 0.75rem;
+
+  color: var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.7rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.2em;
+
+  text-transform: uppercase;
+}
+
+.admin-sidebar__links {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.125rem;
+}
+
+
+/* Navigation link */
+
+.admin-nav-link {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  min-height: 2.55rem;
+
+  padding:
+    0 0.75rem;
+
+  border:
+    1px solid transparent;
+
+  border-left:
+    2px solid transparent;
+
+  border-radius:
+    0.35rem;
+
+  color: var(--admin-text-secondary);
+
+  text-decoration: none;
+
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.admin-nav-link:hover {
+  background:
+    rgba(56, 189, 248, 0.035);
+
+  color: var(--admin-text);
+}
+
+.admin-nav-link[data-status="active"] {
+  border-left-color:
+    var(--admin-cyan);
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(56, 189, 248, 0.12),
+      rgba(56, 189, 248, 0.035)
+    );
+
+  color: #ffffff;
+
+  box-shadow:
+    inset
+      0 0 18px
+      rgba(56, 189, 248, 0.025);
+}
+
+.admin-nav-link[data-status="active"]::after {
+  content: "";
+
+  position: absolute;
+
+  right: 0.7rem;
+
+  width: 3px;
+  height: 3px;
+
+  border-radius: 999px;
+
+  background:
+    var(--admin-cyan);
+
+  box-shadow:
+    0 0 7px
+    rgba(56, 189, 248, 0.75);
+}
+
+.admin-nav-link__icon {
+  width: 1rem;
+  height: 1rem;
+
+  flex-shrink: 0;
+
+  color: currentColor;
+
+  opacity: 0.8;
+}
+
+.admin-nav-link[data-status="active"]
+  .admin-nav-link__icon {
+  color: var(--admin-cyan);
+
+  opacity: 1;
+
+  filter:
+    drop-shadow(
+      0 0 5px
+      rgba(56, 189, 248, 0.15)
+    );
+}
+
+.admin-nav-link__label {
+  overflow: hidden;
+
+  font-size: 0.8rem;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+
+/* ============================================================
+   SIDEBAR FOOTER
+   ============================================================ */
+
+.admin-sidebar__footer {
+  flex-shrink: 0;
+
+  padding:
+    1rem;
+
+  border-top:
+    1px solid var(--admin-border);
+}
+
+.admin-restricted {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13, 23, 35, 0.96),
+      rgba(8, 15, 24, 0.96)
+    );
+}
+
+.admin-restricted__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 1.8rem;
+  height: 1.8rem;
+
+  flex-shrink: 0;
+
+  border-radius:
+    0.3rem;
+
+  background:
+    var(--admin-amber-soft);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-restricted__icon svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.admin-restricted__title {
+  color: var(--admin-text-secondary);
+
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.admin-restricted__subtitle {
+  margin-top: 0.2rem;
+
+  color: var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.46rem;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+.admin-sidebar__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 0.7rem;
+
+  padding:
+    0 0.2rem;
+
+  color: var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.6rem;
+
+  letter-spacing: 0.05em;
+}
+
+.admin-sidebar__quote {
+  margin-top: 0.7rem;
+
+  padding-top: 0.7rem;
+
+  border-top:
+    1px solid var(--admin-border);
+
+  color:
+    color-mix(
+      in srgb,
+      var(--admin-text-faint) 90%,
+      transparent
+    );
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 0.52rem;
+
+  line-height: 1.5;
+
+  text-align: center;
+
+  font-style: italic;
+}
+
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+
+.admin-main {
+  min-width: 0;
+
+  min-height: 100vh;
+
+  margin-left: 15rem;
+}
+
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+
+  z-index: 30;
+
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  min-height: 4rem;
+
+  padding:
+    0 1.25rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+
+  background:
+    rgba(7, 13, 21, 0.94);
+
+  backdrop-filter:
+    blur(18px);
+
+  box-shadow:
+    0 12px 30px -24px rgba(0, 0, 0, 0.9);
+}
+
+.admin-topbar::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: -1px;
+
+  height: 1px;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(56, 189, 248, 0.1),
+      transparent
+    );
+}
+
+
+/* ============================================================
+   GOVERNMENT IDENTITY
+   ============================================================ */
+
+.admin-government {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+
+  flex-shrink: 0;
+
+  padding-right: 1.25rem;
+
+  border-right:
+    1px solid var(--admin-border);
+}
+
+.admin-government__emblem {
+  width: 2.15rem;
+  height: 2.15rem;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 0 8px
+      rgba(242, 184, 75, 0.07)
+    );
+}
+
+.admin-government__copy {
+  line-height: 1.2;
+}
+
+.admin-government__copy p:first-child {
+  color: var(--admin-text-secondary);
+
+  font-size: 0.63rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.03em;
+}
+
+.admin-government__copy p:last-child {
+  margin-top: 0.2rem;
+
+  color: var(--admin-text-muted);
+
+  font-size: 0.59rem;
+
+  letter-spacing: 0.04em;
+}
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.admin-search {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  min-width: 12rem;
+  max-width: 37rem;
+
+  flex: 1;
+
+  margin: 0 auto;
+}
+
+.admin-search__icon {
+  position: absolute;
+  left: 0.8rem;
+
+  width: 1rem;
+  height: 1rem;
+
+  pointer-events: none;
+
+  color: var(--admin-text-faint);
+}
+
+.admin-search__input {
+  width: 100%;
+  height: 2.25rem;
+
+  padding:
+    0 4rem 0 2.4rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(6, 12, 19, 0.82);
+
+  color: var(--admin-text);
+
+  font-family:
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+
+  font-size: 0.68rem;
+
+  outline: none;
+
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.admin-search__input::placeholder {
+  color: var(--admin-text-faint);
+}
+
+.admin-search__input:hover {
+  border-color:
+    var(--admin-border-strong);
+}
+
+.admin-search__input:focus {
+  border-color:
+    rgba(56, 189, 248, 0.48);
+
+  background:
+    rgba(8, 16, 25, 0.95);
+
+  box-shadow:
+    0 0 0 1px
+      rgba(56, 189, 248, 0.06),
+    0 0 18px
+      rgba(56, 189, 248, 0.035);
+}
+
+.admin-search__shortcut {
+  position: absolute;
+  right: 0.65rem;
+
+  display: inline-flex;
+  align-items: center;
+
+  height: 1.35rem;
+
+  padding:
+    0 0.4rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.25rem;
+
+  background:
+    #080f18;
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.46rem;
+}
+
+
+/* ============================================================
+   TOP BAR META
+   ============================================================ */
+
+.admin-topbar__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+
+  flex-shrink: 0;
+}
+
+.admin-topbar__divider {
+  width: 1px;
+  height: 1.35rem;
+
+  background:
+    var(--admin-border);
+}
+
+
+/* ============================================================
+   SYSTEM STATUS
+   ============================================================ */
+
+.admin-system-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  white-space: nowrap;
+
+  font-size: 0.59rem;
+}
+
+.admin-system-status__dot {
+  width: 0.38rem;
+  height: 0.38rem;
+
+  flex-shrink: 0;
+
+  border-radius: 999px;
+}
+
+.admin-system-status--healthy {
+  color: var(--admin-text-secondary);
+}
+
+.admin-system-status--healthy
+  .admin-system-status__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 8px
+    rgba(0, 215, 160, 0.55);
+}
+
+.admin-system-status--degraded {
+  color: var(--admin-amber);
+}
+
+.admin-system-status--degraded
+  .admin-system-status__dot {
+  background:
+    var(--admin-amber);
+
+  box-shadow:
+    0 0 8px
+    rgba(242, 184, 75, 0.45);
+}
+
+.admin-system-status--critical {
+  color: var(--admin-red);
+}
+
+.admin-system-status--critical
+  .admin-system-status__dot {
+  background:
+    var(--admin-red);
+
+  box-shadow:
+    0 0 8px
+    rgba(239, 107, 115, 0.45);
+}
+
+.admin-system-status--loading {
+  color: var(--admin-text-faint);
+}
+
+.admin-system-status--loading
+  .admin-system-status__dot {
+  background:
+    var(--admin-text-faint);
+
+  animation:
+    admin-pulse 1.4s ease-in-out infinite;
+}
+
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+
+.admin-clock {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.53rem;
+
+  letter-spacing: 0.02em;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   ACCOUNT
+   ============================================================ */
+
+.admin-account {
+  position: relative;
+}
+
+.admin-account__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+
+  padding:
+    0.25rem 0.35rem;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    transparent;
+
+  color:
+    inherit;
+
+  cursor:
+    pointer;
+
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.admin-account__trigger:hover {
+  border-color:
+    var(--admin-border);
+
+  background:
+    rgba(56, 189, 248, 0.028);
+}
+
+.admin-account__trigger:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 1px
+      rgba(56, 189, 248, 0.65);
+}
+
+.admin-account__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid
+    rgba(0, 215, 160, 0.38);
+
+  border-radius: 999px;
+
+  background:
+    rgba(0, 215, 160, 0.025);
+
+  color:
+    var(--admin-green);
+
+  font-size: 0.66rem;
+  font-weight: 700;
+
+  box-shadow:
+    0 0 12px
+    rgba(0, 215, 160, 0.055);
+}
+
+.admin-account__identity {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  text-align: left;
+}
+
+.admin-account__eyebrow {
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.43rem;
+
+  letter-spacing: 0.14em;
+
+  text-transform: uppercase;
+}
+
+.admin-account__name {
+  margin-top: 0.15rem;
+
+  max-width: 10rem;
+
+  overflow: hidden;
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 0.7rem;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.admin-account__chevron {
+  width: 0.8rem;
+  height: 0.8rem;
+
+  color:
+    var(--admin-text-faint);
+
+  transition:
+    transform 160ms ease;
+}
+
+.admin-account__chevron.is-open {
+  transform:
+    rotate(180deg);
+}
+
+
+/* Account menu */
+
+.admin-account__menu {
+  position: absolute;
+
+  top: calc(100% + 0.5rem);
+  right: 0;
+
+  z-index: 50;
+
+  width: 16rem;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    linear-gradient(
+      180deg,
+      #0c1622,
+      #080f18
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel),
+    var(--admin-shadow-cyan);
+}
+
+.admin-account__menu-header {
+  padding:
+    0.8rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-account__menu-name {
+  overflow: hidden;
+
+  color:
+    var(--admin-text);
+
+  font-size: 0.76rem;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.admin-account__menu-username {
+  margin-top: 0.25rem;
+
+  overflow: hidden;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size: 0.58rem;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.admin-account__menu-actions {
+  padding:
+    0.35rem;
+}
+
+.admin-account__signout {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  width: 100%;
+
+  padding:
+    0.65rem 0.7rem;
+
+  border:
+    0;
+
+  border-radius:
+    0.3rem;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-size: 0.68rem;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.admin-account__signout:hover {
+  background:
+    var(--admin-red-soft);
+
+  color:
+    #ffabb0;
+}
+
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+
+.admin-content {
+  min-width: 0;
+
+  padding:
+    1.5rem 1.5rem 2.5rem;
+}
+
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.admin-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+
+  margin-bottom: 1.5rem;
+}
+
+.admin-page__heading {
+  min-width: 0;
+}
+
+.admin-page__kicker {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.55rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.2em;
+
+  text-transform: uppercase;
+
+  text-shadow:
+    0 0 10px
+    rgba(56, 189, 248, 0.1);
+}
+
+.admin-page__title {
+  margin-top: 0.3rem;
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    clamp(1.8rem, 3vw, 2.5rem);
+
+  font-weight: 500;
+
+  line-height: 1.05;
+
+  letter-spacing: -0.02em;
+}
+
+.admin-page__description {
+  margin-top: 0.4rem;
+
+  max-width: 46rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size: 0.72rem;
+
+  line-height: 1.55;
+}
+
+.admin-page__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 0.5rem;
+
+  flex-shrink: 0;
+}
+
+
+/* ============================================================
+   ADMIN CARDS
+   ============================================================ */
+
+.admin-card {
+  position: relative;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 20, 31, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-card::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(56, 189, 248, 0.018),
+      transparent 28%
+    );
+}
+
+.admin-card__header {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  min-height: 3.5rem;
+
+  padding:
+    0.8rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-card__heading {
+  min-width: 0;
+}
+
+.admin-card__title {
+  color:
+    var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 0.82rem;
+
+  font-weight: 600;
+}
+
+.admin-card__subtitle {
+  margin-top: 0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size: 0.52rem;
+}
+
+.admin-card__action {
+  flex-shrink: 0;
+}
+
+.admin-card__body {
+  position: relative;
+}
+
+
+/* ============================================================
+   GENERIC TECH PANEL
+   ============================================================ */
+
+.admin-panel {
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    var(--admin-surface);
+
+  box-shadow:
+    inset 0 0 18px
+    rgba(56, 189, 248, 0.018);
+}
+
+.admin-panel--raised {
+  background:
+    var(--admin-surface-raised);
+}
+
+
+/* ============================================================
+   TECH BUTTONS
+   ============================================================ */
+
+.admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  min-height: 2rem;
+
+  padding:
+    0 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.57rem;
+
+  letter-spacing: 0.03em;
+
+  cursor: pointer;
+
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 120ms ease;
+}
+
+.admin-button:hover:not(:disabled) {
+  border-color:
+    var(--admin-border-strong);
+
+  background:
+    var(--admin-surface-hover);
+
+  color:
+    var(--admin-text);
+}
+
+.admin-button:active:not(:disabled) {
+  transform:
+    translateY(1px);
+}
+
+.admin-button:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 1px
+      rgba(56, 189, 248, 0.6);
+}
+
+.admin-button--primary {
+  border-color:
+    rgba(56, 189, 248, 0.4);
+
+  background:
+    linear-gradient(
+      180deg,
+      var(--admin-cyan-bright),
+      var(--admin-cyan)
+    );
+
+  color:
+    #051018;
+
+  box-shadow:
+    0 0 18px
+    rgba(56, 189, 248, 0.045);
+}
+
+.admin-button--primary:hover:not(:disabled) {
+  border-color:
+    rgba(103, 211, 255, 0.55);
+
+  background:
+    var(--admin-cyan-bright);
+
+  color:
+    #041018;
+}
+
+
+/* ============================================================
+   STATUS HELPERS
+   ============================================================ */
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.55rem;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.08em;
+}
+
+.admin-status__dot {
+  width: 0.35rem;
+  height: 0.35rem;
+
+  border-radius: 999px;
+}
+
+.admin-status--success {
+  color:
+    var(--admin-green);
+}
+
+.admin-status--success
+  .admin-status__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 7px
+    rgba(0, 215, 160, 0.5);
+}
+
+.admin-status--warning {
+  color:
+    var(--admin-amber);
+}
+
+.admin-status--warning
+  .admin-status__dot {
+  background:
+    var(--admin-amber);
+}
+
+.admin-status--danger {
+  color:
+    var(--admin-red);
+}
+
+.admin-status--danger
+  .admin-status__dot {
+  background:
+    var(--admin-red);
+}
+
+
+/* ============================================================
+   TECH INPUT
+   ============================================================ */
+
+.admin-input {
+  width: 100%;
+
+  min-height: 2.3rem;
+
+  padding:
+    0 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(7, 13, 21, 0.96);
+
+  color:
+    var(--admin-text);
+
+  font-size: 0.68rem;
+
+  outline: none;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.admin-input::placeholder {
+  color:
+    var(--admin-text-faint);
+}
+
+.admin-input:hover {
+  border-color:
+    var(--admin-border-strong);
+}
+
+.admin-input:focus {
+  border-color:
+    rgba(56, 189, 248, 0.48);
+
+  box-shadow:
+    0 0 0 1px
+      rgba(56, 189, 248, 0.06);
+}
+
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+
+.admin-console,
+.admin-console * {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    #243b51
+    transparent;
+}
+
+.admin-console ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-console ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-console ::-webkit-scrollbar-thumb {
+  background:
+    #20374b;
+
+  border:
+    2px solid transparent;
+
+  background-clip:
+    padding-box;
+}
+
+.admin-console ::-webkit-scrollbar-thumb:hover {
+  background:
+    #2d516d;
+
+  border:
+    2px solid transparent;
+
+  background-clip:
+    padding-box;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .admin-sidebar {
+    width: 13.5rem;
+  }
+
+  .admin-main {
+    margin-left: 13.5rem;
+  }
+
+  .admin-government__copy {
+    display: none;
+  }
+
+  .admin-government {
+    padding-right: 0.8rem;
+
+    border-right: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-sidebar {
+    width: 4.5rem;
+  }
+
+  .admin-main {
+    margin-left: 4.5rem;
+  }
+
+  .admin-sidebar__brand {
+    justify-content: center;
+
+    padding:
+      0 0.75rem;
+  }
+
+  .admin-sidebar__brand-copy {
+    display: none;
+  }
+
+  .admin-sidebar__nav {
+    padding:
+      1.25rem 0.5rem;
+  }
+
+  .admin-sidebar__section-label {
+    display: none;
+  }
+
+  .admin-nav-link {
+    justify-content: center;
+
+    padding:
+      0 0.5rem;
+  }
+
+  .admin-nav-link__label {
+    display: none;
+  }
+
+  .admin-nav-link[data-status="active"] {
+    border-left-color:
+      var(--admin-cyan);
+  }
+
+  .admin-sidebar__footer {
+    padding:
+      0.65rem;
+  }
+
+  .admin-restricted {
+    justify-content: center;
+  }
+
+  .admin-restricted__title,
+  .admin-restricted__subtitle,
+  .admin-sidebar__meta,
+  .admin-sidebar__quote {
+    display: none;
+  }
+
+  .admin-content {
+    padding:
+      1.25rem;
+  }
+
+  .admin-page__header {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .admin-page__actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-topbar {
+    gap: 0.6rem;
+
+    padding:
+      0 0.75rem;
+  }
+
+  .admin-government {
+    display: none;
+  }
+
+  .admin-search {
+    min-width: 0;
+  }
+
+  .admin-search__input {
+    font-size: 0.6rem;
+  }
+
+  .admin-search__shortcut {
+    display: none;
+  }
+
+  .admin-system-status__label {
+    display: none;
+  }
+
+  .admin-topbar__divider {
+    display: none;
+  }
+
+  .admin-clock {
+    display: none;
+  }
+
+  .admin-account__identity,
+  .admin-account__chevron {
+    display: none;
+  }
+
+  .admin-content {
+    padding:
+      1rem 0.75rem 2rem;
+  }
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@keyframes admin-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-console *,
+  .admin-console *::before,
+  .admin-console *::after {
+    animation-duration:
+      0.001ms !important;
+
+    animation-iteration-count:
+      1 !important;
+
+    transition-duration:
+      0.001ms !important;
+  }
+}
+/* ============================================================
+   ADMIN — USER MANAGEMENT
+   ============================================================ */
+
+.admin-card--large {
+  min-width: 0;
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .admin-card--large {
+    grid-column: span 1;
+  }
+}
+
+
+/* ============================================================
+   METRIC TILES
+   ============================================================ */
+
+.admin-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+
+  min-height: 6.25rem;
+  padding: 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 20, 31, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.5rem;
+  height: 2.5rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.4rem;
+
+  background:
+    rgba(56, 189, 248, 0.035);
+}
+
+.admin-metric__icon-svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.admin-metric__icon-svg--cyan {
+  color: var(--admin-cyan);
+}
+
+.admin-metric__icon-svg--green {
+  color: var(--admin-green);
+}
+
+.admin-metric__icon-svg--amber {
+  color: var(--admin-amber);
+}
+
+.admin-metric__value {
+  color: var(--admin-text);
+
+  font-size: 1.5rem;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+.admin-metric__label {
+  margin-top: 0.35rem;
+
+  color: var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.7rem;
+
+  letter-spacing: 0.14em;
+
+  text-transform: uppercase;
+}
+
+
+/* ============================================================
+   USER FILTERS
+   ============================================================ */
+
+.admin-user-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 0.65rem;
+
+  padding: 0.8rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-user-filters__search {
+  position: relative;
+
+  min-width: 12rem;
+
+  flex: 1;
+}
+
+.admin-user-filters__search-icon {
+  position: absolute;
+
+  left: 0.7rem;
+  top: 50%;
+
+  z-index: 1;
+
+  width: 0.95rem;
+  height: 0.95rem;
+
+  transform: translateY(-50%);
+
+  color: var(--admin-text-faint);
+
+  pointer-events: none;
+}
+
+.admin-user-filters__input {
+  padding-left: 2.25rem !important;
+}
+
+
+/* Radix / shadcn select */
+
+.admin-select {
+  width: 8.5rem;
+
+  border-color:
+    var(--admin-border) !important;
+
+  background:
+    var(--admin-surface) !important;
+
+  color:
+    var(--admin-text-secondary) !important;
+
+  box-shadow:
+    none !important;
+}
+
+.admin-select:hover {
+  border-color:
+    var(--admin-border-strong) !important;
+}
+
+.admin-select:focus-visible {
+  border-color:
+    rgba(56, 189, 248, 0.48) !important;
+
+  box-shadow:
+    0 0 0 1px
+    rgba(56, 189, 248, 0.06) !important;
+}
+
+.admin-select__content {
+  border-color:
+    var(--admin-border) !important;
+
+  background:
+    #0b151f !important;
+
+  color:
+    var(--admin-text) !important;
+}
+
+.admin-select__content [role="option"] {
+  color:
+    var(--admin-text-secondary);
+}
+
+.admin-select__content [role="option"]:hover,
+.admin-select__content [role="option"][data-highlighted] {
+  background:
+    rgba(56, 189, 248, 0.08);
+
+  color:
+    var(--admin-text);
+}
+
+
+/* ============================================================
+   USER TABLE
+   ============================================================ */
+
+.admin-table-head {
+  background:
+    linear-gradient(
+      180deg,
+      #0d1824,
+      #09131e
+    );
+}
+
+.admin-table-heading {
+  padding:
+    0.8rem 0.75rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.53rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.14em;
+
+  text-align: left;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.admin-table-heading--right {
+  text-align: right;
+}
+
+.admin-table-row {
+  border-bottom:
+    1px solid var(--admin-border);
+
+  transition:
+    background-color 120ms ease;
+}
+
+.admin-table-row:hover {
+  background:
+    rgba(56, 189, 248, 0.025);
+}
+
+.admin-table-cell {
+  padding: 0.9rem 0.75rem;
+
+  color: var(--admin-text-secondary);
+
+  font-size: 0.68rem;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+}
+
+.admin-table-cell--username {
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.67rem;
+}
+
+.admin-table-cell--muted {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.57rem;
+}
+
+.admin-table-cell--actions {
+  text-align: right;
+}
+
+.admin-table-empty {
+  padding:
+    2rem 0.75rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size: 0.68rem;
+
+  text-align: center;
+}
+
+
+/* ============================================================
+   ROLE BADGES
+   ============================================================ */
+
+.admin-role-badge {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 1.45rem;
+
+  padding:
+    0 0.55rem;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    0.3rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.6rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.07em;
+
+  text-transform: uppercase;
+}
+
+.admin-role-badge--lawyer {
+  border-color:
+    rgba(56, 189, 248, 0.28);
+
+  background:
+    rgba(56, 189, 248, 0.08);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-role-badge--admin {
+  border-color:
+    rgba(159, 140, 255, 0.35);
+
+  background:
+    rgba(159, 140, 255, 0.1);
+
+  color:
+    #b8adff;
+}
+
+
+/* ============================================================
+   USER STATUS
+   ============================================================ */
+
+.admin-user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.58rem;
+}
+
+.admin-user-status__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+
+  border-radius: 999px;
+}
+
+.admin-user-status--active {
+  color:
+    var(--admin-green);
+}
+
+.admin-user-status--active
+  .admin-user-status__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 7px
+    rgba(0, 215, 160, 0.5);
+}
+
+.admin-user-status--inactive {
+  color:
+    var(--admin-red);
+}
+
+.admin-user-status--inactive
+  .admin-user-status__dot {
+  background:
+    var(--admin-red);
+
+  box-shadow:
+    0 0 7px
+    rgba(239, 107, 115, 0.35);
+}
+
+
+/* ============================================================
+   PASSWORD STATUS
+   ============================================================ */
+
+.admin-password-status {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.55rem;
+}
+
+.admin-password-status--required {
+  color:
+    var(--admin-amber);
+}
+
+.admin-password-status--set {
+  color:
+    var(--admin-green);
+}
+
+
+/* ============================================================
+   USER ACTIONS
+   ============================================================ */
+
+.admin-user-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 0.8rem;
+}
+
+.admin-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  font-size: 0.58rem;
+
+  cursor: pointer;
+
+  transition:
+    color 140ms ease;
+}
+
+.admin-action--warning {
+  color:
+    var(--admin-amber);
+}
+
+.admin-action--warning:hover {
+  color:
+    #ffd27a;
+}
+
+.admin-action--success {
+  color:
+    var(--admin-green);
+}
+
+.admin-action--success:hover {
+  color:
+    #6ff1cf;
+}
+
+.admin-action--danger {
+  color:
+    var(--admin-text-muted);
+}
+
+.admin-action--danger:hover {
+  color:
+    var(--admin-red);
+}
+
+
+/* ============================================================
+   ADMIN ALERTS
+   ============================================================ */
+
+.admin-alert {
+  margin-bottom: 1rem;
+
+  padding:
+    0.65rem 0.75rem;
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  font-size: 0.62rem;
+}
+
+.admin-alert--danger {
+  border:
+    1px solid
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    var(--admin-red-soft);
+
+  color:
+    #ffabb0;
+}
+
+
+/* ============================================================
+   USER TABLE RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .admin-user-filters__search {
+    flex-basis: 100%;
+  }
+
+  .admin-select {
+    flex: 1;
+  }
+}
+.admin-dialog-action {
+  border-radius: 0.3rem;
+  padding: 0.55rem 0.8rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.55rem;
+  font-weight: 600;
+
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-dialog-action--danger {
+  border: 1px solid rgba(239, 107, 115, 0.45);
+
+  background:
+    var(--admin-red-soft);
+
+  color:
+    #ffabb0;
+}
+
+.admin-dialog-action--danger:hover {
+  background:
+    rgba(239, 107, 115, 0.18);
+}
+
+.admin-dialog-action--warning {
+  border: 1px solid rgba(242, 184, 75, 0.4);
+
+  background:
+    var(--admin-amber-soft);
+
+  color:
+    #ffd27a;
+}
+
+.admin-dialog-action--success {
+  border: 1px solid rgba(0, 215, 160, 0.4);
+
+  background:
+    var(--admin-green-soft);
+
+  color:
+    #6ff1cf;
+}
+/* ============================================================
+   ADMIN — DASHBOARD
+   ============================================================ */
+
+.admin-dashboard-link {
+  display: inline-flex;
+  align-items: center;
+
+  height: 2rem;
+
+  padding: 0 0.55rem;
+
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+
+  color: var(--admin-text-muted);
+
+  font-size: 0.58rem;
+
+  text-decoration: none;
+
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.admin-dashboard-link:hover {
+  border-color: var(--admin-border);
+
+  background:
+    rgba(56, 189, 248, 0.035);
+
+  color: var(--admin-text);
+}
+
+
+/* ============================================================
+   DASHBOARD METRICS
+   ============================================================ */
+
+.admin-dashboard-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+
+  min-height: 6.25rem;
+
+  padding: 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 20, 31, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-dashboard-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.5rem;
+  height: 2.5rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.45rem;
+
+  background:
+    rgba(255, 255, 255, 0.02);
+}
+
+.admin-dashboard-metric__icon-svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.admin-dashboard-metric--cyan
+  .admin-dashboard-metric__icon {
+  border-color:
+    rgba(56, 189, 248, 0.3);
+
+  background:
+    rgba(56, 189, 248, 0.07);
+}
+
+.admin-dashboard-metric--cyan
+  .admin-dashboard-metric__icon-svg {
+  color:
+    var(--admin-cyan);
+}
+
+.admin-dashboard-metric--green
+  .admin-dashboard-metric__icon {
+  border-color:
+    rgba(0, 215, 160, 0.3);
+
+  background:
+    rgba(0, 215, 160, 0.07);
+}
+
+.admin-dashboard-metric--green
+  .admin-dashboard-metric__icon-svg {
+  color:
+    var(--admin-green);
+}
+
+.admin-dashboard-metric--purple
+  .admin-dashboard-metric__icon {
+  border-color:
+    rgba(159, 140, 255, 0.3);
+
+  background:
+    rgba(159, 140, 255, 0.07);
+}
+
+.admin-dashboard-metric--purple
+  .admin-dashboard-metric__icon-svg {
+  color:
+    var(--admin-purple);
+}
+
+.admin-dashboard-metric--amber
+  .admin-dashboard-metric__icon {
+  border-color:
+    rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.07);
+}
+
+.admin-dashboard-metric--amber
+  .admin-dashboard-metric__icon-svg {
+  color:
+    var(--admin-amber);
+}
+
+.admin-dashboard-metric__value {
+  color:
+    var(--admin-text);
+
+  font-size:
+    1.5rem;
+
+  font-weight:
+    600;
+
+  line-height:
+    1;
+}
+
+.admin-dashboard-metric__label {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+}
+
+
+/* ============================================================
+   DASHBOARD PANELS
+   ============================================================ */
+
+.admin-dashboard-panel {
+  position: relative;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 20, 31, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-dashboard-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    0.8rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-dashboard-panel__body {
+  padding:
+    0.75rem;
+}
+
+
+/* ============================================================
+   DASHBOARD HEALTH
+   ============================================================ */
+
+.admin-dashboard-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.52rem;
+
+  white-space: nowrap;
+}
+
+.admin-dashboard-health__dot {
+  width: 0.36rem;
+  height: 0.36rem;
+
+  border-radius: 999px;
+}
+
+.admin-dashboard-health--healthy {
+  color:
+    var(--admin-green);
+}
+
+.admin-dashboard-health--healthy
+  .admin-dashboard-health__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 7px
+    rgba(0, 215, 160, 0.5);
+}
+
+.admin-dashboard-health--degraded {
+  color:
+    var(--admin-amber);
+}
+
+.admin-dashboard-health--degraded
+  .admin-dashboard-health__dot {
+  background:
+    var(--admin-amber);
+}
+
+.admin-dashboard-health--critical {
+  color:
+    var(--admin-red);
+}
+
+.admin-dashboard-health--critical
+  .admin-dashboard-health__dot {
+  background:
+    var(--admin-red);
+}
+
+.admin-dashboard-health--loading {
+  color:
+    var(--admin-text-muted);
+}
+
+.admin-dashboard-health--loading
+  .admin-dashboard-health__dot {
+  background:
+    var(--admin-text-muted);
+
+  animation:
+    admin-pulse 1.4s ease-in-out infinite;
+}
+
+
+/* ============================================================
+   HEALTH ROWS
+   ============================================================ */
+
+.admin-dashboard-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    0.7rem 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.45rem;
+
+  background:
+    rgba(7, 13, 21, 0.7);
+}
+
+.admin-dashboard-health-row__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  color:
+    var(--admin-text);
+
+  font-size: 0.67rem;
+}
+
+.admin-dashboard-health-row__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+
+  flex-shrink: 0;
+
+  border-radius: 999px;
+}
+
+.admin-dashboard-health-row--healthy
+  .admin-dashboard-health-row__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 6px
+    rgba(0, 215, 160, 0.45);
+}
+
+.admin-dashboard-health-row--degraded
+  .admin-dashboard-health-row__dot {
+  background:
+    var(--admin-amber);
+}
+
+.admin-dashboard-health-row--critical
+  .admin-dashboard-health-row__dot {
+  background:
+    var(--admin-red);
+}
+
+.admin-dashboard-health-row--loading
+  .admin-dashboard-health-row__dot {
+  background:
+    var(--admin-text-muted);
+}
+
+.admin-dashboard-health-row__status {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.52rem;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-dashboard-health-row--healthy
+  .admin-dashboard-health-row__status {
+  color:
+    var(--admin-green);
+}
+
+.admin-dashboard-health-row--degraded
+  .admin-dashboard-health-row__status {
+  color:
+    var(--admin-amber);
+}
+
+.admin-dashboard-health-row--critical
+  .admin-dashboard-health-row__status {
+  color:
+    var(--admin-red);
+}
+
+
+/* ============================================================
+   PROCESSING
+   ============================================================ */
+
+.admin-processing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    0.7rem 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.45rem;
+
+  background:
+    rgba(7, 13, 21, 0.7);
+}
+
+.admin-processing-row__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  color:
+    var(--admin-text);
+
+  font-size: 0.67rem;
+}
+
+.admin-processing-row__count {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.62rem;
+}
+
+.admin-processing-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+
+  border-radius: 999px;
+}
+
+.admin-processing-dot--completed {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 6px
+    rgba(0, 215, 160, 0.45);
+}
+
+.admin-processing-dot--failed {
+  background:
+    var(--admin-red);
+}
+
+.admin-processing-dot--processing {
+  background:
+    var(--admin-cyan);
+}
+
+.admin-processing-dot--queued,
+.admin-processing-dot--pending {
+  background:
+    var(--admin-amber);
+}
+.admin-dashboard-summary {
+  padding: 0.9rem 1rem;
+}
+
+.admin-dashboard-summary__value {
+  color:
+    var(--admin-text);
+
+  font-size:
+    1.35rem;
+
+  font-weight:
+    600;
+}
+
+.admin-dashboard-summary__label {
+  margin-top:
+    0.3rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+}
+.admin-table-placeholder {
+  color: var(--admin-text-faint);
+}
+/* ============================================================
+   ADMIN — SECURITY EVENTS
+   ============================================================ */
+
+.admin-security-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+
+  min-height: 6.25rem;
+
+  padding: 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 20, 31, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-security-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.5rem;
+  height: 2.5rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.45rem;
+
+  background:
+    rgba(255, 255, 255, 0.02);
+}
+
+.admin-security-metric__icon-svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.admin-security-metric--cyan
+  .admin-security-metric__icon {
+  border-color:
+    rgba(56, 189, 248, 0.3);
+
+  background:
+    rgba(56, 189, 248, 0.07);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-security-metric--warning
+  .admin-security-metric__icon {
+  border-color:
+    rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.07);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-metric--danger
+  .admin-security-metric__icon {
+  border-color:
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    rgba(239, 107, 115, 0.07);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-security-metric__value {
+  color:
+    var(--admin-text);
+
+  font-size:
+    1.5rem;
+
+  font-weight:
+    600;
+
+  line-height:
+    1;
+}
+
+.admin-security-metric__label {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+}
+
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.admin-security-filters {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 0.45rem;
+
+  padding:
+    0.75rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-security-filter {
+  min-height:
+    1.9rem;
+
+  padding:
+    0 0.7rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.5rem;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-security-filter:hover {
+  border-color:
+    var(--admin-border-strong);
+
+  background:
+    var(--admin-surface-hover);
+
+  color:
+    var(--admin-text);
+}
+
+.admin-security-filter--active {
+  border-color:
+    rgba(56, 189, 248, 0.55);
+
+  background:
+    rgba(56, 189, 248, 0.09);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-security-filter--active:hover {
+  border-color:
+    rgba(56, 189, 248, 0.65);
+
+  background:
+    rgba(56, 189, 248, 0.12);
+
+  color:
+    var(--admin-cyan-bright);
+}
+
+
+/* ============================================================
+   EVENT FEED
+   ============================================================ */
+
+.admin-security-feed {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.5rem;
+
+  padding:
+    0.75rem;
+}
+
+.admin-security-event {
+  position: relative;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    0.85rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(7, 13, 21, 0.72);
+
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.admin-security-event:hover {
+  border-color:
+    var(--admin-border-strong);
+
+  background:
+    rgba(13, 25, 38, 0.88);
+}
+
+.admin-security-event__main {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 0.75rem;
+
+  min-width: 0;
+}
+
+.admin-security-event__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.35rem;
+}
+
+.admin-security-event__icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.admin-security-event__icon--low {
+  border-color:
+    rgba(0, 215, 160, 0.28);
+
+  background:
+    rgba(0, 215, 160, 0.06);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-security-event__icon--medium {
+  border-color:
+    rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.07);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-event__icon--high {
+  border-color:
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    rgba(239, 107, 115, 0.07);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-security-event__content {
+  min-width: 0;
+}
+
+.admin-security-event__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+
+  flex-wrap: wrap;
+}
+
+.admin-security-event__title {
+  color:
+    var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    0.8rem;
+
+  font-weight:
+    600;
+}
+
+.admin-security-severity {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.47rem;
+
+  font-weight:
+    600;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-security-severity--low {
+  color:
+    var(--admin-green);
+}
+
+.admin-security-severity--medium {
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-severity--high {
+  color:
+    var(--admin-red);
+}
+
+.admin-security-event__details {
+  margin-top:
+    0.3rem;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-size:
+    0.61rem;
+
+  line-height:
+    1.5;
+
+  overflow-wrap:
+    anywhere;
+}
+
+.admin-security-event__timestamp {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+}
+
+.admin-security-event__type {
+  flex-shrink: 0;
+
+  padding:
+    0.4rem 0.55rem;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    0.3rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.45rem;
+
+  font-weight:
+    600;
+
+  letter-spacing:
+    0.06em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-security-event__type--low {
+  border-color:
+    rgba(0, 215, 160, 0.28);
+
+  background:
+    rgba(0, 215, 160, 0.07);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-security-event__type--medium {
+  border-color:
+    rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.07);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-event__type--high {
+  border-color:
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    rgba(239, 107, 115, 0.07);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-security-error {
+  margin:
+    0.75rem;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .admin-security-event {
+    flex-direction:
+      column;
+  }
+
+  .admin-security-event__type {
+    align-self:
+      flex-start;
+  }
+}
+/* ============================================================
+   ADMIN — DOCUMENT INTEGRITY
+   ============================================================ */
+
+.admin-integrity-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.admin-integrity-table th:nth-child(1),
+.admin-integrity-table td:nth-child(1) {
+  width: 28%;
+}
+
+.admin-integrity-table th:nth-child(2),
+.admin-integrity-table td:nth-child(2) {
+  width: 13%;
+}
+
+.admin-integrity-table th:nth-child(3),
+.admin-integrity-table td:nth-child(3) {
+  width: 18%;
+}
+
+.admin-integrity-table th:nth-child(4),
+.admin-integrity-table td:nth-child(4) {
+  width: 17%;
+}
+
+.admin-integrity-table th:nth-child(5),
+.admin-integrity-table td:nth-child(5) {
+  width: 10%;
+}
+
+.admin-integrity-table th:nth-child(6),
+.admin-integrity-table td:nth-child(6) {
+  width: 14%;
+}
+.admin-integrity-table td {
+  min-width: 0;
+  overflow: hidden;
+}
+
+
+.admin-integrity-row {
+  border-bottom:
+    1px solid var(--admin-border);
+
+  cursor: pointer;
+
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.admin-integrity-row:hover {
+  background:
+    rgba(56, 189, 248, 0.025);
+}
+
+.admin-integrity-row--selected {
+  background:
+    rgba(56, 189, 248, 0.075);
+
+  box-shadow:
+    inset 2px 0 0 var(--admin-cyan);
+}
+
+.admin-integrity-file {
+  display: flex;
+  align-items: center;
+
+  gap: 0.5rem;
+
+  min-width: 0;
+}
+
+.admin-integrity-file__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+
+  flex-shrink: 0;
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-integrity-file__name {
+  display: block;
+  min-width: 0;
+  max-width: 12rem;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.56rem;
+}
+
+.admin-table-cell--mono {
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.55rem;
+}
+
+.admin-table-cell--hash {
+  max-width: 7rem;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.53rem;
+}
+
+.admin-table-cell--block {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.55rem;
+}
+
+
+/* ============================================================
+   INTEGRITY STATUS
+   ============================================================ */
+
+.admin-integrity-status {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 0.4rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  font-weight:
+    600;
+
+  letter-spacing:
+    0.06em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-integrity-status__dot {
+  width: 0.38rem;
+  height: 0.38rem;
+
+  border-radius: 999px;
+}
+
+.admin-integrity-status--anchored {
+  color:
+    var(--admin-green);
+}
+
+.admin-integrity-status--anchored
+  .admin-integrity-status__dot {
+  background:
+    var(--admin-green);
+
+  box-shadow:
+    0 0 7px
+    rgba(0, 215, 160, 0.5);
+}
+
+.admin-integrity-status--pending {
+  color:
+    var(--admin-amber);
+}
+
+.admin-integrity-status--pending
+  .admin-integrity-status__dot {
+  background:
+    var(--admin-amber);
+}
+
+
+/* ============================================================
+   TABLE FOOTER
+   ============================================================ */
+
+.admin-integrity-table-note {
+  padding:
+    0.65rem 1rem;
+
+  border-top:
+    1px solid var(--admin-border);
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+}
+
+
+/* ============================================================
+   HASH
+   ============================================================ */
+
+.admin-integrity-hash {
+  display: flex;
+  align-items: center;
+
+  gap: 0.5rem;
+
+  padding:
+    0.7rem 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(7, 13, 21, 0.82);
+}
+
+.admin-integrity-hash__value {
+  min-width: 0;
+
+  flex: 1;
+
+  overflow-wrap:
+    anywhere;
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.57rem;
+
+  line-height:
+    1.5;
+}
+
+.admin-integrity-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 1.7rem;
+  height: 1.7rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    0.25rem;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-text-muted);
+
+  cursor:
+    pointer;
+
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.admin-integrity-copy:hover {
+  border-color:
+    var(--admin-border);
+
+  background:
+    rgba(56, 189, 248, 0.05);
+
+  color:
+    var(--admin-cyan);
+}
+
+
+/* ============================================================
+   DETAILS
+   ============================================================ */
+
+.admin-integrity-details {
+  padding:
+    1rem;
+}
+
+.admin-integrity-file-card {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 0.75rem;
+
+  padding:
+    0.85rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(7, 13, 21, 0.72);
+}
+
+.admin-integrity-file-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.2rem;
+  height: 2.2rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid
+    rgba(159, 140, 255, 0.3);
+
+  border-radius:
+    0.4rem;
+
+  background:
+    rgba(159, 140, 255, 0.08);
+
+  color:
+    var(--admin-purple);
+}
+
+.admin-integrity-file-card__icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-integrity-file-card__content {
+  min-width: 0;
+}
+
+.admin-integrity-file-card__title {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.7rem;
+
+  font-weight:
+    600;
+}
+
+.admin-integrity-file-card__id {
+  margin-top:
+    0.3rem;
+
+  overflow-wrap:
+    anywhere;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.53rem;
+
+  line-height:
+    1.5;
+}
+
+.admin-integrity-file-card__date {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-size:
+    0.48rem;
+}
+
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.admin-integrity-tabs {
+  margin-top:
+    1rem;
+}
+
+.admin-integrity-tabs__list {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  width:
+    100%;
+
+  border:
+    1px solid var(--admin-border);
+
+  background:
+    var(--admin-surface);
+
+  padding:
+    0.15rem;
+}
+
+.admin-integrity-tabs__trigger {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.53rem;
+
+  letter-spacing:
+    0.06em;
+
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-integrity-tabs__trigger:hover {
+  color:
+    var(--admin-text);
+}
+
+.admin-integrity-tabs__trigger[data-state="active"] {
+  background:
+    rgba(56, 189, 248, 0.09);
+
+  color:
+    var(--admin-cyan);
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(56, 189, 248, 0.16);
+}
+
+.admin-integrity-tabs__content {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    0.5rem;
+
+  margin-top:
+    0.85rem;
+}
+
+
+/* ============================================================
+   DETAIL ROW
+   ============================================================ */
+
+.admin-integrity-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  min-width: 0;
+
+  padding:
+    0.7rem 0.75rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(7, 13, 21, 0.72);
+}
+
+.admin-integrity-detail__label {
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.57rem;
+}
+
+.admin-integrity-detail__value {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.57rem;
+
+  text-align:
+    right;
+}
+
+.admin-integrity-detail__value--mono {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+}
+
+.admin-integrity-detail__status {
+  display: inline-flex;
+  align-items: center;
+
+  gap:
+    0.35rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.52rem;
+}
+
+.admin-integrity-detail__status--success {
+  color:
+    var(--admin-green);
+}
+
+.admin-integrity-detail__status--warning {
+  color:
+    var(--admin-amber);
+}
+
+.admin-integrity-detail__hash {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.5rem;
+
+  line-height:
+    1.5;
+
+  overflow-wrap:
+    anywhere;
+}
+
+
+/* ============================================================
+   CHAIN INFORMATION
+   ============================================================ */
+
+.admin-integrity-chain {
+  padding:
+    0.75rem;
+
+  border:
+    1px solid
+    rgba(56, 189, 248, 0.14);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(56, 189, 248, 0.025);
+}
+
+.admin-integrity-chain__label {
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.47rem;
+
+  letter-spacing:
+    0.12em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-integrity-chain__hash {
+  margin-top:
+    0.3rem;
+
+  margin-bottom:
+    0.75rem;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  line-height:
+    1.45;
+
+  overflow-wrap:
+    anywhere;
+}
+
+
+/* ============================================================
+   VERIFY MESSAGE
+   ============================================================ */
+
+.admin-alert--success {
+  display: flex;
+  align-items: center;
+
+  gap: 0.45rem;
+
+  margin-bottom:
+    1rem;
+
+  border:
+    1px solid
+    rgba(0, 215, 160, 0.3);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    var(--admin-green-soft);
+
+  color:
+    var(--admin-green);
+
+  padding:
+    0.65rem 0.75rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.55rem;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1050px) {
+  .admin-integrity-file__name {
+    max-width:
+      9rem;
+  }
+}
+
+
+  .admin-integrity-file__name {
+    max-width:
+      12rem;
+  }
+
+
+/* ============================================================
+   ADMIN DASHBOARD — ATTENTION REQUIRED
+   ============================================================ */
+
+.admin-attention {
+  position: relative;
+
+  overflow: hidden;
+
+  margin-bottom: 2rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(13, 23, 35, 0.98),
+      rgba(7, 14, 23, 0.98)
+    );
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-attention::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 2px;
+
+  background:
+    var(--admin-amber);
+}
+
+.admin-attention__header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    0.9rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-attention__title {
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+}
+
+.admin-attention__icon {
+  width: 1rem;
+  height: 1rem;
+
+  flex-shrink: 0;
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-attention__heading {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.72rem;
+
+  font-weight:
+    600;
+}
+
+.admin-attention__description {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.55rem;
+}
+
+.admin-attention__link {
+  flex-shrink: 0;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.52rem;
+
+  text-decoration:
+    none;
+
+  transition:
+    color 140ms ease;
+}
+
+.admin-attention__link:hover {
+  color:
+    var(--admin-cyan-bright);
+}
+
+.admin-attention__stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+}
+
+.admin-attention-stat {
+  display: flex;
+
+  align-items: baseline;
+
+  gap: 0.5rem;
+
+  padding:
+    0.75rem 1rem;
+}
+
+.admin-attention-stat
+  + .admin-attention-stat {
+  border-left:
+    1px solid var(--admin-border);
+}
+
+.admin-attention-stat__value {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    1rem;
+
+  font-weight:
+    600;
+
+  line-height:
+    1;
+}
+
+.admin-attention-stat__label {
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.5rem;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-attention-stat--danger
+  .admin-attention-stat__value {
+  color:
+    var(--admin-red);
+}
+
+.admin-attention-stat--warning
+  .admin-attention-stat__value {
+  color:
+    var(--admin-amber);
+}
+
+.admin-attention-stat--neutral
+  .admin-attention-stat__value {
+  color:
+    var(--admin-cyan);
+}
+
+
+/* ============================================================
+   DASHBOARD REFRESH BUTTON
+   ============================================================ */
+
+.admin-dashboard-refresh {
+  min-height:
+    2.15rem !important;
+
+  border:
+    1px solid var(--admin-border) !important;
+
+  background:
+    var(--admin-surface) !important;
+
+  color:
+    var(--admin-text-secondary) !important;
+}
+
+.admin-dashboard-refresh:hover {
+  border-color:
+    var(--admin-border-strong) !important;
+
+  background:
+    var(--admin-surface-hover) !important;
+
+  color:
+    var(--admin-text) !important;
+}
+
+
+/* ============================================================
+   PRIMARY DASHBOARD LINKS
+   ============================================================ */
+
+.admin-dashboard-link--primary {
+  border-color:
+    rgba(56, 189, 248, 0.4);
+
+  background:
+    rgba(56, 189, 248, 0.04);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-dashboard-link--primary:hover {
+  border-color:
+    rgba(56, 189, 248, 0.6);
+
+  background:
+    rgba(56, 189, 248, 0.09);
+
+  color:
+    var(--admin-cyan-bright);
+}
+
+
+@media (max-width: 640px) {
+  .admin-attention__header {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .admin-attention__stats {
+    grid-template-columns:
+      1fr;
+  }
+
+  .admin-attention-stat
+    + .admin-attention-stat {
+    border-left:
+      0;
+
+    border-top:
+      1px solid var(--admin-border);
+  }
+}
+/* ============================================================
+   ADMIN — AUDIT LOGS
+   ============================================================ */
+
+.admin-audit-search {
+  padding:
+    0.85rem 1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-audit-table {
+  width: 100%;
+  min-width: 1000px;
+
+  border-collapse: collapse;
+}
+
+.admin-audit-action {
+  color: var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.62rem;
+}
+
+.admin-audit-details-cell {
+  text-align:
+    left;
+}
+
+.admin-audit-inspect {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  padding:
+    0.3rem 0;
+
+  border: 0;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.53rem;
+
+  cursor:
+    pointer;
+
+  transition:
+    color 140ms ease;
+}
+
+.admin-audit-inspect:hover {
+  color:
+    var(--admin-cyan-bright);
+}
+
+.admin-audit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    0.65rem 1rem;
+
+  border-top:
+    1px solid var(--admin-border);
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.5rem;
+}
+
+.admin-audit-clear {
+  border: 0;
+
+  background: transparent;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.5rem;
+
+  cursor:
+    pointer;
+}
+
+.admin-audit-clear:hover {
+  color:
+    var(--admin-cyan-bright);
+}
+
+
+/* ============================================================
+   AUDIT STAT
+   ============================================================ */
+
+.admin-audit-stat {
+  min-height:
+    6rem;
+
+  padding:
+    1rem;
+}
+
+.admin-audit-stat__value {
+  color:
+    var(--admin-text);
+
+  font-size:
+    1.5rem;
+
+  font-weight:
+    600;
+
+  line-height:
+    1;
+}
+
+.admin-audit-stat__label {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+}
+
+
+/* ============================================================
+   AUDIT DRAWER
+   ============================================================ */
+
+.admin-drawer-backdrop {
+  position:
+    fixed;
+
+  inset:
+    0;
+
+  z-index:
+    80;
+
+  border:
+    0;
+
+  background:
+    rgba(2, 7, 12, 0.68);
+
+  backdrop-filter:
+    blur(2px);
+
+  cursor:
+    default;
+
+  animation:
+    admin-drawer-fade-in 140ms ease-out;
+}
+
+.admin-drawer {
+  position:
+    fixed;
+
+  top:
+    0;
+
+  right:
+    0;
+
+  z-index:
+    81;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  width:
+    min(36rem, 92vw);
+
+  height:
+    100vh;
+
+  border-left:
+    1px solid var(--admin-border-strong);
+
+  background:
+    linear-gradient(
+      155deg,
+      #0b151f,
+      #070e16
+    );
+
+  box-shadow:
+    -12px 0 40px
+    rgba(0, 0, 0, 0.35);
+
+  animation:
+    admin-drawer-slide-in 180ms ease-out;
+}
+
+.admin-drawer__header {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  padding:
+    1.25rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-drawer__kicker {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  font-weight:
+    600;
+
+  letter-spacing:
+    0.16em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-drawer__title {
+  margin-top: 0.4rem;
+
+  color: var(--admin-text);
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 1.65rem;
+  font-weight: 600;
+
+  line-height: 1.2;
+}
+
+.admin-drawer__close {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.35rem;
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-muted);
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.admin-drawer__close:hover {
+  border-color:
+    var(--admin-border-strong);
+
+  background:
+    var(--admin-surface-hover);
+
+  color:
+    var(--admin-text);
+}
+
+.admin-drawer__body {
+  flex:
+    1;
+
+  overflow-y:
+    auto;
+
+  padding:
+    1rem 1.25rem 2rem;
+}
+
+
+/* ============================================================
+   DRAWER ACTION
+   ============================================================ */
+
+.admin-drawer__action {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  margin-bottom:
+    0.75rem;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid
+    rgba(56, 189, 248, 0.22);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(56, 189, 248, 0.05);
+}
+
+.admin-drawer__action-label,
+.admin-drawer__section-label {
+  color: var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.62rem;
+
+  letter-spacing: 0.1em;
+
+  text-transform: uppercase;
+}
+.admin-drawer__action-value {
+  color: var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+
+/* ============================================================
+   DRAWER FIELDS
+   ============================================================ */
+
+.admin-drawer__field {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  padding:
+    0.72rem 0.8rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-drawer__field-label {
+  flex-shrink: 0;
+
+  color: var(--admin-text-muted);
+
+  font-size: 0.76rem;
+}
+
+.admin-drawer__field-value {
+  min-width: 0;
+
+  max-width: 70%;
+
+  color: var(--admin-text-secondary);
+
+  font-size: 0.68rem;
+
+  line-height: 1.5;
+
+  text-align: right;
+
+  overflow-wrap: anywhere;
+}
+
+.admin-drawer__field-value--mono {
+  color: var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.59rem;
+}
+
+
+/* ============================================================
+   DRAWER DETAILS
+   ============================================================ */
+
+.admin-drawer__section {
+  margin-top:
+    1.15rem;
+}
+
+.admin-drawer__section-header {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  margin-bottom:
+    0.6rem;
+}
+
+.admin-drawer__section-description {
+  margin-top: 0.25rem;
+
+  color: var(--admin-text-muted);
+
+  font-size: 0.6rem;
+}
+.admin-drawer__copy {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.3rem;
+
+  min-height:
+    1.8rem;
+
+  padding:
+    0 0.55rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.3rem;
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.7rem;
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.admin-drawer__copy:hover {
+  border-color:
+    var(--admin-border-strong);
+
+  background:
+    var(--admin-surface-hover);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-drawer__json {
+  max-height: 24rem;
+
+  overflow: auto;
+
+  padding: 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    #050b11;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.63rem;
+
+  line-height: 1.65;
+
+  white-space: pre-wrap;
+
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   DRAWER ANIMATION
+   ============================================================ */
+
+@keyframes admin-drawer-slide-in {
+  from {
+    transform:
+      translateX(100%);
+  }
+
+  to {
+    transform:
+      translateX(0);
+  }
+}
+
+@keyframes admin-drawer-fade-in {
+  from {
+    opacity:
+      0;
+  }
+
+  to {
+    opacity:
+      1;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .admin-drawer {
+    width:
+      100vw;
+  }
+
+  .admin-drawer__field {
+    flex-direction:
+      column;
+
+    gap:
+      0.3rem;
+  }
+
+  .admin-drawer__field-value {
+    max-width:
+      100%;
+
+    text-align:
+      left;
+  }
+}
+/* ============================================================
+   ADMIN — SECURITY EVENT ATTENTION
+   ============================================================ */
+
+.admin-security-attention {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+
+  margin-bottom: 1.5rem;
+
+  padding: 0.85rem 1rem;
+
+  border:
+    1px solid rgba(242, 184, 75, 0.28);
+
+  border-left:
+    2px solid var(--admin-amber);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(242, 184, 75, 0.04);
+}
+
+.admin-security-attention__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid rgba(242, 184, 75, 0.25);
+
+  border-radius:
+    0.35rem;
+
+  background:
+    rgba(242, 184, 75, 0.06);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-attention__content {
+  min-width: 0;
+
+  flex: 1;
+}
+
+.admin-security-attention__title {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.7rem;
+
+  font-weight:
+    600;
+}
+
+.admin-security-attention__description {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.54rem;
+
+  line-height:
+    1.5;
+}
+
+.admin-security-attention__action {
+  flex-shrink: 0;
+
+  border:
+    0;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.52rem;
+
+  cursor:
+    pointer;
+}
+
+.admin-security-attention__action:hover {
+  color:
+    var(--admin-cyan-bright);
+}
+
+
+/* ============================================================
+   NEEDS ATTENTION FILTER
+   ============================================================ */
+
+.admin-security-filter--attention {
+  border-color:
+    rgba(242, 184, 75, 0.24);
+}
+
+.admin-security-filter--attention:hover {
+  border-color:
+    rgba(242, 184, 75, 0.5);
+
+  background:
+    rgba(242, 184, 75, 0.06);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-filter__count {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  min-width:
+    1rem;
+
+  height:
+    1rem;
+
+  margin-left:
+    0.3rem;
+
+  padding:
+    0 0.25rem;
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(242, 184, 75, 0.12);
+
+  color:
+    var(--admin-amber);
+
+  font-size:
+    0.43rem;
+}
+
+
+/* ============================================================
+   EVENT DESCRIPTION
+   ============================================================ */
+
+.admin-security-event__description {
+  margin-top:
+    0.25rem;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-size:
+    0.58rem;
+
+  line-height:
+    1.45;
+}
+
+.admin-security-event__actions {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    flex-end;
+
+  gap:
+    0.55rem;
+
+  flex-shrink:
+    0;
+}
+
+.admin-security-event__inspect {
+  padding:
+    0.25rem 0.45rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.25rem;
+
+  background:
+    transparent;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.5rem;
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-security-event__inspect:hover {
+  border-color:
+    rgba(56, 189, 248, 0.45);
+
+  background:
+    rgba(56, 189, 248, 0.05);
+
+  color:
+    var(--admin-cyan-bright);
+}
+
+
+/* ============================================================
+   SECURITY EVENT DRAWER
+   ============================================================ */
+
+.admin-security-drawer-severity {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.6rem;
+
+  margin-bottom:
+    0.75rem;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+}
+
+.admin-security-drawer-severity--low {
+  border-color:
+    rgba(0, 215, 160, 0.28);
+
+  background:
+    rgba(0, 215, 160, 0.05);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-security-drawer-severity--medium {
+  border-color:
+    rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.06);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-security-drawer-severity--high {
+  border-color:
+    rgba(239, 107, 115, 0.32);
+
+  background:
+    rgba(239, 107, 115, 0.06);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-security-drawer-severity__label {
+  display:
+    block;
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.46rem;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-security-drawer-severity__value {
+  display:
+    block;
+
+  margin-top:
+    0.15rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.62rem;
+
+  font-weight:
+    600;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-security-drawer-description {
+  margin-bottom:
+    0.5rem;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(56, 189, 248, 0.025);
+}
+
+.admin-security-drawer-description__label {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-security-drawer-description__value {
+  margin-top:
+    0.35rem;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-size:
+    0.62rem;
+
+  line-height:
+    1.5;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .admin-security-attention {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .admin-security-attention__action {
+    align-self:
+      flex-start;
+  }
+
+  .admin-security-event {
+    flex-direction:
+      column;
+  }
+
+  .admin-security-event__actions {
+    align-items:
+      flex-start;
+
+    width:
+      100%;
+
+    flex-direction:
+      row;
+
+    justify-content:
+      space-between;
+  }
+}
+/* ============================================================
+   ADMIN — DOCUMENT INTEGRITY SUMMARY
+   ============================================================ */
+
+.admin-integrity-metric {
+  min-height: 5.5rem;
+
+  padding: 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-integrity-metric__value {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 1.35rem;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+.admin-integrity-metric__label {
+  margin-top: 0.4rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.48rem;
+
+  letter-spacing:
+    0.12em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-integrity-metric--neutral
+  .admin-integrity-metric__value {
+  color:
+    var(--admin-text);
+}
+
+.admin-integrity-metric--success
+  .admin-integrity-metric__value {
+  color:
+    var(--admin-green);
+}
+
+.admin-integrity-metric--warning
+  .admin-integrity-metric__value {
+  color:
+    var(--admin-amber);
+}
+
+
+/* ============================================================
+   HASH BLOCK
+   ============================================================ */
+
+.admin-integrity-hash__content {
+  min-width: 0;
+}
+
+.admin-integrity-hash__label {
+  margin-bottom: 0.4rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+
+/* ============================================================
+   ANCHOR STATUS PANEL
+   ============================================================ */
+
+.admin-integrity-verification {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    0.7rem;
+
+  margin:
+    0.8rem 0;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+}
+
+.admin-integrity-verification__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border-radius:
+    0.35rem;
+}
+
+.admin-integrity-verification--anchored {
+  border-color:
+    rgba(0, 215, 160, 0.25);
+
+  background:
+    rgba(0, 215, 160, 0.04);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-integrity-verification--anchored
+  .admin-integrity-verification__icon {
+  background:
+    rgba(0, 215, 160, 0.08);
+}
+
+.admin-integrity-verification--pending {
+  border-color:
+    rgba(242, 184, 75, 0.25);
+
+  background:
+    rgba(242, 184, 75, 0.04);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-integrity-verification--pending
+  .admin-integrity-verification__icon {
+  background:
+    rgba(242, 184, 75, 0.08);
+}
+
+.admin-integrity-verification__title {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.64rem;
+
+  font-weight:
+    600;
+}
+
+.admin-integrity-verification__description {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.53rem;
+
+  line-height:
+    1.45;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 850px) {
+  .admin-integrity-metric {
+    min-height: 5rem;
+  }
+
+  .admin-integrity-verification__description {
+    font-size:
+      0.56rem;
+  }
+}
+/* ============================================================
+   ADMIN — DOCUMENT INTEGRITY REFINEMENTS
+   ============================================================ */
+
+.admin-integrity-hash {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+
+  padding: 0.85rem;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+
+  background:
+    rgba(4, 10, 17, 0.9);
+}
+
+.admin-integrity-hash__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-integrity-hash__value-wrap {
+  max-width: 100%;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding-bottom: 0.15rem;
+
+  scrollbar-width: thin;
+}
+
+.admin-integrity-hash__value {
+  display: inline-block;
+
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.62rem;
+
+  line-height: 1.6;
+
+  white-space: nowrap;
+}
+
+.admin-integrity-copy {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    0.3rem;
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-muted);
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.admin-integrity-copy:hover {
+  border-color:
+    rgba(56, 189, 248, 0.45);
+
+  background:
+    rgba(56, 189, 248, 0.05);
+
+  color:
+    var(--admin-cyan);
+}
+
+
+/* ============================================================
+   ANCHOR STATUS REFINEMENT
+   ============================================================ */
+
+.admin-integrity-verification__content {
+  min-width: 0;
+
+  flex: 1;
+}
+
+.admin-integrity-verification__heading {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    0.75rem;
+}
+
+.admin-integrity-verification__block {
+  flex-shrink:
+    0;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.58rem;
+}
+
+
+/* ============================================================
+   BLOCK INFO
+   ============================================================ */
+
+.admin-integrity-detail__hash {
+  margin-top:
+    0.35rem;
+
+  overflow-x:
+    auto;
+
+  padding:
+    0.7rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    #050b11;
+
+  color:
+    var(--admin-text-secondary);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.56rem;
+
+  line-height:
+    1.6;
+
+  white-space:
+    nowrap;
+}
+
+.admin-integrity-chain {
+  margin-top:
+    0.8rem;
+
+  padding:
+    0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(56, 189, 248, 0.025);
+}
+
+.admin-integrity-chain__header {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  margin-bottom:
+    0.8rem;
+}
+
+.admin-integrity-chain__title {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.62rem;
+
+  font-weight:
+    600;
+}
+
+.admin-integrity-chain__block {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.55rem;
+}
+
+.admin-integrity-chain__hash {
+  margin:
+    0.3rem 0 0.7rem;
+
+  overflow-x:
+    auto;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.52rem;
+
+  line-height:
+    1.55;
+
+  white-space:
+    nowrap;
+}
+
+
+/* ============================================================
+   CASE FILE HOVER / LONG VALUES
+   ============================================================ */
+
+.admin-integrity-file,
+.admin-integrity-file-card__id {
+  cursor:
+    default;
+}
+
+.admin-integrity-file__name,
+.admin-integrity-file-card__id {
+  overflow:
+    hidden;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 850px) {
+  .admin-integrity-hash__value {
+    font-size:
+      0.58rem;
+  }
+
+  .admin-integrity-detail__hash,
+  .admin-integrity-chain__hash {
+    font-size:
+      0.51rem;
+  }
+}
+/* ============================================================
+   ADMIN — EVENT PIPELINE
+   ============================================================ */
+
+.admin-pipeline-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+
+  min-height: 5.8rem;
+
+  padding: 1rem;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+
+  background: var(--admin-surface);
+
+  box-shadow: var(--admin-shadow-panel);
+}
+
+.admin-pipeline-metric__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.25rem;
+  height: 2.25rem;
+
+  flex-shrink: 0;
+
+  border: 1px solid;
+  border-radius: 0.4rem;
+}
+
+.admin-pipeline-metric__icon--cyan {
+  border-color: rgba(56, 189, 248, 0.28);
+  background: rgba(56, 189, 248, 0.06);
+  color: var(--admin-cyan);
+}
+
+.admin-pipeline-metric__icon--green {
+  border-color: rgba(0, 215, 160, 0.28);
+  background: rgba(0, 215, 160, 0.06);
+  color: var(--admin-green);
+}
+
+.admin-pipeline-metric__value {
+  color: var(--admin-text);
+
+  font-size: 1.5rem;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+.admin-pipeline-metric__label {
+  margin-top: 0.35rem;
+
+  color: var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.48rem;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+}
+
+
+/* ============================================================
+   TOPOLOGY STATUS
+   ============================================================ */
+
+.admin-pipeline-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  margin-bottom: 1.5rem;
+
+  padding: 0.85rem 1rem;
+
+  border: 1px solid rgba(0, 215, 160, 0.22);
+  border-left: 2px solid var(--admin-green);
+
+  border-radius: var(--admin-radius-md);
+
+  background:
+    rgba(0, 215, 160, 0.035);
+}
+
+.admin-pipeline-status__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2rem;
+  height: 2rem;
+
+  flex-shrink: 0;
+
+  border-radius: 0.35rem;
+
+  background:
+    rgba(0, 215, 160, 0.08);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-pipeline-status__content {
+  min-width: 0;
+
+  flex: 1;
+}
+
+.admin-pipeline-status__title {
+  color: var(--admin-text);
+
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.admin-pipeline-status__description {
+  margin-top: 0.2rem;
+
+  color: var(--admin-text-muted);
+
+  font-size: 0.54rem;
+
+  line-height: 1.5;
+}
+
+.admin-pipeline-status__state {
+  flex-shrink: 0;
+
+  color:
+    var(--admin-green);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.47rem;
+  font-weight: 600;
+
+  letter-spacing: 0.1em;
+}
+
+
+/* ============================================================
+   EVENT TOPOLOGY
+   ============================================================ */
+
+.admin-pipeline-events {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-pipeline-event {
+  padding: 1.1rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-pipeline-event:last-child {
+  border-bottom: 0;
+}
+
+.admin-pipeline-event__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 1rem;
+}
+
+.admin-pipeline-event__event {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+
+  min-width: 0;
+}
+
+.admin-pipeline-event__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.1rem;
+  height: 2.1rem;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid rgba(56, 189, 248, 0.25);
+
+  border-radius: 0.35rem;
+
+  background:
+    rgba(56, 189, 248, 0.06);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-pipeline-event__name {
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size: 0.72rem;
+
+  font-weight: 600;
+
+  letter-spacing: 0.03em;
+}
+
+.admin-pipeline-event__count {
+  margin-top:
+    0.25rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.55rem;
+}
+
+.admin-pipeline-badge {
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.08em;
+}
+
+.admin-pipeline-badge--registered {
+  border:
+    1px solid rgba(0, 215, 160, 0.35);
+
+  background:
+    rgba(0, 215, 160, 0.08);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-pipeline-badge--empty {
+  border:
+    1px solid rgba(242, 184, 75, 0.3);
+
+  background:
+    rgba(242, 184, 75, 0.06);
+
+  color:
+    var(--admin-amber);
+}
+
+
+/* ============================================================
+   HANDLERS
+   ============================================================ */
+
+.admin-pipeline-handlers {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    0.55rem;
+
+  margin-top:
+    0.9rem;
+
+  margin-left:
+    2.8rem;
+}
+
+.admin-pipeline-handler {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    0.65rem;
+
+  padding:
+    0.7rem 0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(5, 12, 19, 0.65);
+}
+
+.admin-pipeline-handler__status {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    1.6rem;
+
+  height:
+    1.6rem;
+
+  flex-shrink:
+    0;
+
+  border-radius:
+    0.3rem;
+
+  background:
+    rgba(0, 215, 160, 0.06);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-pipeline-handler__content {
+  min-width:
+    0;
+
+  flex: 1;
+}
+
+.admin-pipeline-handler__heading {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    0.75rem;
+}
+
+.admin-pipeline-handler__name {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.62rem;
+
+  font-weight:
+    600;
+}
+
+.admin-pipeline-handler__category {
+  flex-shrink:
+    0;
+
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.43rem;
+
+  letter-spacing:
+    0.08em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-pipeline-handler__path {
+  margin-top:
+    0.25rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  line-height:
+    1.5;
+
+  overflow-wrap:
+    anywhere;
+}
+
+
+/* ============================================================
+   BACKEND SOURCE
+   ============================================================ */
+
+.admin-pipeline-source {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    0.75rem;
+
+  margin-top:
+    1rem;
+
+  padding:
+    0.9rem 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(5, 12, 19, 0.55);
+}
+
+.admin-pipeline-source__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border-radius:
+    0.35rem;
+
+  background:
+    rgba(56, 189, 248, 0.05);
+
+  color:
+    var(--admin-cyan);
+}
+
+.admin-pipeline-source__label {
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.48rem;
+
+  letter-spacing:
+    0.12em;
+}
+
+.admin-pipeline-source__text {
+  margin-top:
+    0.3rem;
+
+  max-width:
+    65rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-size:
+    0.54rem;
+
+  line-height:
+    1.6;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .admin-pipeline-status {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .admin-pipeline-status__state {
+    padding-left:
+      2.75rem;
+  }
+
+  .admin-pipeline-event__header {
+    flex-direction:
+      column;
+  }
+
+  .admin-pipeline-handlers {
+    margin-left:
+      0;
+  }
+
+  .admin-pipeline-handler__heading {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+    gap:
+      0.25rem;
+  }
+}
+/* ============================================================
+   ADMIN — SYSTEM HEALTH
+   ============================================================ */
+
+.admin-health-state {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    0.55rem;
+
+  min-height:
+    9rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.62rem;
+}
+
+.admin-health-error {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    0.6rem;
+
+  padding:
+    0.9rem 1rem;
+
+  border:
+    1px solid rgba(239, 107, 115, 0.3);
+
+  border-left:
+    2px solid var(--admin-red);
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    rgba(239, 107, 115, 0.05);
+
+  color:
+    var(--admin-red);
+
+  font-size:
+    0.58rem;
+
+  line-height:
+    1.5;
+}
+
+
+/* ============================================================
+   OVERALL HEALTH
+   ============================================================ */
+
+.admin-health-overall {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.9rem;
+
+  margin-bottom:
+    1rem;
+
+  padding:
+    1rem 1.1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-left:
+    2px solid;
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-health-overall--healthy {
+  border-left-color:
+    var(--admin-green);
+}
+
+.admin-health-overall--degraded {
+  border-left-color:
+    var(--admin-amber);
+}
+
+.admin-health-overall--critical {
+  border-left-color:
+    var(--admin-red);
+}
+
+.admin-health-overall__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2.5rem;
+
+  height:
+    2.5rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid;
+
+  border-radius:
+    0.4rem;
+}
+
+.admin-health-overall--healthy
+  .admin-health-overall__icon {
+  border-color:
+    rgba(0, 215, 160, 0.25);
+
+  background:
+    rgba(0, 215, 160, 0.07);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-health-overall--degraded
+  .admin-health-overall__icon {
+  border-color:
+    rgba(242, 184, 75, 0.28);
+
+  background:
+    rgba(242, 184, 75, 0.07);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-overall--critical
+  .admin-health-overall__icon {
+  border-color:
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    rgba(239, 107, 115, 0.07);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-health-overall__content {
+  min-width:
+    0;
+
+  flex:
+    1;
+}
+
+.admin-health-overall__eyebrow {
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.45rem;
+
+  letter-spacing:
+    0.12em;
+}
+
+.admin-health-overall__title {
+  margin-top:
+    0.2rem;
+
+  font-size:
+    1.05rem;
+
+  font-weight:
+    600;
+
+  line-height:
+    1.15;
+}
+
+.admin-health-overall--healthy
+  .admin-health-overall__title {
+  color:
+    var(--admin-green);
+}
+
+.admin-health-overall--degraded
+  .admin-health-overall__title {
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-overall--critical
+  .admin-health-overall__title {
+  color:
+    var(--admin-red);
+}
+
+.admin-health-overall__description {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.55rem;
+
+  line-height:
+    1.45;
+}
+
+.admin-health-overall__summary {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    flex-end;
+
+  flex-shrink:
+    0;
+}
+
+.admin-health-overall__summary-value {
+  color:
+    var(--admin-text);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.8rem;
+
+  font-weight:
+    600;
+}
+
+.admin-health-overall__summary-label {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.4rem;
+
+  letter-spacing:
+    0.08em;
+
+  text-align:
+    right;
+}
+
+
+/* ============================================================
+   COMPONENT METRICS
+   ============================================================ */
+
+.admin-health-metric {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.75rem;
+
+  min-height:
+    5.6rem;
+
+  padding:
+    0.9rem 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-lg);
+
+  background:
+    var(--admin-surface);
+
+  box-shadow:
+    var(--admin-shadow-panel);
+}
+
+.admin-health-metric__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2.2rem;
+
+  height:
+    2.2rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid;
+
+  border-radius:
+    0.4rem;
+}
+
+.admin-health-metric--healthy
+  .admin-health-metric__icon {
+  border-color:
+    rgba(0, 215, 160, 0.24);
+
+  background:
+    rgba(0, 215, 160, 0.06);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-health-metric--degraded
+  .admin-health-metric__icon {
+  border-color:
+    rgba(242, 184, 75, 0.25);
+
+  background:
+    rgba(242, 184, 75, 0.06);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-metric--critical
+  .admin-health-metric__icon {
+  border-color:
+    rgba(239, 107, 115, 0.28);
+
+  background:
+    rgba(239, 107, 115, 0.06);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-health-metric__content {
+  min-width:
+    0;
+}
+
+.admin-health-metric__value {
+  font-size:
+    0.82rem;
+
+  font-weight:
+    600;
+}
+
+.admin-health-metric--healthy
+  .admin-health-metric__value {
+  color:
+    var(--admin-green);
+}
+
+.admin-health-metric--degraded
+  .admin-health-metric__value {
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-metric--critical
+  .admin-health-metric__value {
+  color:
+    var(--admin-red);
+}
+
+.admin-health-metric__label {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.45rem;
+
+  letter-spacing:
+    0.1em;
+
+  text-transform:
+    uppercase;
+}
+
+
+/* ============================================================
+   COMPONENT STATUS
+   ============================================================ */
+
+.admin-health-components {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+}
+
+.admin-health-row {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  padding:
+    0.85rem 0.95rem;
+
+  border-bottom:
+    1px solid var(--admin-border);
+}
+
+.admin-health-row:last-child {
+  border-bottom:
+    0;
+}
+
+.admin-health-row__main {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.7rem;
+
+  min-width:
+    0;
+}
+
+.admin-health-row__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid;
+
+  border-radius:
+    0.35rem;
+}
+
+.admin-health-row__icon--healthy {
+  border-color:
+    rgba(0, 215, 160, 0.22);
+
+  background:
+    rgba(0, 215, 160, 0.05);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-health-row__icon--degraded {
+  border-color:
+    rgba(242, 184, 75, 0.25);
+
+  background:
+    rgba(242, 184, 75, 0.05);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-row__icon--critical {
+  border-color:
+    rgba(239, 107, 115, 0.28);
+
+  background:
+    rgba(239, 107, 115, 0.05);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-health-row__content {
+  min-width:
+    0;
+}
+
+.admin-health-row__label {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.62rem;
+
+  font-weight:
+    500;
+}
+
+.admin-health-row__description {
+  margin-top:
+    0.18rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-size:
+    0.49rem;
+}
+
+.admin-health-status {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.35rem;
+
+  flex-shrink:
+    0;
+
+  padding:
+    0.28rem 0.5rem;
+
+  border:
+    1px solid;
+
+  border-radius:
+    0.3rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.44rem;
+
+  letter-spacing:
+    0.05em;
+
+  text-transform:
+    uppercase;
+}
+
+.admin-health-status__dot {
+  width:
+    0.3rem;
+
+  height:
+    0.3rem;
+
+  border-radius:
+    50%;
+}
+
+.admin-health-status--healthy {
+  border-color:
+    rgba(0, 215, 160, 0.28);
+
+  background:
+    rgba(0, 215, 160, 0.05);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-health-status--healthy
+  .admin-health-status__dot {
+  background:
+    var(--admin-green);
+}
+
+.admin-health-status--degraded {
+  border-color:
+    rgba(242, 184, 75, 0.28);
+
+  background:
+    rgba(242, 184, 75, 0.05);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-status--degraded
+  .admin-health-status__dot {
+  background:
+    var(--admin-amber);
+}
+
+.admin-health-status--critical {
+  border-color:
+    rgba(239, 107, 115, 0.3);
+
+  background:
+    rgba(239, 107, 115, 0.05);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-health-status--critical
+  .admin-health-status__dot {
+  background:
+    var(--admin-red);
+}
+
+
+/* ============================================================
+   PROCESSING
+   ============================================================ */
+
+.admin-health-processing {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    0.55rem;
+
+  padding:
+    0.8rem;
+}
+
+.admin-health-processing-row {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    1rem;
+
+  padding:
+    0.75rem 0.8rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-radius:
+    var(--admin-radius-sm);
+
+  background:
+    rgba(5, 12, 19, 0.55);
+}
+
+.admin-health-processing-row__main {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    0.65rem;
+}
+
+.admin-health-processing-row__dot {
+  width:
+    0.42rem;
+
+  height:
+    0.42rem;
+
+  flex-shrink:
+    0;
+
+  border-radius:
+    50%;
+}
+
+.admin-health-processing-row--completed
+  .admin-health-processing-row__dot {
+  background:
+    var(--admin-green);
+}
+
+.admin-health-processing-row--failed
+  .admin-health-processing-row__dot {
+  background:
+    var(--admin-red);
+}
+
+.admin-health-processing-row--processing
+  .admin-health-processing-row__dot {
+  background:
+    var(--admin-cyan);
+}
+
+.admin-health-processing-row--queued
+  .admin-health-processing-row__dot {
+  background:
+    var(--admin-amber);
+}
+
+.admin-health-processing-row--neutral
+  .admin-health-processing-row__dot {
+  background:
+    var(--admin-text-faint);
+}
+
+.admin-health-processing-row__label {
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.62rem;
+}
+
+.admin-health-processing-row__description {
+  margin-top:
+    0.16rem;
+
+  color:
+    var(--admin-text-faint);
+
+  font-size:
+    0.46rem;
+}
+
+.admin-health-processing-row__count {
+  color:
+    var(--admin-cyan);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.7rem;
+
+  font-weight:
+    600;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.admin-health-empty {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  gap:
+    0.5rem;
+
+  min-height:
+    10rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.56rem;
+}
+
+
+/* ============================================================
+   BACKEND ASSESSMENT
+   ============================================================ */
+
+.admin-health-assessment {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    0.8rem;
+
+  margin-top:
+    1rem;
+
+  padding:
+    0.9rem 1rem;
+
+  border:
+    1px solid var(--admin-border);
+
+  border-left:
+    2px solid;
+
+  border-radius:
+    var(--admin-radius-md);
+
+  background:
+    var(--admin-surface);
+}
+
+.admin-health-assessment--healthy {
+  border-left-color:
+    var(--admin-green);
+}
+
+.admin-health-assessment--degraded {
+  border-left-color:
+    var(--admin-amber);
+}
+
+.admin-health-assessment--critical {
+  border-left-color:
+    var(--admin-red);
+}
+
+.admin-health-assessment__icon {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  width:
+    2rem;
+
+  height:
+    2rem;
+
+  flex-shrink:
+    0;
+
+  border:
+    1px solid;
+
+  border-radius:
+    0.35rem;
+}
+
+.admin-health-assessment--healthy
+  .admin-health-assessment__icon {
+  border-color:
+    rgba(0, 215, 160, 0.22);
+
+  background:
+    rgba(0, 215, 160, 0.05);
+
+  color:
+    var(--admin-green);
+}
+
+.admin-health-assessment--degraded
+  .admin-health-assessment__icon {
+  border-color:
+    rgba(242, 184, 75, 0.24);
+
+  background:
+    rgba(242, 184, 75, 0.05);
+
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-assessment--critical
+  .admin-health-assessment__icon {
+  border-color:
+    rgba(239, 107, 115, 0.26);
+
+  background:
+    rgba(239, 107, 115, 0.05);
+
+  color:
+    var(--admin-red);
+}
+
+.admin-health-assessment__content {
+  min-width:
+    0;
+
+  flex:
+    1;
+}
+
+.admin-health-assessment__label {
+  color:
+    var(--admin-text-faint);
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.45rem;
+
+  letter-spacing:
+    0.12em;
+}
+
+.admin-health-assessment__title {
+  margin-top:
+    0.2rem;
+
+  color:
+    var(--admin-text);
+
+  font-size:
+    0.64rem;
+
+  font-weight:
+    600;
+}
+
+.admin-health-assessment__description {
+  margin-top:
+    0.25rem;
+
+  max-width:
+    58rem;
+
+  color:
+    var(--admin-text-muted);
+
+  font-size:
+    0.52rem;
+
+  line-height:
+    1.55;
+}
+
+.admin-health-assessment__state {
+  flex-shrink:
+    0;
+
+  padding-top:
+    0.1rem;
+
+  font-family:
+    ui-monospace,
+    "Cascadia Code",
+    monospace;
+
+  font-size:
+    0.46rem;
+
+  font-weight:
+    600;
+
+  letter-spacing:
+    0.08em;
+}
+
+.admin-health-assessment--healthy
+  .admin-health-assessment__state {
+  color:
+    var(--admin-green);
+}
+
+.admin-health-assessment--degraded
+  .admin-health-assessment__state {
+  color:
+    var(--admin-amber);
+}
+
+.admin-health-assessment--critical
+  .admin-health-assessment__state {
+  color:
+    var(--admin-red);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+  .admin-health-overall {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .admin-health-overall__summary {
+    align-items:
+      flex-start;
+  }
+
+  .admin-health-overall__summary-label {
+    text-align:
+      left;
+  }
+
+  .admin-health-assessment {
+    flex-direction:
+      column;
+  }
+
+  .admin-health-assessment__state {
+    padding-top:
+      0;
+
+    padding-left:
+      2.8rem;
   }
 }
