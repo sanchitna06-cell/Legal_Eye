@@ -101,6 +101,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://juryhash.vercel.app",
         "http://localhost:3003",
         "http://127.0.0.1:3003",
         "http://localhost:3008",
