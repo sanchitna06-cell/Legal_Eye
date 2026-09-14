@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 AGENT_TIMEOUT = httpx.Timeout(
     connect=10.0,
-    read=60.0,
+    read=150.0,
     write=30.0,
     pool=10.0,
 )
