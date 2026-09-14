@@ -10,6 +10,7 @@ import { CaseTimeline, InconsistencyIdentifier } from "@/components/documents/An
 import { usePdfDocument } from "@/hooks/usePdfDocument";
 import { DEFAULT_ANNOTATION_COLOR } from "@/hooks/useAnnotationStore";
 import { useAnnotationStore, type AnnotationTool } from "@/hooks/useAnnotationStore";
+import { getSession } from "@/lib/user-store";
 
 import type { AnnotationType } from "@/lib/api";
 import { useDocumentAnalysis } from "@/hooks/useDocumentAnalysis";
@@ -20,12 +21,13 @@ import {
   getAnnotations,
   getCaseDocuments,
   getDocumentPages,
+  getDocumentStatus,
   updateAnnotation,
   type Annotation,
   type AnnotationPosition,
   type BackendDocument,
+  type DocumentProcessingStatus,
 } from "@/lib/api";
-import { getSession } from "@/lib/user-store";
 
 export const Route = createFileRoute("/documents/$documentId")({
   beforeLoad: () => {
@@ -69,6 +71,11 @@ function DocumentWorkspace() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [processingStatus, setProcessingStatus] =
+    useState<DocumentProcessingStatus | null>(null);
+
+  const [processingMessage, setProcessingMessage] =
+    useState("Checking document processing status...");
 
   const [pageNumber, setPageNumber] = useState(1);
   const [tool, setTool] = useState<AnnotationTool>("pan");
@@ -78,6 +85,52 @@ function DocumentWorkspace() {
 
   const { pdf, loading, error } = usePdfDocument(documentId);
   const { analysis, analysisLoading, analysisError } = useDocumentAnalysis(documentId);
+  useEffect(() => {
+  let cancelled = false;
+  let intervalId: number | undefined;
+
+  const checkProcessingStatus = async () => {
+    try {
+      const result = await getDocumentStatus(documentId);
+
+      if (cancelled) return;
+
+      setProcessingStatus(result.status);
+      setProcessingMessage(result.message);
+
+      if (
+        result.status === "COMPLETED" ||
+        result.status === "FAILED"
+      ) {
+        if (intervalId !== undefined) {
+          window.clearInterval(intervalId);
+        }
+      }
+    } catch {
+      if (cancelled) return;
+
+      setProcessingStatus(null);
+      setProcessingMessage(
+        "Unable to check document processing status.",
+      );
+    }
+  };
+
+  void checkProcessingStatus();
+
+  intervalId = window.setInterval(
+    checkProcessingStatus,
+    3000,
+  );
+
+  return () => {
+    cancelled = true;
+
+    if (intervalId !== undefined) {
+      window.clearInterval(intervalId);
+    }
+  };
+}, [documentId]);
 
   /* ============================================================
      ANNOTATION PERSISTENCE
@@ -286,7 +339,7 @@ function DocumentWorkspace() {
       {/* ============ TOP BAR ============ */}
       <header
         className={`sticky top-0 z-30 border-b border-border bg-[var(--document-header)] backdrop-blur transition-[padding-left] duration-300 ease-out ${
-          sidebarExpanded ? "md:pl-80" : "md:pl-16"
+          sidebarExpanded ? "md:pl-[260px]" : "md:pl-16"
         }`}
       >
         <div className="flex items-center gap-4 px-5 py-3.5">
@@ -331,7 +384,7 @@ function DocumentWorkspace() {
 
       <div
         className={`flex  min-h-0  flex-1 transition-[padding-left] duration-300 ease-out ${
-          sidebarExpanded ? "md:pl-80" : "md:pl-16"
+          sidebarExpanded ? "md:pl-[260px]" : "md:pl-16"
         }`}
       >
         {/* ============ LEFT SIDEBAR ============ */}
@@ -345,13 +398,15 @@ function DocumentWorkspace() {
           onJumpToSection={jumpToSection}
           caseId={caseParam}
           documentId={documentId}
+          processingStatus={processingStatus}
+          processingMessage={processingMessage}
         />
 
         {/* ============ DOCUMENT WORKSPACE ============ */}
         <main className="min-w-0 min-h-0 flex flex-1 flex-col">
           {" "}
           {documentMeta ? (
-            <DocumentHeader document={documentMeta} />
+            <DocumentHeader document={documentMeta} processingStatus={processingStatus} />
           ) : documentsLoading ? (
             <div className="border-b border-border px-5 py-5">
               <div className="h-11 w-11 animate-pulse bg-surface" aria-hidden="true" />
@@ -401,7 +456,7 @@ function DocumentWorkspace() {
         {/* ============ RIGHT ANALYSIS PANEL ============ */}
         <aside
           aria-label="Case timeline and inconsistency analysis"
-          className="hidden w-80 shrink-0 space-y-4 overflow-y-auto border-l border-border bg-background px-4 py-5 lg:block xl:w-[22rem]"
+          className="hidden w-[280px] shrink-0 space-y-3 overflow-y-auto border-l border-border bg-background px-3 py-4 lg:block xl:w-[280px]"
         >
           <CaseTimeline events={timelineEvents} loading={timelineLoading} error={analysisError} />
 

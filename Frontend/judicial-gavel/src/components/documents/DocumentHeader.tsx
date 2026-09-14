@@ -1,8 +1,9 @@
 import { Download, EllipsisVertical, FileText, Printer } from "lucide-react";
-import { getDocument, type BackendDocument } from "@/lib/api";
+import { getDocument, type BackendDocument ,type DocumentProcessingStatus,} from "@/lib/api";
 
 interface DocumentHeaderProps {
   document: BackendDocument;
+  processingStatus: DocumentProcessingStatus | null;
 }
 
 function formatSize(bytes: number): string {
@@ -28,7 +29,10 @@ function formatDate(iso: string): string {
  * ACTIVE seal, document id and intake metadata; retrieval actions on the
  * right. Data comes from the existing authenticated document record.
  */
-export function DocumentHeader({ document }: DocumentHeaderProps) {
+export function DocumentHeader({
+  document,
+  processingStatus,
+}: DocumentHeaderProps) {
     async function handleDownload() {
     try {
       const access = await getDocument(document.id);

@@ -261,7 +261,7 @@ export function PdfViewer({
   onRedo,
   onClearPage,
 }: PdfViewerProps) {
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.9);
   const [fitMode, setFitMode] = useState(false);
 
   const [frameSize, setFrameSize] = useState({

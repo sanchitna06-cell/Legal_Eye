@@ -15,7 +15,6 @@ import {
 import type { LucideIcon } from "lucide-react";
 import {
   askCaseQuestion,
-  getDocumentStatus,
   type DocumentProcessingStatus,
 } from "@/lib/api";/**
  * Document-analysis sidebar.
@@ -46,6 +45,8 @@ interface SidebarNavProps {
   onAssistantToggle: () => void;
   /** Scrolls a right-panel section (or the annotations toolbar) into view. */
   onJumpToSection: (sectionId: string) => void;
+  processingStatus: DocumentProcessingStatus | null;
+  processingMessage: string;
 }
 
 interface NavItem {
@@ -73,9 +74,13 @@ const SUGGESTED_QUESTIONS = [
 function AssistantPanel({
   caseId,
   documentId,
+  processingStatus,
+  processingMessage,
 }: {
   caseId?: string | undefined;
   documentId?: string | undefined;
+  processingStatus: DocumentProcessingStatus | null;
+  processingMessage: string;
 }) {
   const [messages, setMessages] = useState<
     Array<{ role: "user" | "assistant"; text: string }>
@@ -84,61 +89,7 @@ function AssistantPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [processingStatus, setProcessingStatus] =
-  useState<DocumentProcessingStatus | null>(null);
 
-  const [processingMessage, setProcessingMessage] =
-  useState("Checking document processing status...");
-
-  useEffect(() => {
-  if (!documentId) {
-    setProcessingStatus(null);
-    setProcessingMessage("No document is associated with this workspace.");
-    return;
-  }
-
-  let cancelled = false;
-  let intervalId: number | undefined;
-
-  const checkStatus = async () => {
-    try {
-      const result = await getDocumentStatus(documentId);
-
-      if (cancelled) return;
-
-      setProcessingStatus(result.status);
-      setProcessingMessage(result.message);
-
-      if (
-        result.status === "COMPLETED" ||
-        result.status === "FAILED"
-      ) {
-        if (intervalId !== undefined) {
-          window.clearInterval(intervalId);
-        }
-      }
-    } catch {
-      if (cancelled) return;
-
-      setProcessingStatus(null);
-      setProcessingMessage(
-        "Unable to check document processing status.",
-      );
-    }
-  };
-
-  checkStatus();
-
-  intervalId = window.setInterval(checkStatus, 3000);
-
-  return () => {
-    cancelled = true;
-
-    if (intervalId !== undefined) {
-      window.clearInterval(intervalId);
-    }
-  };
-}, [documentId]);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
@@ -368,6 +319,8 @@ export function DocumentSidebar({
   assistantOpen,
   onAssistantToggle,
   onJumpToSection,
+  processingStatus,
+  processingMessage,
 }: SidebarNavProps) {
   const rail = !expanded;
 
@@ -413,7 +366,7 @@ export function DocumentSidebar({
       <aside
         aria-label="Document analysis — navigation and analysis tools"
         data-collapsed={expanded ? "false" : "true"}
-        className={`dark-chrome group fixed left-0 z-50 flex w-80 flex-col border-r border-chrome-border bg-sidebar grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
+        className={`dark-chrome group fixed left-0 z-50 flex w-[260px] flex-col border-r border-chrome-border bg-sidebar grain shadow-2xl shadow-black/40 transition-[width,transform,visibility] duration-300 ease-out md:shadow-none
           max-md:inset-y-0
           md:bottom-0 md:top-0
           ${rail ? "md:w-16" : ""}
@@ -453,7 +406,7 @@ export function DocumentSidebar({
         </div>
 
         {assistantOpen ? (
-          <AssistantPanel caseId={caseId} documentId={documentId}/>
+          <AssistantPanel caseId={caseId} documentId={documentId} processingStatus={processingStatus} processingMessage={processingMessage}/>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
             <p
