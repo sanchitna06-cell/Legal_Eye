@@ -38,6 +38,10 @@ class EntityType(str, Enum):
     EVIDENCE = "EVIDENCE"
     OTHER = "OTHER"
 
+class EntityExtractionSource(str, Enum):
+    DETERMINISTIC = "DETERMINISTIC"
+    AI = "AI"
+
 
 class ConflictType(str, Enum):
     TEMPORAL = "TEMPORAL"
@@ -180,6 +184,7 @@ class EntityData(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    extraction_source: EntityExtractionSource
 
 
 # ============================================================

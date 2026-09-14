@@ -22,7 +22,12 @@ from app.routers import health, auth, cases, documents, blockchain, intelligence
 from app.core.database import engine, AsyncSessionLocal
 from sqlalchemy import text
 from app.core.event_bus import event_bus
-from app.subscribers import text_extractor, entity_extractor, blockchain_subscriber
+from app.subscribers import (
+    text_extractor,
+    entity_extractor,
+    blockchain_subscriber,
+    deterministic_entity_extractor,
+)
 
 
 # =========================================================
@@ -69,7 +74,12 @@ async def lifespan(app: FastAPI):
 
     event_bus.subscribe(
         TEXT_EXTRACTED,
-        entity_extractor.handle_text_extracted
+        entity_extractor.handle_text_extracted,
+    )
+
+    event_bus.subscribe(
+        TEXT_EXTRACTED,
+        deterministic_entity_extractor.handle_text_extracted,
     )
 
        

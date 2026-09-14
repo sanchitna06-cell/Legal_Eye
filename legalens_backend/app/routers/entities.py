@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.contracts import (
     EntityExtractedPayload,
+    EntityExtractionSource,
     ProcessingType,
     ProcessingJobStatus,
 )
@@ -146,7 +147,8 @@ async def ingest_entities(
     if page_ids:
         await db.execute(
             delete(Entity).where(
-                Entity.page_id.in_(page_ids)
+                Entity.page_id.in_(page_ids),
+                Entity.extraction_source == EntityExtractionSource.AI,
             )
         )
 
@@ -161,6 +163,7 @@ async def ingest_entities(
             Entity(
                 id=uuid.uuid4().hex,
                 page_id=pages_by_number[item.page_number],
+                extraction_source=EntityExtractionSource.AI,
                 entity_type=item.entity_type,
                 value=item.value,
                 confidence_score=item.confidence,
