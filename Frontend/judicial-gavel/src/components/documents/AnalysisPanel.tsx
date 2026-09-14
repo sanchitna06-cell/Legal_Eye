@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { ChevronRight, ListChecks, TriangleAlert } from "lucide-react";
-import type { DocumentInconsistency, DocumentTimelineEvent } from "@/lib/api";
+import type {
+  DocumentInconsistency,
+  DocumentProcessingStatus,
+  DocumentTimelineEvent,
+} from "@/lib/api";
 
 /* ============================================================
    Shared panel chrome
@@ -145,12 +149,13 @@ export function InconsistencyIdentifier({
   issues,
   loading,
   error,
+  processingStatus,
 }: {
   issues: DocumentInconsistency[];
   loading: boolean;
   error: string | null;
-}) {
-  const [expanded, setExpanded] = useState(false);
+  processingStatus: DocumentProcessingStatus | null;
+}) {  const [expanded, setExpanded] = useState(false);
   const visible = expanded ? issues : issues.slice(0, 3);
 
   return (
@@ -164,22 +169,28 @@ export function InconsistencyIdentifier({
           : { label: "View all" }
       }
     >
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-5 min-w-5 items-center justify-center border border-burgundy/60 bg-burgundy/15 px-1 font-mono text-[10px] text-burgundy">
+      {processingStatus === "COMPLETED" && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-5 min-w-5 items-center justify-center border border-burgundy/60 bg-burgundy/15 px-1 font-mono text-[10px] text-burgundy">
           {issues.length}
-        </span>
-        <span className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
-          potential issues
-        </span>
-      </div>
+          </span>
+          <span className="text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+            potential issues
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Analyzing the document...</p>
       ) : error ? (
         <p className="text-xs text-burgundy">{error}</p>
-      ) : visible.length === 0 ? (
+      ) : processingStatus !== "COMPLETED" ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Analysis results will appear when document processing completes.
+          </p>
+        ) : visible.length === 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          No inconsistencies detected in this document yet.
+          No inconsistencies detected in this document.
         </p>
       ) : (
         <ul className="space-y-2.5">

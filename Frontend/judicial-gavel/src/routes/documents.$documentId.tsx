@@ -464,6 +464,7 @@ function DocumentWorkspace() {
             issues={issues}
             loading={analysisLoading}
             error={analysisError}
+            processingStatus={processingStatus}
           />
 
           {!analysisLoading && !analysisError && issueCount === 0 && (

@@ -33,6 +33,16 @@ export function DocumentHeader({
   document,
   processingStatus,
 }: DocumentHeaderProps) {
+    const displayStatus =
+    processingStatus === "COMPLETED"
+      ? "PROCESSED"
+      : processingStatus === "FAILED"
+        ? "FAILED"
+        : processingStatus === "PROCESSING"
+          ? "PROCESSING"
+          : processingStatus === "QUEUED"
+            ? "PROCESSING"
+            : document.status;
     async function handleDownload() {
     try {
       const access = await getDocument(document.id);
@@ -87,11 +97,11 @@ export function DocumentHeader({
             <span>Uploaded {formatDate(document.uploaded_at)}</span>
             <span aria-hidden="true">·</span>
             <span>{formatSize(document.file_size_bytes)}</span>
-            {document.status && document.status !== "ready" && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="tracking-[0.1em] uppercase">{document.status}</span>
-              </>
+            {displayStatus && displayStatus !== "ready" && (
+            <>
+            <span aria-hidden="true">·</span>
+            <span className="tracking-[0.1em] uppercase">{displayStatus}</span>
+            </>
             )}
           </p>
         </div>

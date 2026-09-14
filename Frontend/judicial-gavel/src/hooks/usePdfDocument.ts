@@ -29,16 +29,18 @@ export function usePdfDocument(documentId: string): PdfDocumentState {
 
     async function load() {
       try {
-        const documentAccess = await getDocument(documentId);
+        // Get a short-lived signed Supabase URL from the backend.
+        const access = await getDocument(documentId);
 
         if (cancelled) return;
 
-        if (!documentAccess.url) {
-          throw new Error("The server did not return a document URL.");
+        if (!access.url) {
+          throw new Error("The server did not provide a document access URL.");
         }
 
+        // PDF.js loads the private PDF directly from Supabase Storage.
         loadingTask = pdfjsLib.getDocument({
-          url: documentAccess.url,
+          url: access.url,
         });
 
         const loadedDocument = await loadingTask.promise;
