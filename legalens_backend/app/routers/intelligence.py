@@ -8,8 +8,9 @@ POST /intelligence/ask
 Security:
 - Requires authenticated LAWYER.
 - Lawyer must own the requested case.
-- Only entities belonging to that case are sent to n8n.
-- Context size is bounded.
+- Only the validated case_id and question are sent to n8n.
+- Case entities are retrieved by the n8n AI Agent through its Supabase tool.
+- Context size is bounded by the AI/database retrieval layer.
 - Question length is bounded.
 - Internal n8n errors are not exposed to the client.
 """
@@ -27,9 +28,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_lawyer
 from app.models.case import Case
-from app.models.case_file_page import CaseFilePage
-from app.models.document import Document
-from app.models.entity import Entity
 
 
 router = APIRouter(
@@ -52,9 +50,6 @@ AGENT_TIMEOUT = httpx.Timeout(
 )
 
 MAX_QUESTION_LENGTH = 2000
-MAX_ENTITIES = 300
-MAX_DOCUMENTS = 20
-MAX_PAGES = 200
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +96,8 @@ async def ask_case_question(
     """
     Ask the n8n AI Agent a question about a case.
 
-    Context currently consists of extracted entities only.
+    The backend validates that the authenticated lawyer owns the case.
+    n8n then retrieves the case-specific entities through its Supabase tool.
     """
 
     # -----------------------------------------------------------------------
@@ -135,122 +131,21 @@ async def ask_case_question(
         )
 
     # -----------------------------------------------------------------------
-    # 3. Retrieve bounded entity context.
+    # 3. Build n8n request.
     #
-    # We deliberately cap this. A case can contain hundreds of pages,
-    # so sending every entity indefinitely would eventually create huge
-    # n8n/LLM requests.
-    # -----------------------------------------------------------------------
-
-    result = await db.execute(
-        select(Entity, CaseFilePage, Document)
-        .join(
-            CaseFilePage,
-            Entity.page_id == CaseFilePage.id,
-        )
-        .join(
-            Document,
-            CaseFilePage.case_file_id == Document.id,
-        )
-        .where(
-            Document.case_id == case.id,
-        )
-        .order_by(
-            Document.id,
-            CaseFilePage.page_number,
-            Entity.id,
-        )
-        .limit(MAX_ENTITIES),
-    )
-
-    rows = result.all()
-
-    if not rows:
-        return IntelligenceResponse(
-            status="case_context_unavailable",
-            answer="No processed entities are available yet for this case.",
-            facts=[],
-            conflicts=[],
-        )
-
-    # -----------------------------------------------------------------------
-    # 4. Build compact document/page/entity context.
-    # -----------------------------------------------------------------------
-
-    documents_by_id: dict[str, dict] = {}
-    page_count = 0
-
-    for entity, page, document in rows:
-
-        if document.id not in documents_by_id:
-
-            if len(documents_by_id) >= MAX_DOCUMENTS:
-                continue
-
-            documents_by_id[document.id] = {
-                "document_id": document.id,
-                "document_name": document.file_name,
-                "case_id": case.id,
-                "pages": {},
-            }
-
-        doc_entry = documents_by_id[document.id]
-
-        if page.page_number not in doc_entry["pages"]:
-
-            if page_count >= MAX_PAGES:
-                continue
-
-            doc_entry["pages"][page.page_number] = {
-                "page_number": page.page_number,
-                "entities": [],
-            }
-
-            page_count += 1
-
-        page_entry = doc_entry["pages"][page.page_number]
-
-        page_entry["entities"].append(
-            {
-                "type": entity.entity_type.value,
-                "value": entity.value,
-                "attribute": entity.normalized_value,
-                "source_text": entity.context_snippet,
-                "confidence": entity.confidence_score,
-            }
-        )
-
-    document_context = []
-
-    for doc_entry in documents_by_id.values():
-
-        doc_entry["pages"] = list(
-            doc_entry["pages"].values()
-        )
-
-        if doc_entry["pages"]:
-            document_context.append(doc_entry)
-
-    if not document_context:
-        return IntelligenceResponse(
-            status="case_context_unavailable",
-            answer="No usable processed entities are available for this case.",
-            facts=[],
-            conflicts=[],
-        )
-
-    # -----------------------------------------------------------------------
-    # 5. Build n8n request.
+    # Do NOT send document_context here.
+    #
+    # The AI Agent receives the validated case_id and uses its Supabase
+    # entity-retrieval tool to obtain only entities belonging to this case.
     # -----------------------------------------------------------------------
 
     body = {
         "case_id": case.id,
         "chatInput": request.question.strip(),
-        "document_context": document_context,
     }
 
     # -----------------------------------------------------------------------
-    # 6. Call n8n.
+    # 4. Call n8n.
     # -----------------------------------------------------------------------
 
     try:
@@ -316,7 +211,7 @@ async def ask_case_question(
         )
 
     # -----------------------------------------------------------------------
-    # 7. Normalize common n8n response formats.
+    # 5. Normalize common n8n response formats.
     # -----------------------------------------------------------------------
 
     if isinstance(agent_response, list):
@@ -337,6 +232,7 @@ async def ask_case_question(
 
             try:
                 output = json.loads(output)
+
             except json.JSONDecodeError:
 
                 return IntelligenceResponse(
@@ -349,7 +245,7 @@ async def ask_case_question(
         agent_response = output
 
     # -----------------------------------------------------------------------
-    # 8. Validate the final response shape.
+    # 6. Validate the final response shape.
     # -----------------------------------------------------------------------
 
     if not isinstance(agent_response, dict):

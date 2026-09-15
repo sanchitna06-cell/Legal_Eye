@@ -1,13 +1,14 @@
 from typing import Dict, Any
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel,Field
-from uuid import uuid4
 from datetime import datetime, timezone
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.audit_service import AuditService
 
+from app.services.audit_service import AuditService
 from app.core.database import get_db
 from app.core.security import get_current_lawyer
 from app.models.case import Case
@@ -16,17 +17,37 @@ from app.models.case import Case
 router = APIRouter()
 
 
+# ============================================================================
+# CASE INPUT
+# ============================================================================
+
 class CaseCreate(BaseModel):
-    title: str
-    description: str
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+    )
+
+    description: str = Field(
+        default="",
+        max_length=5000,
+    )
+
     classification: str = Field(
         ...,
         pattern="^(general|confidential)$",
     )
-    title: str
-    description: str
-    classification: str
 
+    category: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+    )
+
+
+# ============================================================================
+# GET CASES
+# ============================================================================
 
 @router.get("/cases")
 async def get_cases(
@@ -49,13 +70,19 @@ async def get_cases(
                 "title": case.title,
                 "description": case.description,
                 "classification": case.classification,
-                "department": case.department,
+                # `department` is the existing DB field used to persist
+                # the lawyer-selected case category.
+                "category": case.department,
                 "created_at": case.created_at,
             }
             for case in cases
         ]
     }
 
+
+# ============================================================================
+# CREATE CASE
+# ============================================================================
 
 @router.post("/cases")
 async def create_case(
@@ -67,11 +94,18 @@ async def create_case(
 
     new_case = Case(
         id=case_id,
-        case_number=f"LL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
-        title=case.title,
-        description=case.description,
+        case_number=(
+            f"LL-"
+            f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
+        ),
+        title=case.title.strip(),
+        description=case.description.strip(),
         classification=case.classification.upper(),
-        department=None,
+
+        # Existing database column.
+        # Semantically this now stores the selected case category.
+        department=case.category.strip(),
+
         created_by=current_user["user_id"],
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -87,7 +121,9 @@ async def create_case(
         details={
             "case_number": new_case.case_number,
             "title": new_case.title,
-    },
+            "category": case.category.strip(),
+            "classification": case.classification,
+        },
     )
 
     await db.commit()
@@ -101,7 +137,7 @@ async def create_case(
             "title": new_case.title,
             "description": new_case.description,
             "classification": new_case.classification,
-            "department": new_case.department,
+            "category": new_case.department,
             "created_at": new_case.created_at,
         },
     }

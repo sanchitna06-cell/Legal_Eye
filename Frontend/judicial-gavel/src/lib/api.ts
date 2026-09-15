@@ -161,7 +161,7 @@ export interface BackendCase {
   title: string;
   description: string | null;
   classification: string;
-  department: string | null;
+  category: string | null;
   created_at: string;
 }
 
@@ -217,6 +217,7 @@ export interface CreateCaseInput {
   title: string;
   description: string;
   classification: "general" | "confidential";
+  category: string;
 }
 
 export interface CreateCaseResponse {
@@ -363,7 +364,26 @@ export async function getDocumentStatus(documentId: string): Promise<DocumentSta
 
   return response.json();
 }
+export async function retryDocumentProcessing(
+  documentId: string
+): Promise<DocumentStatusResponse> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/processing/retry`,
+    {
+      method: "POST",
+    },
+  );
 
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.detail ?? "Failed to retry document processing.",
+    );
+  }
+
+  return response.json();
+}
 /* ============================================================
    DOCUMENT ANALYSIS
    ============================================================

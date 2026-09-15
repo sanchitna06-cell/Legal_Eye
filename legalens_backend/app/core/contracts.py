@@ -144,6 +144,21 @@ class EntityExtractedPayload(BaseModel):
     case_id: str
 
     entities: list[ExtractedEntity]
+class EntityProcessingFailedPayload(BaseModel):
+    """
+    Payload sent by n8n when entity extraction fails permanently
+    after its configured retry attempts.
+    """
+
+    document_id: str
+    case_id: str
+    job_id: str
+
+    error: str = Field(
+        ...,
+        min_length=1,
+        max_length=1000,
+    )
 
 # ============================================================
 # INTEGRITY FAILURE EVENT PAYLOAD

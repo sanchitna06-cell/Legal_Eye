@@ -26,6 +26,9 @@ from app.core.contracts import (
 )
 from app.models.file_processing_job import FileProcessingJob
 from app.services.supabase_storage import SupabaseStorage
+from app.services.document_status_service import (
+    sync_document_lifecycle_status,
+)
 
 def extract_pdf_pages(file_bytes: bytes) -> list[dict]:
     """
@@ -292,8 +295,10 @@ async def handle_document_uploaded(
                 )
 
                 if document is not None:
-                    document.status = DocumentStatus.PROCESSED
-
+                    await sync_document_lifecycle_status(
+                        db,
+                        document,
+                    )
                 await db.commit()
 
         except Exception:

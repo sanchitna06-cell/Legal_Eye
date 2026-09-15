@@ -1,6 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Search, TriangleAlert } from "lucide-react";
+import {
+  ChevronRight,
+  RefreshCw,
+  Search,
+  TriangleAlert,
+} from "lucide-react";
 import { UserProfileMenu } from "@/components/layout/UserProfileMenu";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { DocumentSidebar } from "@/components/documents/DocumentSidebar";
@@ -22,6 +27,7 @@ import {
   getCaseDocuments,
   getDocumentPages,
   getDocumentStatus,
+  retryDocumentProcessing,
   updateAnnotation,
   type Annotation,
   type AnnotationPosition,
@@ -76,6 +82,8 @@ function DocumentWorkspace() {
 
   const [processingMessage, setProcessingMessage] =
     useState("Checking document processing status...");
+  const [retryingProcessing, setRetryingProcessing] = useState(false);
+  const [processingPollKey, setProcessingPollKey] = useState(0);  
 
   const [pageNumber, setPageNumber] = useState(1);
   const [tool, setTool] = useState<AnnotationTool>("pan");
@@ -130,7 +138,30 @@ function DocumentWorkspace() {
       window.clearInterval(intervalId);
     }
   };
-}, [documentId]);
+}, [documentId, processingPollKey]);
+const handleRetryProcessing = useCallback(async () => {
+  if (retryingProcessing) return;
+
+  setRetryingProcessing(true);
+
+  try {
+    const result = await retryDocumentProcessing(documentId);
+
+    setProcessingStatus(result.status);
+    setProcessingMessage(result.message);
+
+    // Restart the polling effect.
+    setProcessingPollKey((value) => value + 1);
+  } catch (error) {
+    setProcessingMessage(
+      error instanceof Error
+        ? error.message
+        : "Failed to retry document processing.",
+    );
+  } finally {
+    setRetryingProcessing(false);
+  }
+}, [documentId, retryingProcessing]);
 
   /* ============================================================
      ANNOTATION PERSISTENCE
@@ -412,12 +443,34 @@ function DocumentWorkspace() {
               <div className="h-11 w-11 animate-pulse bg-surface" aria-hidden="true" />
             </div>
           ) : null}
-          {documentsError && (
-            <div className="flex items-center gap-2 border-b border-burgundy/40 bg-burgundy/[0.05] px-5 py-3">
-              <TriangleAlert className="h-3.5 w-3.5 text-burgundy" />
-              <p className="text-xs text-burgundy">{documentsError}</p>
-            </div>
-          )}
+          {processingStatus === "FAILED" && (
+          <div className="flex items-center justify-between gap-4 border-b border-burgundy/40 bg-burgundy/[0.05] px-5 py-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-burgundy" />
+                <div className="min-w-0">
+                <p className="text-xs font-medium text-burgundy">
+                  AI analysis failed
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                {processingMessage}
+              </p>
+          </div>
+        </div>
+
+    <button
+      type="button"
+      onClick={() => void handleRetryProcessing()}
+      disabled={retryingProcessing}
+      className="focus-legal inline-flex shrink-0 items-center gap-2 border border-brass/50 bg-surface px-3 py-2 text-[10px] font-medium tracking-[0.12em] text-brass uppercase transition-colors hover:border-brass hover:bg-surface/80 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <RefreshCw
+        className={`h-3 w-3 ${retryingProcessing ? "animate-spin" : ""}`}
+        aria-hidden="true"
+      />
+      {retryingProcessing ? "RETRYING..." : "RETRY AI ANALYSIS"}
+    </button>
+  </div>
+)}
           <div className="min-h-0 flex-1">
             {loading ? (
               <PdfViewerLoading />
@@ -467,12 +520,14 @@ function DocumentWorkspace() {
             processingStatus={processingStatus}
           />
 
-          {!analysisLoading && !analysisError && issueCount === 0 && (
-            <p className="border border-border bg-surface/30 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-              The analysis pipeline has not published findings for this document yet. This panel
-              fills automatically once processing completes.
-            </p>
-          )}
+          {processingStatus !== "COMPLETED" &&
+          !analysisLoading &&
+          !analysisError &&
+            issueCount === 0 && (
+          <p className="border border-border bg-surface/30 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+            The analysis pipeline has not published findings for this document yet.
+          </p>
+        )}
         </aside>
       </div>
     </div>

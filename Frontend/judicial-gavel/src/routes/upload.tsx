@@ -2,12 +2,11 @@ import {
   createFileRoute,
   Link,
   redirect,
+  useNavigate,
   useSearch,
 } from "@tanstack/react-router";
 
 import {
-  useCallback,
-  useEffect,
   useRef,
   useState,
   type DragEvent,
@@ -16,7 +15,6 @@ import {
 } from "react";
 
 import {
-  Check,
   FileText,
   FileUp,
   LoaderCircle,
@@ -31,23 +29,24 @@ import { format } from "date-fns";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { SidebarDrawer } from "@/components/dashboard/SidebarDrawer";
 
-import {
-  getDocumentStatus,
-  uploadDocument,
-  type DocumentProcessingStage,
-} from "@/lib/api";
+import { uploadDocument } from "@/lib/api";
 
 import {
   useCaseActions,
   toCaseRecord,
 } from "@/lib/case-store";
 
+import {
+  CASE_CATEGORIES,
+  type CaseCategory,
+} from "@/data/cases";
+
 import { getSession } from "@/lib/user-store";
 
 
-/* ========================================================================== */
-/* ROUTE                                                                      */
-/* ========================================================================== */
+/* ==========================================================================
+   ROUTE
+   ========================================================================== */
 
 export const Route = createFileRoute(
   "/upload",
@@ -68,8 +67,7 @@ export const Route = createFileRoute(
 
     return {
       case:
-        typeof caseId ===
-          "string" &&
+        typeof caseId === "string" &&
         caseId.trim()
           ? caseId
           : undefined,
@@ -85,7 +83,7 @@ export const Route = createFileRoute(
       {
         name: "description",
         content:
-          "Securely preserve an original legal document in JURY HASH and create or update its case record.",
+          "Securely preserve original legal documents in JURY HASH and create or update a case record.",
       },
     ],
   }),
@@ -95,9 +93,9 @@ export const Route = createFileRoute(
 });
 
 
-/* ========================================================================== */
-/* TYPES                                                                      */
-/* ========================================================================== */
+/* ==========================================================================
+   TYPES
+   ========================================================================== */
 
 interface ChosenFile {
   file: File;
@@ -105,93 +103,28 @@ interface ChosenFile {
   size: number;
 }
 
-
-interface FilingOperation {
-  caseId: string;
-  documentId: string | null;
+interface UploadResult {
   file: ChosenFile;
+  documentId: string | null;
+  error: string | null;
 }
-
 
 type UploadPhase =
   | "IDLE"
   | "SUBMITTING"
-  | "PROCESSING"
-  | "COMPLETED"
   | "FAILED";
 
 
-type StepVisual =
-  | "pending"
-  | "active"
-  | "completed"
-  | "failed";
+/* ==========================================================================
+   CONSTANTS
+   ========================================================================== */
+
+const ACCEPT = ".pdf";
 
 
-/* ========================================================================== */
-/* CONSTANTS                                                                  */
-/* ========================================================================== */
-
-const ACCEPT =
-  ".pdf";
-
-
-const POLL_INTERVAL_MS =
-  1500;
-
-
-const MAX_POLL_ERRORS =
-  5;
-
-
-const STAGE_ORDER:
-  DocumentProcessingStage[] =
-  [
-    "DOCUMENT_ANALYSIS",
-    "CASE_RECORD",
-    "INTEGRITY",
-  ];
-
-
-const STEPS: Array<{
-  stage: DocumentProcessingStage;
-  number: string;
-  label: string;
-  description: string;
-}> = [
-  {
-    stage:
-      "DOCUMENT_ANALYSIS",
-    number: "01",
-    label:
-      "Analyze document",
-    description:
-      "Read pages, extract text and identify document structure.",
-  },
-  {
-    stage:
-      "CASE_RECORD",
-    number: "02",
-    label:
-      "Prepare case record",
-    description:
-      "Extract parties, dates and case details for the matter.",
-  },
-  {
-    stage:
-      "INTEGRITY",
-    number: "03",
-    label:
-      "Preserve integrity",
-    description:
-      "Hash and anchor the original document in the JURY HASH chain.",
-  },
-];
-
-
-/* ========================================================================== */
-/* HELPERS                                                                    */
-/* ========================================================================== */
+/* ==========================================================================
+   HELPERS
+   ========================================================================== */
 
 function humanSize(
   bytes: number,
@@ -215,33 +148,38 @@ function humanSize(
 }
 
 
-function stageNumber(
-  stage:
-    | DocumentProcessingStage
-    | null,
+function isPdf(
+  file: File,
 ) {
-  if (!stage) {
-    return "—";
-  }
-
-  const index =
-    STAGE_ORDER.indexOf(
-      stage,
-    );
-
-  return index >= 0
-    ? String(
-        index + 1,
-      ).padStart(2, "0")
-    : "—";
+  return (
+    file.type ===
+      "application/pdf" ||
+    file.name
+      .toLowerCase()
+      .endsWith(".pdf")
+  );
 }
 
 
-/* ========================================================================== */
-/* MAIN COMPONENT                                                             */
-/* ========================================================================== */
+function makeFileKey(
+  file: File,
+) {
+  return [
+    file.name,
+    file.size,
+    file.lastModified,
+  ].join(":");
+}
+
+
+/* ==========================================================================
+   MAIN COMPONENT
+   ========================================================================== */
 
 function UploadCase() {
+  const navigate =
+    useNavigate();
+
   const {
     addCase,
   } =
@@ -254,9 +192,9 @@ function UploadCase() {
   });
 
 
-  /* ------------------------------------------------------------------------ */
-  /* Layout                                                                   */
-  /* ------------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------------
+     Layout
+     ------------------------------------------------------------------------ */
 
   const [
     sidebarExpanded,
@@ -269,22 +207,44 @@ function UploadCase() {
   ] = useState(false);
 
 
-  /* ------------------------------------------------------------------------ */
-  /* File                                                                      */
-  /* ------------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------------
+     Files
+     ------------------------------------------------------------------------ */
 
   const [
-    file,
-    setFile,
-  ] =
-    useState<ChosenFile | null>(
-      null,
-    );
+    files,
+    setFiles,
+  ] = useState<ChosenFile[]>(
+    [],
+  );
 
   const [
     dragActive,
     setDragActive,
   ] = useState(false);
+
+
+  /* ------------------------------------------------------------------------
+     New-case metadata
+     ------------------------------------------------------------------------ */
+
+  const [
+    petitioner,
+    setPetitioner,
+  ] = useState("");
+
+  const [
+    respondent,
+    setRespondent,
+  ] = useState("");
+
+  const [
+    category,
+    setCategory,
+  ] = useState<CaseCategory>(
+    CASE_CATEGORIES[0] ??
+      "Criminal",
+  );
 
   const [
     confidential,
@@ -292,9 +252,9 @@ function UploadCase() {
   ] = useState(false);
 
 
-  /* ------------------------------------------------------------------------ */
-  /* Upload state machine                                                      */
-  /* ------------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------------
+     Upload state
+     ------------------------------------------------------------------------ */
 
   const [
     phase,
@@ -304,280 +264,150 @@ function UploadCase() {
   );
 
   const [
-    stage,
-    setStage,
-  ] =
-    useState<DocumentProcessingStage | null>(
-      null,
-    );
-
-  const [
-    statusMessage,
-    setStatusMessage,
-  ] =
-    useState<string | null>(
-      null,
-    );
-
-  const [
     error,
     setError,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  ] = useState<string | null>(
+    null,
+  );
 
   const [
-    operation,
-    setOperation,
-  ] =
-    useState<FilingOperation | null>(
-      null,
-    );
+    uploadResults,
+    setUploadResults,
+  ] = useState<UploadResult[]>(
+    [],
+  );
+
+  const [
+    currentFileIndex,
+    setCurrentFileIndex,
+  ] = useState(0);
 
 
-  /* ------------------------------------------------------------------------ */
-  /* Refs                                                                      */
-  /* ------------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------------
+     Refs
+     ------------------------------------------------------------------------ */
 
   const inFlightRef =
     useRef(false);
 
-  const pollTimerRef =
-    useRef<ReturnType<
-      typeof setTimeout
-    > | null>(null);
-
-  const pollActiveRef =
-    useRef(false);
-
-  const pollErrorsRef =
-    useRef(0);
-
 
   const busy =
     phase ===
-      "SUBMITTING" ||
-    phase ===
-      "PROCESSING";
+    "SUBMITTING";
 
 
-  /* ========================================================================
-     POLLING
-     ======================================================================== */
-
-  const stopPolling =
-    useCallback(
-      () => {
-        pollActiveRef.current =
-          false;
-
-        if (
-          pollTimerRef.current !==
-          null
-        ) {
-          clearTimeout(
-            pollTimerRef.current,
-          );
-
-          pollTimerRef.current =
-            null;
-        }
-      },
-      [],
-    );
-
-
-  useEffect(() => {
-    return stopPolling;
-  }, [stopPolling]);
-
-
-  const startStatusPolling =
-    useCallback(
-      (
-        documentId: string,
-      ) => {
-        stopPolling();
-
-        pollActiveRef.current =
-          true;
-
-        pollErrorsRef.current =
-          0;
-
-
-        const poll =
-          async () => {
-            if (
-              !pollActiveRef.current
-            ) {
-              return;
-            }
-
-
-            try {
-              const status =
-                await getDocumentStatus(
-                  documentId,
-                );
-
-
-              if (
-                !pollActiveRef.current
-              ) {
-                return;
-              }
-
-
-              pollErrorsRef.current =
-                0;
-
-              setStatusMessage(
-                status.message,
-              );
-
-
-              if (
-                status.status ===
-                "COMPLETED"
-              ) {
-                stopPolling();
-
-                inFlightRef.current =
-                  false;
-
-                setStage(
-                  "INTEGRITY",
-                );
-
-                setPhase(
-                  "COMPLETED",
-                );
-
-                return;
-              }
-
-
-              if (
-                status.status ===
-                "FAILED"
-              ) {
-                stopPolling();
-
-                inFlightRef.current =
-                  false;
-
-                setStage(
-                  status.stage,
-                );
-
-                setError(
-                  status.message,
-                );
-
-                setPhase(
-                  "FAILED",
-                );
-
-                return;
-              }
-
-
-              setStage(
-                status.stage,
-              );
-            } catch {
-              if (
-                !pollActiveRef.current
-              ) {
-                return;
-              }
-
-
-              pollErrorsRef.current +=
-                1;
-
-
-              if (
-                pollErrorsRef.current >=
-                MAX_POLL_ERRORS
-              ) {
-                stopPolling();
-
-                inFlightRef.current =
-                  false;
-
-                setStage(null);
-
-                setError(
-                  "Lost contact with the archive while processing. Please retry.",
-                );
-
-                setPhase(
-                  "FAILED",
-                );
-
-                return;
-              }
-            }
-
-
-            if (
-              pollActiveRef.current
-            ) {
-              pollTimerRef.current =
-                setTimeout(
-                  poll,
-                  POLL_INTERVAL_MS,
-                );
-            }
-          };
-
-
-        void poll();
-      },
-      [stopPolling],
-    );
-
-
-  /* ========================================================================
+  /* ==========================================================================
      FILE HANDLING
-     ======================================================================== */
+     ========================================================================== */
 
-  function pickFile(
-    next:
-      | File
+  function addFiles(
+    incoming:
+      | FileList
+      | File[]
       | undefined,
   ) {
-    if (!next) {
+    if (!incoming || busy) {
       return;
     }
 
-    if (busy) {
-      return;
-    }
+    const incomingFiles =
+      Array.from(incoming);
 
     if (
-      next.type !==
-        "application/pdf" &&
-      !next.name
-        .toLowerCase()
-        .endsWith(".pdf")
+      incomingFiles.length ===
+      0
     ) {
+      return;
+    }
+
+    const invalidFile =
+      incomingFiles.find(
+        (item) =>
+          !isPdf(item),
+      );
+
+    if (invalidFile) {
       setError(
-        "Only PDF documents can be added to the case archive.",
+        `"${invalidFile.name}" is not a PDF. Only PDF documents can be added to the case archive.`,
       );
 
       return;
     }
 
+    const existingKeys =
+      new Set(
+        files.map(
+          (item) =>
+            makeFileKey(
+              item.file,
+            ),
+        ),
+      );
 
-    setFile({
-      file: next,
-      name: next.name,
-      size: next.size,
-    });
+    const nextFiles =
+      incomingFiles
+        .filter((item) => {
+          const key =
+            makeFileKey(item);
+
+          if (
+            existingKeys.has(
+              key,
+            )
+          ) {
+            return false;
+          }
+
+          existingKeys.add(key);
+
+          return true;
+        })
+        .map(
+          (item) => ({
+            file: item,
+            name: item.name,
+            size: item.size,
+          }),
+        );
+
+    if (
+      nextFiles.length ===
+      0
+    ) {
+      setError(
+        "Those documents are already selected.",
+      );
+
+      return;
+    }
+
+    setFiles(
+      (current) => [
+        ...current,
+        ...nextFiles,
+      ],
+    );
+
+    setError(null);
+    setPhase("IDLE");
+  }
+
+
+  function removeFile(
+    index: number,
+  ) {
+    if (busy) {
+      return;
+    }
+
+    setFiles(
+      (current) =>
+        current.filter(
+          (_, itemIndex) =>
+            itemIndex !==
+            index,
+        ),
+    );
 
     setError(null);
   }
@@ -594,8 +424,8 @@ function UploadCase() {
 
     setDragActive(false);
 
-    pickFile(
-      event.dataTransfer.files?.[0],
+    addFiles(
+      event.dataTransfer.files,
     );
   }
 
@@ -624,358 +454,328 @@ function UploadCase() {
   }
 
 
-  /* ========================================================================
-     SUBMIT
-     ======================================================================== */
+  /* ==========================================================================
+     VALIDATION
+     ========================================================================== */
 
-  async function submitForm(
-  event: FormEvent<HTMLFormElement>,
-) {
-  event.preventDefault();
-
-  if (
-    busy ||
-    inFlightRef.current
-  ) {
-    return;
-  }
-
-  if (!file) {
-    setError(
-      "Select a PDF before filing the matter.",
-    );
-    return;
-  }
-
-  inFlightRef.current = true;
-
-  setError(null);
-  setStatusMessage(null);
-  setStage(null);
-  setPhase("SUBMITTING");
-
-  const chosenFile = file;
-
-  let targetCaseId =
-    existingCaseId ?? null;
-
-  try {
-    if (!targetCaseId) {
-      const provisionalTitle =
-        chosenFile.name
-          .replace(/\.[^.]+$/, "")
-          .replace(/[_-]+/g, " ")
-          .trim();
-
-      const record = toCaseRecord({
-        id: "",
-        title:
-          provisionalTitle ||
-          "Untitled case",
-        court: "",
-        bench: "To be assigned",
-        status: "Active",
-        classification:
-          confidential
-            ? "confidential"
-            : "general",
-        filed: format(
-          new Date(),
-          "dd MMM yyyy",
-        ),
-        subject: "",
-        petitioner: "",
-        respondent: "",
-        summary:
-          "Case metadata pending document analysis.",
-        fileName:
-          chosenFile.name,
-      });
-
-      const createdCase =
-        await addCase(record);
-
-      targetCaseId =
-        createdCase.id;
+  function validateForm() {
+    if (
+      files.length ===
+      0
+    ) {
+      return "Select at least one PDF before filing the matter.";
     }
 
-    setOperation({
-      caseId: targetCaseId,
-      documentId: null,
-      file: chosenFile,
-    });
+    if (
+      !existingCaseId
+    ) {
+      if (
+        !petitioner.trim()
+      ) {
+        return "Enter the petitioner or first party name.";
+      }
 
-    const uploadResponse =
-      await uploadDocument(
-        targetCaseId,
-        chosenFile.file,
-      );
+      if (
+        !respondent.trim()
+      ) {
+        return "Enter the respondent or second party name.";
+      }
 
-    setOperation({
-      caseId: targetCaseId,
-      documentId:
-        uploadResponse.document_id,
-      file: chosenFile,
-    });
+      if (
+        !category
+      ) {
+        return "Select a case category.";
+      }
+    }
 
-    setPhase("PROCESSING");
-
-    startStatusPolling(
-      uploadResponse.document_id,
-    );
-  } catch (submitError) {
-    console.error(
-      "Failed to create case or upload document:",
-      submitError,
-    );
-
-    const message =
-      submitError instanceof Error &&
-      submitError.message
-        ? submitError.message
-        : "Failed to create case or upload document.";
-
-    setStatusMessage(null);
-    setStage(null);
-    setError(message);
-
-    inFlightRef.current =
-      false;
-
-    setPhase("FAILED");
+    return null;
   }
-}
 
-  /* ========================================================================
-     RETRY
-     ======================================================================== */
 
-  async function retryFiling() {
-  const current =
-    operation;
+  /* ==========================================================================
+     SUBMIT
+     ========================================================================== */
 
-  if (
-    !current ||
-    phase !== "FAILED" ||
-    inFlightRef.current
+  async function submitForm(
+    event: FormEvent<HTMLFormElement>,
   ) {
-    return;
-  }
+    event.preventDefault();
 
-  inFlightRef.current = true;
+    if (
+      busy ||
+      inFlightRef.current
+    ) {
+      return;
+    }
 
-  setError(null);
-  setStatusMessage(null);
-  setStage(null);
+    const validationError =
+      validateForm();
 
-  if (current.documentId) {
-    try {
-      const status =
-        await getDocumentStatus(
-          current.documentId,
-        );
-
-      if (
-        status.status ===
-        "COMPLETED"
-      ) {
-        inFlightRef.current =
-          false;
-
-        setStage(
-          "INTEGRITY",
-        );
-
-        setPhase(
-          "COMPLETED",
-        );
-
-        return;
-      }
-
-      if (
-        status.status !==
-        "FAILED"
-      ) {
-        setPhase(
-          "PROCESSING",
-        );
-
-        startStatusPolling(
-          current.documentId,
-        );
-
-        return;
-      }
-    } catch {
-      setPhase(
-        "PROCESSING",
-      );
-
-      startStatusPolling(
-        current.documentId,
+    if (validationError) {
+      setError(
+        validationError,
       );
 
       return;
     }
-  }
 
-  setPhase("SUBMITTING");
+    inFlightRef.current = true;
 
-  try {
-    const uploadResponse =
-      await uploadDocument(
-        current.caseId,
-        current.file.file,
+    setError(null);
+    setPhase("SUBMITTING");
+    setCurrentFileIndex(0);
+    setUploadResults([]);
+
+
+    const selectedFiles =
+      [...files];
+
+    let targetCaseId =
+      existingCaseId ??
+      null;
+
+    try {
+      /*
+       * ----------------------------------------------------------------------
+       * CREATE NEW CASE
+       * ----------------------------------------------------------------------
+       */
+
+      if (!targetCaseId) {
+        const caseTitle =
+          `${petitioner.trim()} vs ${respondent.trim()}`;
+
+        const record =
+          toCaseRecord({
+            id: "",
+            title:
+              caseTitle,
+            category:
+              category,
+            court: "",
+            bench:
+              "To be assigned",
+            status:
+              "Active",
+            classification:
+              confidential
+                ? "confidential"
+                : "general",
+            filed: format(
+              new Date(),
+              "dd MMM yyyy",
+            ),
+            subject:
+              category,
+            petitioner:
+              petitioner.trim(),
+            respondent:
+              respondent.trim(),
+            summary:
+              "Case metadata pending document analysis.",
+          });
+
+        const createdCase =
+          await addCase(
+            record,
+          );
+
+        targetCaseId =
+          createdCase.id;
+      }
+
+
+      /*
+       * ----------------------------------------------------------------------
+       * UPLOAD EVERY FILE
+       * ----------------------------------------------------------------------
+       */
+
+      const successfulUploads:
+        UploadResult[] = [];
+
+      for (
+        let index = 0;
+        index <
+        selectedFiles.length;
+        index += 1
+      ) {
+        const chosenFile =
+          selectedFiles[index];
+
+          if (!chosenFile) {
+            continue;
+        }
+
+        setCurrentFileIndex(
+          index,
+        );
+
+        try {
+          const response =
+            await uploadDocument(
+              targetCaseId,
+              chosenFile.file,
+            );
+
+          successfulUploads.push({
+            file:
+              chosenFile,
+            documentId:
+              response.document_id,
+            error: null,
+          });
+
+          setUploadResults(
+            [
+              ...successfulUploads,
+            ],
+          );
+        } catch (
+          uploadError
+        ) {
+          const message =
+            uploadError instanceof
+              Error &&
+            uploadError.message
+              ? uploadError.message
+              : "This document could not be uploaded.";
+
+          setUploadResults([
+            ...successfulUploads,
+            {
+              file:
+                chosenFile,
+              documentId:
+                null,
+              error:
+                message,
+            },
+          ]);
+
+          setError(
+            `Upload failed for "${chosenFile.name}". ${message}`,
+          );
+
+          setPhase(
+            "FAILED",
+          );
+
+          inFlightRef.current =
+            false;
+
+          return;
+        }
+      }
+
+
+      /*
+       * ----------------------------------------------------------------------
+       * COMPLETE
+       *
+       * The upload page only navigates after every selected document has
+       * successfully reached the backend.
+       * ----------------------------------------------------------------------
+       */
+
+      const firstDocument =
+        successfulUploads.find(
+          (result) =>
+            result.documentId,
+        );
+
+      inFlightRef.current =
+        false;
+
+      if (
+        firstDocument?.documentId
+      ) {
+        await navigate({
+          to:
+            "/documents/$documentId",
+          params: {
+            documentId:
+              firstDocument.documentId,
+          },
+          search: {
+            case:
+              targetCaseId,
+          },
+        });
+
+        return;
+      }
+
+      throw new Error(
+        "The documents were uploaded, but no document identifier was returned.",
+      );
+    } catch (submitError) {
+      console.error(
+        "Failed to create case or upload documents:",
+        submitError,
       );
 
-    setOperation({
-      caseId:
-        current.caseId,
-      documentId:
-        uploadResponse.document_id,
-      file:
-        current.file,
-    });
+      const message =
+        submitError instanceof
+          Error &&
+        submitError.message
+          ? submitError.message
+          : "Failed to create case or upload documents.";
 
-    setPhase("PROCESSING");
+      setError(message);
 
-    startStatusPolling(
-      uploadResponse.document_id,
-    );
-  } catch (retryError) {
-    console.error(
-      "Failed to upload document:",
-      retryError,
-    );
+      inFlightRef.current =
+        false;
 
-    const message =
-      retryError instanceof Error &&
-      retryError.message
-        ? retryError.message
-        : "Failed to upload document.";
-
-    setError(message);
-
-    setPhase("FAILED");
-
-    inFlightRef.current =
-      false;
+      setPhase(
+        "FAILED",
+      );
+    }
   }
-}
 
 
-  /* ========================================================================
+  /* ==========================================================================
      RESET
-     ======================================================================== */
+     ========================================================================== */
 
   function reset() {
-    stopPolling();
-
     inFlightRef.current =
       false;
 
-    setFile(null);
-    setConfidential(false);
-    setOperation(null);
-    setStage(null);
-    setStatusMessage(null);
-    setError(null);
-    setPhase(
-      "IDLE",
+    setFiles([]);
+    setPetitioner("");
+    setRespondent("");
+    setCategory(
+      CASE_CATEGORIES[0] ??
+        "Criminal",
     );
+    setConfidential(false);
+    setUploadResults([]);
+    setCurrentFileIndex(0);
+    setError(null);
+    setPhase("IDLE");
   }
 
 
-  /* ========================================================================
-     STEP STATE
-     ======================================================================== */
-
-  function stepVisual(
-    stepStage:
-      DocumentProcessingStage,
-  ): StepVisual {
-    if (
-      phase ===
-      "FAILED"
-    ) {
-      return stage ===
-        stepStage
-        ? "failed"
-        : "pending";
-    }
-
-
-    if (
-      phase ===
-        "COMPLETED" &&
-      stepStage ===
-        "INTEGRITY"
-    ) {
-      return "completed";
-    }
-
-
-    if (
-      stage ===
-        null ||
-      phase ===
-        "SUBMITTING"
-    ) {
-      return "pending";
-    }
-
-
-    if (
-      stage ===
-      "COMPLETE"
-    ) {
-      return "completed";
-    }
-
-
-    const stepIndex =
-      STAGE_ORDER.indexOf(
-        stepStage,
-      );
-
-    const currentIndex =
-      STAGE_ORDER.indexOf(
-        stage,
-      );
-
-
-    if (
-      currentIndex <
-      0
-    ) {
-      return "pending";
-    }
-
-
-    if (
-      stepIndex <
-      currentIndex
-    ) {
-      return "completed";
-    }
-
-
-    if (
-      stepIndex ===
-      currentIndex
-    ) {
-      return "active";
-    }
-
-
-    return "pending";
-  }
-
-
-  /* ========================================================================
+  /* ==========================================================================
      RENDER
-     ======================================================================== */
+     ========================================================================== */
+
+  const uploadedCount =
+    uploadResults.filter(
+      (result) =>
+        Boolean(
+          result.documentId,
+        ),
+    ).length;
+
+  const totalFiles =
+    files.length;
+
+  const currentFile =
+    files[currentFileIndex] ??
+    null;
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1017,9 +817,9 @@ function UploadCase() {
       />
 
 
-      {/* ================================================================
+      {/* ====================================================================
           SIDEBAR OFFSET
-          ================================================================ */}
+          ==================================================================== */}
 
       <div
         className={`transition-[padding-left] duration-300 ease-out ${
@@ -1031,9 +831,9 @@ function UploadCase() {
 
         <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
 
-          {/* ============================================================
+          {/* ==================================================================
               PAGE HEADER
-              ============================================================ */}
+              ================================================================== */}
 
           <header className="pt-10 sm:pt-14">
 
@@ -1045,18 +845,16 @@ function UploadCase() {
                   RECORD INTAKE
                 </p>
 
-
                 <h1 className="mt-3 font-display text-[clamp(2.1rem,4vw,3.2rem)] leading-[0.95] tracking-[-0.015em] text-parchment">
                   {existingCaseId
                     ? "Add Evidence"
-                    : "Upload Case File"}
+                    : "Create New Case"}
                 </h1>
-
 
                 <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {existingCaseId
-                    ? "Attach an original PDF to an existing matter. The document will be processed without changing the case's current access controls."
-                    : "Begin a new matter by submitting the original legal document. JURY HASH will preserve the file and derive the initial case record during processing."}
+                    ? "Attach one or more original PDFs to an existing matter. Existing case classification and access controls remain unchanged."
+                    : "Define the matter, assign its legal category, and submit one or more original PDFs for secure preservation."}
                 </p>
 
               </div>
@@ -1065,16 +863,20 @@ function UploadCase() {
               <div className="shrink-0 pb-1">
 
                 <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] text-brass-dim uppercase">
+
                   <span
                     className="h-1.5 w-1.5 rounded-full bg-brass"
                     aria-hidden="true"
                   />
 
-                  Intake{" "}
+                  Intake
+
                   <span className="text-brass">
                     ·
-                  </span>{" "}
+                  </span>
+
                   01
+
                 </div>
 
               </div>
@@ -1087,9 +889,9 @@ function UploadCase() {
           </header>
 
 
-          {/* ============================================================
+          {/* ==================================================================
               PROCESS MAP
-              ============================================================ */}
+              ================================================================== */}
 
           <section
             aria-label="Document intake process"
@@ -1103,17 +905,19 @@ function UploadCase() {
                   number:
                     "01",
                   label:
-                    "Select",
+                    "Define",
                   description:
-                    "Choose the original PDF.",
+                    existingCaseId
+                      ? "Confirm the target matter."
+                      : "Name and classify the matter.",
                 },
                 {
                   number:
                     "02",
                   label:
-                    "Review",
+                    "Select",
                   description:
-                    "Confirm file and matter scope.",
+                    "Choose one or more original PDFs.",
                 },
                 {
                   number:
@@ -1121,13 +925,14 @@ function UploadCase() {
                   label:
                     "Preserve",
                   description:
-                    "Process, hash and anchor.",
+                    "Store every original securely.",
                 },
               ].map(
                 (
                   item,
                   index,
                 ) => (
+
                   <div
                     key={
                       item.number
@@ -1135,7 +940,8 @@ function UploadCase() {
                     className={`bg-surface/35 px-4 py-3 ${
                       phase !==
                         "IDLE" &&
-                      index === 2
+                      index ===
+                        2
                         ? "bg-brass/[0.05]"
                         : ""
                     }`}
@@ -1157,7 +963,6 @@ function UploadCase() {
 
                     </div>
 
-
                     <p className="mt-1 pl-7 text-[11px] text-muted-foreground">
                       {
                         item.description
@@ -1165,6 +970,7 @@ function UploadCase() {
                     </p>
 
                   </div>
+
                 ),
               )}
 
@@ -1173,136 +979,34 @@ function UploadCase() {
           </section>
 
 
-          {/* ============================================================
-              SUCCESS
-              ============================================================ */}
+          {/* ==================================================================
+              UPLOAD FAILURE
+              ================================================================== */}
 
           {phase ===
-            "COMPLETED" &&
-          operation ? (
+            "FAILED" ? (
+
             <section
-              aria-label="File secured"
-              className="chamber-panel grain mt-8 border border-border p-7 sm:p-10"
-            >
-
-              <div className="mx-auto max-w-2xl text-center">
-
-                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-success/50 text-success">
-                  <Check className="h-7 w-7" />
-                </span>
-
-
-                <p className="label-legal mt-6 text-success">
-                  PRESERVATION COMPLETE
-                </p>
-
-
-                <h2 className="mt-3 font-display text-3xl text-parchment">
-                  File secured
-                </h2>
-
-
-                <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                  The backend has completed
-                  document processing and
-                  recorded the original file
-                  in the JURY HASH integrity
-                  chain.
-                </p>
-
-
-                <div className="mx-auto mt-6 max-w-xl border border-border bg-surface/60 px-4 py-4 text-left">
-
-                  <div className="flex items-start gap-3">
-
-                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
-
-                    <div className="min-w-0">
-
-                      <p className="truncate text-sm text-parchment">
-                        {
-                          operation
-                            .file
-                            .name
-                        }
-                      </p>
-
-                      <p className="mt-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground">
-                        {humanSize(
-                          operation
-                            .file
-                            .size,
-                        )}{" "}
-                        · PDF{" "}
-                        · PRESERVED
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-
-                  <Link
-                    to="/records"
-                    search={{
-                      case:
-                        operation.caseId,
-                    }}
-                    className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
-                  >
-                    Open case
-                  </Link>
-
-
-                  <button
-                    type="button"
-                    onClick={
-                      reset
-                    }
-                    className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
-                  >
-                    <FileUp className="h-4 w-4" />
-
-                    File another
-                  </button>
-
-                </div>
-
-              </div>
-
-            </section>
-
-
-          /* ============================================================
-             FAILURE
-             ============================================================ */
-
-          ) : phase ===
-            "FAILED" &&
-            operation ? (
-            <section
-              aria-label="Document processing failed"
+              aria-label="Document upload failed"
               className="chamber-panel grain mt-8 border border-burgundy/50 p-7 sm:p-10"
             >
 
               <div className="mx-auto max-w-2xl text-center">
 
                 <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-burgundy/50 text-burgundy">
+
                   <ShieldAlert className="h-7 w-7" />
+
                 </span>
 
 
                 <p className="label-legal mt-6 text-burgundy">
-                  PRESERVATION INTERRUPTED
+                  UPLOAD INTERRUPTED
                 </p>
 
 
                 <h2 className="mt-3 font-display text-3xl text-parchment">
-                  Document processing failed
+                  Document could not be uploaded
                 </h2>
 
 
@@ -1311,40 +1015,75 @@ function UploadCase() {
                   role="alert"
                 >
                   {error ??
-                    "The document could not be processed. Please try again."}
+                    "One or more documents were not stored."}
                 </p>
 
 
-                <div className="mx-auto mt-6 max-w-xl border border-border bg-surface/60 px-4 py-4 text-left">
+                {uploadResults.length >
+                  0 && (
 
-                  <div className="flex items-start gap-3">
+                  <div className="mx-auto mt-6 max-w-xl border border-border bg-surface/60 text-left">
 
-                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
+                    <div className="border-b border-border px-4 py-3">
 
-                    <div className="min-w-0">
-
-                      <p className="truncate text-sm text-parchment">
-                        {
-                          operation
-                            .file
-                            .name
-                        }
+                      <p className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                        Upload results
                       </p>
 
-                      <p className="mt-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground">
-                        {humanSize(
-                          operation
-                            .file
-                            .size,
-                        )}{" "}
-                        · SAME MATTER
-                      </p>
+                    </div>
+
+
+                    <div className="divide-y divide-border">
+
+                      {uploadResults.map(
+                        (
+                          result,
+                          index,
+                        ) => (
+
+                          <div
+                            key={`${makeFileKey(result.file.file)}-${index}`}
+                            className="flex items-start gap-3 px-4 py-3"
+                          >
+
+                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-brass" />
+
+                            <div className="min-w-0 flex-1">
+
+                              <p className="truncate text-sm text-parchment">
+                                {
+                                  result.file.name
+                                }
+                              </p>
+
+                              <p className="mt-1 font-mono text-[9px] tracking-[0.08em] uppercase">
+
+                                {result.documentId
+                                  ? (
+                                    <span className="text-brass">
+                                      STORED
+                                    </span>
+                                  )
+                                  : (
+                                    <span className="text-burgundy">
+                                      FAILED
+                                    </span>
+                                  )}
+
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                        ),
+                      )}
 
                     </div>
 
                   </div>
 
-                </div>
+                )}
 
 
                 <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -1352,24 +1091,15 @@ function UploadCase() {
                   <button
                     type="button"
                     onClick={
-                      retryFiling
+                      reset
                     }
                     className="focus-legal inline-flex items-center gap-2 border border-brass/60 bg-brass/10 px-5 py-2.5 text-sm text-parchment transition-colors hover:bg-brass hover:text-primary-foreground"
                   >
-                    Retry filing
-                  </button>
 
-
-                  <button
-                    type="button"
-                    onClick={
-                      reset
-                    }
-                    className="focus-legal inline-flex items-center gap-2 border border-border px-5 py-2.5 text-sm text-muted-foreground transition-colors hover:border-brass-dim hover:text-parchment"
-                  >
                     <FileUp className="h-4 w-4" />
 
                     Start over
+
                   </button>
 
                 </div>
@@ -1378,19 +1108,17 @@ function UploadCase() {
 
             </section>
 
-
-          /* ============================================================
-             PROCESSING
-             ============================================================ */
-
           ) : phase ===
-              "SUBMITTING" ||
-            phase ===
-              "PROCESSING" ? (
+            "SUBMITTING" ? (
+
+            /* ==================================================================
+                UPLOADING
+                ================================================================== */
+
             <section
               aria-live="polite"
               aria-busy="true"
-              aria-label="Case file processing"
+              aria-label="Uploading case documents"
               className="chamber-panel grain mt-8 border border-border p-6 sm:p-8"
             >
 
@@ -1399,34 +1127,25 @@ function UploadCase() {
                 <div>
 
                   <p className="label-legal">
-                    {phase ===
-                    "SUBMITTING"
-                      ? "SUBMITTING"
-                      : "PRESERVATION IN PROGRESS"}
+                    PRESERVING
                   </p>
 
-
                   <h2 className="mt-2 font-display text-2xl text-parchment sm:text-3xl">
-                    Preserving case file
+                    Storing case files
                   </h2>
 
                 </div>
 
 
                 <div className="font-mono text-[10px] tracking-[0.14em] text-brass-dim uppercase">
-                  Stage{" "}
-                  <span className="text-brass">
-                    {stageNumber(
-                      stage,
-                    )}
-                  </span>{" "}
-                  / 03
+                  {uploadedCount} / {totalFiles} stored
                 </div>
 
               </div>
 
 
-              {operation && (
+              {currentFile && (
+
                 <div className="mt-6 flex items-start gap-3 border border-border bg-surface/60 px-4 py-3.5">
 
                   <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
@@ -1435,165 +1154,55 @@ function UploadCase() {
 
                     <p className="truncate text-sm text-parchment">
                       {
-                        operation
-                          .file
-                          .name
+                        currentFile.name
                       }
                     </p>
 
                     <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
                       {humanSize(
-                        operation
-                          .file
-                          .size,
+                        currentFile.size,
                       )}{" "}
-                      · ORIGINAL FILE
+                      · DOCUMENT{" "}
+                      {currentFileIndex +
+                        1}{" "}
+                      OF{" "}
+                      {totalFiles}
                     </p>
 
                   </div>
 
-                  <span className="shrink-0 font-mono text-[9px] tracking-[0.12em] text-brass uppercase">
-                    Received
-                  </span>
+
+                  <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-brass motion-reduce:animate-none" />
 
                 </div>
+
               )}
 
 
-              <ol className="mt-8">
+              <div className="mt-8 h-1 overflow-hidden bg-border">
 
-                {STEPS.map(
-                  (
-                    step,
-                    index,
-                  ) => {
-                    const visual =
-                      stepVisual(
-                        step.stage,
-                      );
+                <div
+                  className="h-full bg-brass transition-all duration-300"
+                  style={{
+                    width:
+                      `${Math.max(
+                        4,
+                        (
+                          uploadedCount /
+                          Math.max(
+                            totalFiles,
+                            1,
+                          )
+                        ) *
+                          100,
+                      )}%`,
+                  }}
+                />
 
-                    return (
-                      <li
-                        key={
-                          step.stage
-                        }
-                        className={`relative flex gap-4 px-1 py-4 ${
-                          index <
-                          STEPS.length -
-                            1
-                            ? "border-b border-border"
-                            : ""
-                        }`}
-                      >
-
-                        <div className="relative flex w-9 shrink-0 justify-center">
-
-                          {index <
-                            STEPS.length -
-                              1 && (
-                            <span
-                              className={`absolute left-1/2 top-10 h-full w-px -translate-x-1/2 ${
-                                visual ===
-                                  "completed"
-                                  ? "bg-success/35"
-                                  : "bg-border"
-                              }`}
-                              aria-hidden="true"
-                            />
-                          )}
+              </div>
 
 
-                          <span
-                            className={`relative z-10 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border font-mono text-[10px] font-bold ${
-                              visual ===
-                              "active"
-                                ? "border-brass bg-brass/10 text-brass"
-                                : visual ===
-                                    "completed"
-                                  ? "border-success/50 bg-success/[0.06] text-success"
-                                  : visual ===
-                                      "failed"
-                                    ? "border-burgundy/60 bg-burgundy/[0.06] text-burgundy"
-                                    : "border-border bg-background text-muted-foreground/50"
-                            }`}
-                          >
-
-                            {visual ===
-                            "active" ? (
-                              <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
-                            ) : visual ===
-                              "completed" ? (
-                              <Check className="h-3.5 w-3.5" />
-                            ) : visual ===
-                              "failed" ? (
-                              <ShieldAlert className="h-3.5 w-3.5" />
-                            ) : (
-                              step.number
-                            )}
-
-                          </span>
-
-                        </div>
-
-
-                        <div className="min-w-0 flex-1 pt-0.5">
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-
-                            <p
-                              className={`text-sm font-medium ${
-                                visual ===
-                                "active"
-                                  ? "text-parchment"
-                                  : visual ===
-                                      "failed"
-                                    ? "text-burgundy"
-                                    : visual ===
-                                        "completed"
-                                      ? "text-success"
-                                      : "text-muted-foreground"
-                              }`}
-                            >
-                              {
-                                step.label
-                              }
-                            </p>
-
-
-                            {visual ===
-                              "active" && (
-                              <span className="font-mono text-[9px] tracking-[0.12em] text-brass uppercase">
-                                Processing
-                              </span>
-                            )}
-
-                            {visual ===
-                              "completed" && (
-                              <span className="font-mono text-[9px] tracking-[0.12em] text-success uppercase">
-                                Complete
-                              </span>
-                            )}
-
-                          </div>
-
-
-                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground/75">
-                            {
-                              step.description
-                            }
-                          </p>
-
-                        </div>
-
-                      </li>
-                    );
-                  },
-                )}
-
-              </ol>
-
-
-              <div className="mt-6 flex items-start gap-3 border-t border-border pt-5">
+              <div className="mt-8 flex items-start gap-3 border-t border-border pt-5">
 
                 <span
                   className="mt-1 h-2 w-2 shrink-0 animate-pulse rounded-full bg-brass motion-reduce:animate-none"
@@ -1606,18 +1215,11 @@ function UploadCase() {
                     role="status"
                     className="text-sm text-parchment"
                   >
-                    {statusMessage ??
-                      (phase ===
-                      "SUBMITTING"
-                        ? "Submitting case file…"
-                        : "Processing document…")}
+                    Uploading original documents…
                   </p>
 
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
-                    This page will update
-                    automatically as the
-                    backend completes each
-                    stage.
+                    Every upload must reach protected storage and receive a document record before this page continues. Document analysis runs separately in the background.
                   </p>
 
                 </div>
@@ -1626,21 +1228,341 @@ function UploadCase() {
 
             </section>
 
-
-          /* ============================================================
-             IDLE / INPUT
-             ============================================================ */
-
           ) : (
+
+            /* ==================================================================
+                IDLE / INPUT
+                ================================================================== */
+
             <form
               onSubmit={
                 submitForm
               }
             >
 
-              {/* ========================================================
+              {/* ================================================================
+                  CASE METADATA
+                  ================================================================ */}
+
+              {!existingCaseId && (
+
+                <section
+                  aria-label="Case information"
+                  className="mt-8"
+                >
+
+                  <div className="border border-border bg-surface/35">
+
+                    <div className="border-b border-border px-5 py-4">
+
+                      <p className="label-legal">
+                        MATTER DETAILS
+                      </p>
+
+                      <h2 className="mt-2 font-display text-2xl text-parchment">
+                        Define the case
+                      </h2>
+
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        These details become the initial case record. Document analysis can enrich the matter later.
+                      </p>
+
+                    </div>
+
+
+                    <div className="grid gap-5 p-5 sm:grid-cols-2">
+
+                      {/* --------------------------------------------------------
+                          PETITIONER
+                          -------------------------------------------------------- */}
+
+                      <label className="block">
+
+                        <span className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                          Petitioner / First Party
+                        </span>
+
+                        <input
+                          type="text"
+                          value={
+                            petitioner
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            setPetitioner(
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          disabled={
+                            busy
+                          }
+                          placeholder="e.g. MUKESH"
+                          className="focus-legal mt-2 w-full border border-border bg-background/60 px-4 py-3 text-sm text-parchment outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-brass disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+
+                      </label>
+
+
+                      {/* --------------------------------------------------------
+                          RESPONDENT
+                          -------------------------------------------------------- */}
+
+                      <label className="block">
+
+                        <span className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                          Respondent / Second Party
+                        </span>
+
+                        <input
+                          type="text"
+                          value={
+                            respondent
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            setRespondent(
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          disabled={
+                            busy
+                          }
+                          placeholder="e.g. STATE"
+                          className="focus-legal mt-2 w-full border border-border bg-background/60 px-4 py-3 text-sm text-parchment outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-brass disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+
+                      </label>
+
+
+                      {/* --------------------------------------------------------
+                          GENERATED CASE NAME
+                          -------------------------------------------------------- */}
+
+                      <div className="sm:col-span-2">
+
+                        <span className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                          Case name
+                        </span>
+
+                        <div className="mt-2 border border-brass/30 bg-brass/[0.03] px-4 py-3">
+
+                          <p className="font-display text-xl text-parchment">
+
+                            {petitioner.trim() ||
+                              "_____"}{" "}
+
+                            <span className="text-brass">
+                              vs
+                            </span>{" "}
+
+                            {respondent.trim() ||
+                              "_____"}
+
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      {/* --------------------------------------------------------
+                          CATEGORY
+                          -------------------------------------------------------- */}
+
+                      <label className="block">
+
+                        <span className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
+                          Case category
+                        </span>
+
+                        <select
+                          value={
+                            category
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            setCategory(
+                              event
+                                .target
+                                .value as CaseCategory,
+                            )
+                          }
+                          disabled={
+                            busy
+                          }
+                          className="focus-legal mt-2 w-full appearance-none border border-border bg-background/60 px-4 py-3 text-sm text-parchment outline-none transition-colors focus:border-brass disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+
+                          {CASE_CATEGORIES.map(
+                            (
+                              item,
+                            ) => (
+
+                              <option
+                                key={
+                                  item
+                                }
+                                value={
+                                  item
+                                }
+                                className="bg-background text-parchment"
+                              >
+                                {
+                                  item
+                                }
+                              </option>
+
+                            ),
+                          )}
+
+                        </select>
+
+                        <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/70">
+                          Used to classify the matter in the case archive.
+                        </p>
+
+                      </label>
+
+
+                      {/* --------------------------------------------------------
+                          CONFIDENTIALITY
+                          -------------------------------------------------------- */}
+
+                      <div className="border border-border bg-background/40">
+
+                        <div className="flex h-full items-center justify-between gap-4 px-4 py-4">
+
+                          <div className="flex items-start gap-3">
+
+                            <Lock
+                              className={`mt-0.5 h-4 w-4 shrink-0 ${
+                                confidential
+                                  ? "text-burgundy"
+                                  : "text-brass-dim"
+                              }`}
+                            />
+
+                            <div>
+
+                              <p className="text-sm text-parchment">
+                                Confidential matter
+                              </p>
+
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                Restricts access according to the confidential classification.
+                              </p>
+
+                            </div>
+
+                          </div>
+
+
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={
+                              confidential
+                            }
+                            disabled={
+                              busy
+                            }
+                            onClick={() =>
+                              setConfidential(
+                                (
+                                  value,
+                                ) =>
+                                  !value,
+                              )
+                            }
+                            className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors ${
+                              confidential
+                                ? "border-burgundy bg-burgundy/70"
+                                : "border-input bg-transparent"
+                            }`}
+                          >
+
+                            <span
+                              className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
+                                confidential
+                                  ? "left-[calc(100%-1.25rem)]"
+                                  : "left-1"
+                              }`}
+                            />
+
+                            <span className="sr-only">
+                              Mark matter confidential
+                            </span>
+
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </section>
+
+              )}
+
+
+              {/* ================================================================
+                  EXISTING CASE NOTICE
+                  ================================================================ */}
+
+              {existingCaseId && (
+
+                <section
+                  aria-label="Existing case"
+                  className="mt-8"
+                >
+
+                  <div className="flex items-start gap-3 border border-border bg-surface/35 px-5 py-5">
+
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brass" />
+
+                    <div>
+
+                      <p className="label-legal">
+                        EXISTING MATTER
+                      </p>
+
+                      <p className="mt-2 text-sm text-parchment">
+                        Adding documents to the selected case
+                      </p>
+
+                      <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
+                        CASE ID ·{" "}
+                        {
+                          existingCaseId
+                        }
+                      </p>
+
+                      <p className="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                        The existing case name, category, classification, and access controls will remain unchanged.
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </section>
+
+              )}
+
+
+              {/* ================================================================
                   DROPZONE
-                  ======================================================== */}
+                  ================================================================ */}
 
               <section
                 aria-label="Case file selection"
@@ -1650,12 +1572,13 @@ function UploadCase() {
                 <div
                   role="button"
                   tabIndex={0}
-                  aria-label="Choose a PDF case file"
-                  aria-disabled={busy}
+                  aria-label="Choose PDF case files"
+                  aria-disabled={
+                    busy
+                  }
                   onClick={() => {
-                    if (
-                      busy
-                    ) {
+
+                    if (busy) {
                       return;
                     }
 
@@ -1664,6 +1587,7 @@ function UploadCase() {
                         "case-file-input",
                       )
                       ?.click();
+
                   }}
                   onKeyDown={
                     handleDropzoneKeyDown
@@ -1671,15 +1595,15 @@ function UploadCase() {
                   onDragOver={(
                     event,
                   ) => {
+
                     event.preventDefault();
 
-                    if (
-                      !busy
-                    ) {
+                    if (!busy) {
                       setDragActive(
                         true,
                       );
                     }
+
                   }}
                   onDragLeave={() =>
                     setDragActive(
@@ -1689,7 +1613,7 @@ function UploadCase() {
                   onDrop={
                     onDrop
                   }
-                  className={`group focus-legal chamber-panel grain relative flex min-h-[360px] cursor-pointer flex-col items-center justify-center border px-6 py-12 text-center transition-all duration-300 sm:min-h-[390px] ${
+                  className={`group focus-legal chamber-panel grain relative flex min-h-[330px] cursor-pointer flex-col items-center justify-center border px-6 py-12 text-center transition-all duration-300 sm:min-h-[350px] ${
                     dragActive
                       ? "border-brass bg-brass/[0.06] shadow-[0_0_0_1px_color-mix(in_oklab,var(--brass)_45%,transparent)]"
                       : "border-dashed border-border hover:border-brass-dim hover:bg-surface/[0.03]"
@@ -1706,35 +1630,44 @@ function UploadCase() {
                     accept={
                       ACCEPT
                     }
+                    multiple
                     className="sr-only"
                     disabled={
                       busy
                     }
                     onChange={(
                       event,
-                    ) =>
-                      pickFile(
-                        event
-                          .target
-                          .files?.[0],
-                      )
-                    }
+                    ) => {
+
+                      if (event.target.files) {
+                        addFiles(event.target.files);
+                      }
+                      event.target.value =
+                        "";
+
+                    }}
                   />
 
 
-                  <span className={`flex h-16 w-16 items-center justify-center border transition-all duration-300 ${
-                    dragActive
-                      ? "border-brass bg-brass/10 text-brass"
-                      : "border-brass/40 text-brass group-hover:border-brass group-hover:bg-brass/[0.05]"
-                  }`}>
+                  <span
+                    className={`flex h-16 w-16 items-center justify-center border transition-all duration-300 ${
+                      dragActive
+                        ? "border-brass bg-brass/10 text-brass"
+                        : "border-brass/40 text-brass group-hover:border-brass group-hover:bg-brass/[0.05]"
+                    }`}
+                  >
+
                     <FileUp className="h-7 w-7" />
+
                   </span>
 
 
                   <p className="mt-6 font-display text-2xl text-parchment">
+
                     {dragActive
                       ? "Release to attach"
-                      : "Drop your PDF here"}
+                      : "Drop your PDFs here"}
+
                   </p>
 
 
@@ -1760,7 +1693,7 @@ function UploadCase() {
                     />
 
                     <span>
-                      Original document
+                      Multiple files
                     </span>
 
                     <span
@@ -1782,12 +1715,7 @@ function UploadCase() {
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
 
                   <p className="max-w-3xl text-[11px] leading-relaxed text-muted-foreground/80">
-                    The original PDF is
-                    submitted to protected
-                    storage. Case information
-                    is derived from the
-                    document during backend
-                    processing.
+                    Original PDFs are submitted to protected storage. Each document receives its own preservation and processing lifecycle while remaining attached to the selected case.
                   </p>
 
                 </div>
@@ -1795,87 +1723,135 @@ function UploadCase() {
               </section>
 
 
-              {/* ========================================================
+              {/* ================================================================
                   FILE REVIEW
-                  ======================================================== */}
+                  ================================================================ */}
 
-              {file && (
+              {files.length >
+                0 && (
+
                 <section
-                  aria-label="Review selected file"
+                  aria-label="Review selected files"
                   className="mt-8"
                 >
 
                   <div className="border border-border bg-surface/35">
 
-                    <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
 
-                      <div className="flex min-w-0 items-start gap-3">
+                      <div>
 
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-brass/35 bg-brass/[0.04] text-brass">
-                          <FileText className="h-5 w-5" />
-                        </div>
+                        <p className="label-legal">
+                          DOCUMENTS
+                        </p>
 
-
-                        <div className="min-w-0">
-
-                          <p className="font-mono text-[9px] font-bold tracking-[0.14em] text-brass-dim uppercase">
-                            Selected document
-                          </p>
-
-                          <p className="mt-1 truncate text-sm text-parchment">
-                            {
-                              file.name
-                            }
-                          </p>
-
-                          <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
-                            {humanSize(
-                              file.size,
-                            )}{" "}
-                            · PDF{" "}
-                            · READY
-                          </p>
-
-                        </div>
+                        <p className="mt-2 text-sm text-parchment">
+                          {files.length}{" "}
+                          {files.length ===
+                          1
+                            ? "PDF selected"
+                            : "PDFs selected"}
+                        </p>
 
                       </div>
 
 
                       <button
                         type="button"
-                        onClick={() => {
-                          if (
-                            busy
-                          ) {
-                            return;
-                          }
-
-                          setFile(
-                            null,
-                          );
-
-                          setError(
-                            null,
-                          );
-                        }}
+                        onClick={() =>
+                          document
+                            .getElementById(
+                              "case-file-input",
+                            )
+                            ?.click()
+                        }
                         disabled={
                           busy
                         }
-                        className="focus-legal inline-flex w-fit items-center gap-1.5 text-[10px] font-mono tracking-[0.12em] text-muted-foreground uppercase transition-colors hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-50"
+                        className="focus-legal inline-flex w-fit items-center gap-2 border border-border px-3 py-2 font-mono text-[9px] tracking-[0.12em] text-muted-foreground uppercase transition-colors hover:border-brass hover:text-brass disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <X className="h-3.5 w-3.5" />
 
-                        Remove
+                        <FileUp className="h-3.5 w-3.5" />
+
+                        Add more
+
                       </button>
 
                     </div>
 
 
-                    {/* Matter scope */}
+                    <div className="divide-y divide-border">
 
-                    <div className="p-5">
+                      {files.map(
+                        (
+                          selectedFile,
+                          index,
+                        ) => (
+
+                          <div
+                            key={`${makeFileKey(selectedFile.file)}-${index}`}
+                            className="flex items-center gap-3 px-5 py-4"
+                          >
+
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-brass/35 bg-brass/[0.04] text-brass">
+
+                              <FileText className="h-5 w-5" />
+
+                            </div>
+
+
+                            <div className="min-w-0 flex-1">
+
+                              <p className="truncate text-sm text-parchment">
+                                {
+                                  selectedFile.name
+                                }
+                              </p>
+
+                              <p className="mt-1 font-mono text-[10px] tracking-[0.06em] text-muted-foreground">
+                                {humanSize(
+                                  selectedFile.size,
+                                )}{" "}
+                                · PDF · READY
+                              </p>
+
+                            </div>
+
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeFile(
+                                  index,
+                                )
+                              }
+                              disabled={
+                                busy
+                              }
+                              aria-label={`Remove ${selectedFile.name}`}
+                              className="focus-legal inline-flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+
+                              <X className="h-4 w-4" />
+
+                            </button>
+
+                          </div>
+
+                        ),
+                      )}
+
+                    </div>
+
+
+                    {/* ------------------------------------------------------------
+                        Matter scope
+                        ------------------------------------------------------------ */}
+
+                    <div className="border-t border-border p-5">
 
                       {existingCaseId ? (
+
                         <div className="flex items-start gap-3 border border-border bg-background/40 px-4 py-4">
 
                           <FileText className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
@@ -1887,96 +1863,47 @@ function UploadCase() {
                             </p>
 
                             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                              This document will
-                              be attached to the
-                              selected case. Existing
-                              classification and
-                              access controls remain
-                              unchanged.
+                              All selected PDFs will be attached to the selected case. Existing classification and access controls remain unchanged.
                             </p>
 
                           </div>
 
                         </div>
+
                       ) : (
-                        <div className="border border-border bg-background/40">
 
-                          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3 border border-border bg-background/40 px-4 py-4">
 
-                            <div className="flex items-start gap-3">
+                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
 
-                              <Lock
-                                className={`mt-0.5 h-4 w-4 shrink-0 ${
-                                  confidential
-                                    ? "text-burgundy"
-                                    : "text-brass-dim"
-                                }`}
-                              />
+                          <div>
 
-                              <div>
+                            <p className="text-sm text-parchment">
+                              New case preservation
+                            </p>
 
-                                <p className="text-sm text-parchment">
-                                  Confidential matter
-                                </p>
-
-                                <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                                  Restricts access
-                                  to this case
-                                  according to its
-                                  confidential
-                                  classification.
-                                </p>
-
-                              </div>
-
-                            </div>
-
-
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={
-                                confidential
-                              }
-                              disabled={
-                                busy
-                              }
-                              onClick={() =>
-                                setConfidential(
-                                  (
-                                    value,
-                                  ) =>
-                                    !value,
-                                )
-                              }
-                              className={`focus-legal relative h-6 w-11 shrink-0 border transition-colors ${
-                                confidential
-                                  ? "border-burgundy bg-burgundy/70"
-                                  : "border-input bg-transparent"
-                              }`}
-                            >
-
-                              <span
-                                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-parchment transition-all duration-200 ${
-                                  confidential
-                                    ? "left-[calc(100%-1.25rem)]"
-                                    : "left-1"
-                                }`}
-                              />
-
-                              <span className="sr-only">
-                                Mark matter confidential
+                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                              One case record will be created for{" "}
+                              <span className="text-parchment">
+                                {petitioner.trim() ||
+                                  "_____"}
+                                {" "}
+                                vs{" "}
+                                {respondent.trim() ||
+                                  "_____"}
                               </span>
-
-                            </button>
+                              {" "}and every selected PDF will be attached to it.
+                            </p>
 
                           </div>
 
                         </div>
+
                       )}
 
 
                       {error && (
+
                         <div
                           className="mt-4 border border-burgundy/50 bg-burgundy/[0.06] px-4 py-3 text-sm leading-relaxed text-burgundy"
                           role="alert"
@@ -1985,10 +1912,13 @@ function UploadCase() {
                             error
                           }
                         </div>
+
                       )}
 
 
-                      {/* Submit */}
+                      {/* ----------------------------------------------------------
+                          SUBMIT
+                          ---------------------------------------------------------- */}
 
                       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
 
@@ -2004,12 +1934,24 @@ function UploadCase() {
                         >
 
                           {busy && (
+
                             <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+
                           )}
 
                           {existingCaseId
-                            ? "Add file to case"
-                            : "Create case & preserve file"}
+                            ? `Add ${files.length} ${
+                                files.length ===
+                                1
+                                  ? "file"
+                                  : "files"
+                              } to case`
+                            : `Create case & preserve ${files.length} ${
+                                files.length ===
+                                1
+                                  ? "file"
+                                  : "files"
+                              }`}
 
                         </button>
 
@@ -2028,10 +1970,17 @@ function UploadCase() {
                   </div>
 
                 </section>
+
               )}
 
 
-              {!file && (
+              {/* ================================================================
+                  EMPTY STATE FOOTER
+                  ================================================================ */}
+
+              {files.length ===
+                0 && (
+
                 <div className="mt-6 border-t border-border pt-5">
 
                   <div className="flex items-start gap-3 text-[11px] leading-relaxed text-muted-foreground/70">
@@ -2039,24 +1988,21 @@ function UploadCase() {
                     <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brass-dim" />
 
                     <p>
-                      By continuing, the
-                      submitted document will
-                      enter the JURY HASH
-                      preservation workflow.
-                      Do not upload material
-                      that should not be added
-                      to the matter.
+                      By continuing, the submitted documents will enter the JURY HASH preservation workflow. Do not upload material that should not be added to the matter.
                     </p>
 
                   </div>
 
                 </div>
+
               )}
 
             </form>
+
           )}
 
         </main>
+
       </div>
 
     </div>

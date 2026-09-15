@@ -12,6 +12,9 @@ from app.models.file_processing_job import FileProcessingJob
 from app.core.database import AsyncSessionLocal
 from app.models.document import Document
 from app.models.document_integrity import DocumentIntegrity
+from app.services.document_status_service import (
+    sync_document_lifecycle_status,
+)
 
 
 async def _mark_integrity_failed(document_id: str, message: str) -> None:
@@ -28,7 +31,8 @@ async def _mark_integrity_failed(document_id: str, message: str) -> None:
             result = await db.execute(
                 select(FileProcessingJob).where(
                     FileProcessingJob.case_file_id == document_id,
-                    FileProcessingJob.processing_type == ProcessingType.INTEGRITY_ANCHOR,
+                    FileProcessingJob.processing_type
+                    == ProcessingType.INTEGRITY_ANCHOR,
                 )
             )
 
@@ -52,6 +56,17 @@ async def _mark_integrity_failed(document_id: str, message: str) -> None:
                         error_message=message[:1000],
                         completed_at=datetime.utcnow(),
                     )
+                )
+
+            document = await db.get(
+                Document,
+                document_id,
+            )
+
+            if document is not None:
+                await sync_document_lifecycle_status(
+                    db,
+                    document,
                 )
 
             await db.commit()
@@ -135,6 +150,11 @@ async def handle_document_uploaded(
             job.status = ProcessingJobStatus.COMPLETED
             job.completed_at = datetime.utcnow()
 
+            await sync_document_lifecycle_status(
+                db,
+                document,
+            )
+
             await db.commit()
 
         print(
@@ -144,6 +164,12 @@ async def handle_document_uploaded(
         )
 
     except Exception as e:
-        print(f"❌ Integrity anchoring failed for {payload.document_id}: {e}")
+        print(
+            f"❌ Integrity anchoring failed for "
+            f"{payload.document_id}: {e}"
+        )
 
-        await _mark_integrity_failed(payload.document_id, str(e))
+        await _mark_integrity_failed(
+            payload.document_id,
+            str(e),
+        )

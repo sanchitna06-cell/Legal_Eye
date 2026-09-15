@@ -5,10 +5,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.services.document_status_service import (
+    sync_document_lifecycle_status,
+)
 from app.core.config import settings
 from app.core.contracts import (
     EntityExtractedPayload,
+    EntityProcessingFailedPayload,
     EntityExtractionSource,
     ProcessingType,
     ProcessingJobStatus,
@@ -181,7 +184,16 @@ async def ingest_entities(
 
     job.status = ProcessingJobStatus.COMPLETED
     job.completed_at = datetime.utcnow()
-    job.error_message = None
+    document = await db.get(
+        Document,
+        payload.document_id,
+    )
+
+    if document is not None:
+        await sync_document_lifecycle_status(
+            db,
+            document,
+        )
 
     await db.commit()
 
@@ -198,4 +210,107 @@ async def ingest_entities(
         "status": "processed",
         "document_id": payload.document_id,
         "entity_count": len(entities),
+    }
+@router.post("/processing-failed")
+async def entity_processing_failed(
+    payload: EntityProcessingFailedPayload,
+    x_n8n_secret: str | None = Header(
+        default=None,
+        alias="X-N8N-Secret",
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    # ---------------------------------------------------------
+    # 1. Authenticate n8n
+    # ---------------------------------------------------------
+
+    if not x_n8n_secret or not secrets.compare_digest(
+        x_n8n_secret,
+        settings.N8N_SHARED_SECRET,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid processing callback credentials",
+        )
+
+    # ---------------------------------------------------------
+    # 2. Validate document
+    # ---------------------------------------------------------
+
+    document = await db.get(
+        Document,
+        payload.document_id,
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.case_id != payload.case_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document does not belong to the specified case",
+        )
+
+    # ---------------------------------------------------------
+    # 3. Find the exact ENTITY_EXTRACTION job
+    # ---------------------------------------------------------
+
+    job_result = await db.execute(
+        select(FileProcessingJob)
+        .where(
+            FileProcessingJob.id == payload.job_id,
+            FileProcessingJob.case_file_id == payload.document_id,
+            FileProcessingJob.processing_type
+            == ProcessingType.ENTITY_EXTRACTION,
+        )
+        .limit(1)
+    )
+
+    job = job_result.scalar_one_or_none()
+
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Entity extraction job not found",
+        )
+
+    # ---------------------------------------------------------
+    # 4. Never overwrite a completed job
+    # ---------------------------------------------------------
+
+    if job.status == ProcessingJobStatus.COMPLETED:
+        return {
+            "status": "already_completed",
+            "document_id": payload.document_id,
+            "job_id": payload.job_id,
+        }
+
+    # ---------------------------------------------------------
+# 5. Mark the job as failed
+# ---------------------------------------------------------
+
+    job.status = ProcessingJobStatus.FAILED
+    job.error_message = payload.error
+    job.completed_at = datetime.utcnow()
+
+    document = await db.get(
+        Document,
+        payload.document_id,
+    )
+
+    if document is not None:
+        await sync_document_lifecycle_status(
+            db,
+            document,
+        )
+
+    await db.commit()
+
+    return {
+        "status": "failed",
+        "document_id": payload.document_id,
+        "job_id": payload.job_id,
     }

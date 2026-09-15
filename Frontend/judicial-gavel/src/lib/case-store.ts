@@ -3,7 +3,12 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import type { CaseRecord } from "@/data/cases";
+import { useUser } from "@/lib/user-store";
+
+import type {
+  CaseCategory,
+  CaseRecord,
+} from "@/data/cases";
 
 import {
   createCase,
@@ -23,6 +28,7 @@ type CaseStoreState = {
 
 const PINNED_STORAGE_KEY =
   "jury-hash:pinned-cases";
+
 const ARCHIVED_STORAGE_KEY =
   "jury-hash:archived-cases";
 
@@ -31,15 +37,19 @@ let state: CaseStoreState = {
   loading: false,
 };
 
+let loadedForUserId: string | null = null;
 let loadStarted = false;
-let loadPromise: Promise<void> | null =
-  null;
+let loadPromise: Promise<void> | null = null;
+let loadGeneration = 0;
 
 const listeners = new Set<
   () => void
 >();
 
-function formatCaseDate(iso: string): string {
+
+function formatCaseDate(
+  iso: string,
+): string {
   const date = new Date(iso);
 
   if (Number.isNaN(date.getTime())) {
@@ -53,6 +63,8 @@ function formatCaseDate(iso: string): string {
     year: "numeric",
   });
 }
+
+
 function emit() {
   listeners.forEach(
     (listener) => {
@@ -135,6 +147,7 @@ function getPinnedIds(): Set<string> {
   }
 }
 
+
 function getArchivedIds(): Set<string> {
   if (
     typeof window ===
@@ -201,6 +214,7 @@ function saveArchivedIds(
   }
 }
 
+
 function savePinnedIds(
   ids: Set<string>,
 ) {
@@ -229,6 +243,32 @@ function savePinnedIds(
 
 
 /* ==========================================================================
+   CATEGORY MAPPING
+   ========================================================================== */
+
+function toCaseCategory(
+  value: string | null | undefined,
+): CaseCategory | undefined {
+  const normalized =
+    value?.trim().toLowerCase();
+
+  switch (normalized) {
+    case "criminal":
+      return "Criminal";
+
+    case "civil":
+      return "Civil";
+
+    case "constitutional":
+      return "Constitutional";
+
+    default:
+      return undefined;
+  }
+}
+
+
+/* ==========================================================================
    BACKEND → FRONTEND MAPPING
    ========================================================================== */
 
@@ -240,12 +280,22 @@ function mapBackendCase(
 
   return {
     id: record.id,
-    title: record.title,
+
+    title:
+      record.title,
+
     court:
-      record.department ??
       "Not recorded",
-    bench: "To be assigned",
-    status: "Active",
+
+    category:
+      toCaseCategory(record.category) ??
+      "Criminal",
+
+    bench:
+      "To be assigned",
+
+    status:
+      "Active",
 
     classification:
       record.classification
@@ -254,11 +304,18 @@ function mapBackendCase(
         ? "confidential"
         : "general",
 
-    filed: formatCaseDate(record.created_at),
+    filed:
+      formatCaseDate(
+        record.created_at,
+      ),
 
-    updated: formatCaseDate(record.created_at),
+    updated:
+      formatCaseDate(
+        record.created_at,
+      ),
 
-    subject: "General",
+    subject:
+      "General",
 
     pinned:
       pinnedIds.has(
@@ -268,17 +325,22 @@ function mapBackendCase(
     parties: [
       {
         role: "Petitioner",
-        name: "Not recorded",
+        name:
+          "Not recorded",
       },
       {
         role: "Respondent",
-        name: "Not recorded",
+        name:
+          "Not recorded",
       },
     ],
 
     history: [
       {
-        date: formatCaseDate(record.created_at),
+        date:
+          formatCaseDate(
+            record.created_at,
+          ),
 
         title:
           "Record created",
@@ -293,6 +355,7 @@ function mapBackendCase(
       "No summary recorded for this matter yet.",
 
     issues: [],
+
     authorities: [],
   };
 }
@@ -302,7 +365,12 @@ function mapBackendCase(
    BACKEND CASE LOADING
    ========================================================================== */
 
-async function refreshCases() {
+async function refreshCases(
+  userId?: string,
+) {
+  const requestGeneration =
+    loadGeneration;
+
   try {
     state = {
       ...state,
@@ -314,8 +382,27 @@ async function refreshCases() {
     const backendCases =
       await getCases();
 
+    /*
+     * The authenticated user may have changed while
+     * the request was in flight.
+     *
+     * Never allow a response belonging to the previous
+     * session to populate the current case store.
+     */
+    if (
+      requestGeneration !==
+        loadGeneration ||
+      (
+        userId !== undefined &&
+        userId !== loadedForUserId
+      )
+    ) {
+      return;
+    }
+
     const pinnedIds =
       getPinnedIds();
+
     const archivedIds =
       getArchivedIds();
 
@@ -324,32 +411,29 @@ async function refreshCases() {
         mapBackendCase,
       );
 
-    /*
-     * Re-apply persisted pin state after
-     * loading backend data.
-     *
-     * This guarantees that a refresh does
-     * not visually unpin a case.
-     */
     const nextCases =
-  mappedCases.map(
-    (record) => ({
-      ...record,
+      mappedCases.map(
+        (record) => ({
+          ...record,
 
-      pinned:
-        pinnedIds.has(
-          record.id,
-        ),
+          pinned:
+            pinnedIds.has(
+              record.id,
+            ),
 
-      archived:
-        archivedIds.has(
-          record.id,
-        ),
-    }),
-  );
+          archived:
+            archivedIds.has(
+              record.id,
+            ),
+        }),
+      );
+
     state = {
-      cases: nextCases,
-      loading: false,
+      cases:
+        nextCases,
+
+      loading:
+        false,
     };
 
     emit();
@@ -360,10 +444,20 @@ async function refreshCases() {
     );
 
     /*
-     * Do not destroy an already-loaded
-     * case list just because a subsequent
-     * refresh failed.
+     * Do not let a stale request from a previous
+     * authenticated session modify the current store.
      */
+    if (
+      requestGeneration !==
+        loadGeneration ||
+      (
+        userId !== undefined &&
+        userId !== loadedForUserId
+      )
+    ) {
+      return;
+    }
+
     state = {
       ...state,
       loading: false,
@@ -374,20 +468,31 @@ async function refreshCases() {
 }
 
 
-function ensureCasesLoaded() {
+function ensureCasesLoaded(
+  userId: string,
+) {
+  if (!userId) {
+    return Promise.resolve();
+  }
+
   if (
-    loadStarted
+    loadStarted &&
+    loadedForUserId ===
+      userId
   ) {
     return loadPromise;
   }
 
-  loadStarted =
-    true;
+  loadStarted = true;
+
+  loadedForUserId =
+    userId;
 
   loadPromise =
-    refreshCases().finally(() => {
-      loadPromise =
-        null;
+    refreshCases(
+      userId,
+    ).finally(() => {
+      loadPromise = null;
     });
 
   return loadPromise;
@@ -406,9 +511,71 @@ export function useCases(): CaseRecord[] {
       getServerSnapshot,
     );
 
+  const user =
+    useUser();
+
+  const userId =
+    user?.id ?? null;
+
   useEffect(() => {
-    void ensureCasesLoaded();
-  }, []);
+    /*
+     * No authenticated user:
+     * immediately clear all case data from memory.
+     */
+    if (!userId) {
+      loadGeneration += 1;
+
+      loadedForUserId =
+        null;
+
+      loadStarted =
+        false;
+
+      loadPromise =
+        null;
+
+      state = {
+        cases: [],
+        loading: false,
+      };
+
+      emit();
+
+      return;
+    }
+
+    /*
+     * User changed:
+     * invalidate the previous user's case state
+     * before loading the new user's cases.
+     */
+    if (
+      loadedForUserId !==
+      userId
+    ) {
+      loadGeneration += 1;
+
+      loadedForUserId =
+        null;
+
+      loadStarted =
+        false;
+
+      loadPromise =
+        null;
+
+      state = {
+        cases: [],
+        loading: true,
+      };
+
+      emit();
+    }
+
+    void ensureCasesLoaded(
+      userId,
+    );
+  }, [userId]);
 
   return snapshot.cases;
 }
@@ -431,10 +598,16 @@ export function useCaseActions() {
         await createCase({
           title:
             record.title,
+
           description:
             record.summary,
+
           classification:
             record.classification,
+
+          category:
+            record.category ??
+            "Civil",
         });
 
       /*
@@ -487,7 +660,8 @@ export function useCaseActions() {
 
       state = {
         ...state,
-        cases: nextCases,
+        cases:
+          nextCases,
       };
 
       /*
@@ -518,100 +692,117 @@ export function useCaseActions() {
       emit();
     },
 
+
+    /* ----------------------------------------------------------------------
+       ARCHIVE
+       ---------------------------------------------------------------------- */
+
     archiveCase: (
-  id: string,
-) => {
-  const target =
-    state.cases.find(
-      (record) =>
-        record.id === id,
-    );
+      id: string,
+    ) => {
+      const target =
+        state.cases.find(
+          (record) =>
+            record.id ===
+            id,
+        );
 
-  if (!target) {
-    return;
-  }
+      if (!target) {
+        return;
+      }
 
-  const archivedIds =
-    getArchivedIds();
+      const archivedIds =
+        getArchivedIds();
 
-  archivedIds.add(id);
-  saveArchivedIds(
-    archivedIds,
-  );
+      archivedIds.add(id);
 
-  state = {
-    ...state,
+      saveArchivedIds(
+        archivedIds,
+      );
 
-    cases:
-      state.cases.map(
-        (record) =>
-          record.id === id
-            ? {
-                ...record,
-                archived:
-                  true,
-                pinned:
-                  false,
-              }
-            : record,
-      ),
-  };
+      state = {
+        ...state,
 
-  /*
-   * An archived matter should no longer
-   * remain in the pinned quick-access list.
-   */
-  const pinnedIds =
-    getPinnedIds();
+        cases:
+          state.cases.map(
+            (record) =>
+              record.id === id
+                ? {
+                    ...record,
 
-  pinnedIds.delete(id);
-  savePinnedIds(
-    pinnedIds,
-  );
+                    archived:
+                      true,
 
-  emit();
-},
+                    pinned:
+                      false,
+                  }
+                : record,
+          ),
+      };
+
+      /*
+       * An archived matter should no longer
+       * remain in the pinned quick-access list.
+       */
+      const pinnedIds =
+        getPinnedIds();
+
+      pinnedIds.delete(id);
+
+      savePinnedIds(
+        pinnedIds,
+      );
+
+      emit();
+    },
 
 
-unarchiveCase: (
-  id: string,
-) => {
-  const target =
-    state.cases.find(
-      (record) =>
-        record.id === id,
-    );
+    /* ----------------------------------------------------------------------
+       UNARCHIVE
+       ---------------------------------------------------------------------- */
 
-  if (!target) {
-    return;
-  }
+    unarchiveCase: (
+      id: string,
+    ) => {
+      const target =
+        state.cases.find(
+          (record) =>
+            record.id ===
+            id,
+        );
 
-  const archivedIds =
-    getArchivedIds();
+      if (!target) {
+        return;
+      }
 
-  archivedIds.delete(id);
-  saveArchivedIds(
-    archivedIds,
-  );
+      const archivedIds =
+        getArchivedIds();
 
-  state = {
-    ...state,
+      archivedIds.delete(id);
 
-    cases:
-      state.cases.map(
-        (record) =>
-          record.id === id
-            ? {
-                ...record,
-                archived:
-                  false,
-              }
-            : record,
-      ),
-  };
+      saveArchivedIds(
+        archivedIds,
+      );
 
-  emit();
-},
+      state = {
+        ...state,
+
+        cases:
+          state.cases.map(
+            (record) =>
+              record.id === id
+                ? {
+                    ...record,
+
+                    archived:
+                      false,
+                  }
+                : record,
+          ),
+      };
+
+      emit();
+    },
 
 
     /* ----------------------------------------------------------------------
@@ -645,16 +836,31 @@ unarchiveCase: (
 
 export interface NewCaseInput {
   id: string;
+
   title: string;
+
+  category: string;
+
   court: string;
+
   bench: string;
-  status: CaseRecord["status"];
-  classification: CaseRecord["classification"];
+
+  status:
+    CaseRecord["status"];
+
+  classification:
+    CaseRecord["classification"];
+
   filed: string;
+
   subject: string;
+
   petitioner: string;
+
   respondent: string;
+
   summary: string;
+
   fileName?: string;
 }
 
@@ -674,6 +880,10 @@ export function toCaseRecord(
 
     title:
       input.title.trim(),
+
+    category:
+      toCaseCategory(input.category) ??
+      "Criminal",
 
     court:
       input.court.trim(),
@@ -705,12 +915,15 @@ export function toCaseRecord(
     parties: [
       {
         role: "Petitioner",
+
         name:
           input.petitioner.trim() ||
           "Not recorded",
       },
+
       {
         role: "Respondent",
+
         name:
           input.respondent.trim() ||
           "Not recorded",
@@ -738,6 +951,7 @@ export function toCaseRecord(
       "No summary recorded for this matter yet.",
 
     issues: [],
+
     authorities: [],
   };
 }

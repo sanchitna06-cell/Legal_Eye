@@ -29,12 +29,16 @@ from app.core.contracts import (
 )
 from app.core.database import AsyncSessionLocal
 from app.models.case_file_page import CaseFilePage
+from app.models.document import Document
 from app.models.file_processing_job import FileProcessingJob
+from app.services.document_status_service import (
+    sync_document_lifecycle_status,
+)
 
 N8N_TRIGGER_TIMEOUT = httpx.Timeout(30.0)
 
 
-async def _trigger_n8n_pipeline(
+async def trigger_n8n_pipeline(
     document_id: str,
     case_id: str,
     job_id: str,
@@ -89,18 +93,34 @@ async def _trigger_n8n_pipeline(
         try:
             async with AsyncSessionLocal() as db:
                 failed_job = await db.get(FileProcessingJob, job_id)
+
                 if failed_job is not None:
                     failed_job.status = ProcessingJobStatus.FAILED
                     failed_job.error_message = (
                         f"Failed to trigger n8n Pipeline: {exc}"
                     )[:1000]
                     failed_job.completed_at = datetime.utcnow()
+
+                    document = await db.get(
+                        Document,
+                        document_id,
+                    )
+
+                    if document is not None:
+                        await sync_document_lifecycle_status(
+                            db,
+                            document,
+                        )
+
                     await db.commit()
+
         except Exception as handler_error:
             print(
                 f"❌ Could not record n8n-trigger failure for job "
                 f"{job_id}: {handler_error}"
             )
+
+        raise
 
 
 async def handle_text_extracted(payload: TextExtractedPayload) -> None:
@@ -211,7 +231,10 @@ async def handle_text_extracted(payload: TextExtractedPayload) -> None:
             if should_trigger_n8n:
                 pages_result = await db.execute(
                     select(CaseFilePage)
-                    .where(CaseFilePage.case_file_id == payload.document_id)
+                    .where(
+                        CaseFilePage.case_file_id
+                        == payload.document_id
+                    )
                     .order_by(CaseFilePage.page_number)
                 )
 
@@ -237,7 +260,7 @@ async def handle_text_extracted(payload: TextExtractedPayload) -> None:
         raise
 
     if should_trigger_n8n:
-        await _trigger_n8n_pipeline(
+        await trigger_n8n_pipeline(
             document_id=payload.document_id,
             case_id=payload.case_id,
             job_id=job_id,
