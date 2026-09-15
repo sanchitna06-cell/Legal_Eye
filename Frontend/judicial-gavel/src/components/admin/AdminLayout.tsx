@@ -464,19 +464,6 @@ export function AdminLayout({
             ============================================================ */}
 
         <header className="admin-topbar">
-          <div className="admin-government">
-            <img
-              src={emblemOfIndia}
-              alt="Government of India emblem"
-              className="admin-government__emblem"
-            />
-
-            <div className="admin-government__copy">
-              <p>Government of India</p>
-              <p>Digital Justice Initiative</p>
-            </div>
-          </div>
-
 
           <div className="admin-search">
             <Search className="admin-search__icon" />
